@@ -1,4 +1,6 @@
 mdai
 numpy
 pandas
-SimpleITK
+#SimpleITK
+opencv-python
+pydicom
