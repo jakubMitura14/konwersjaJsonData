@@ -13,6 +13,16 @@ results['labels'].columns#
 #        'labelId', 'labelName', 'radlexTagIdsLabel', 'scope', 'parentLabelId'
 
 
+
+plan 
+-) orgnize the files like in https://towardsdatascience.com/a-python-script-to-sort-dicom-files-f1623a7f40b8
+-) work on a series by series case
+-) copy dicom files
+-) put those in a folders with meaningfull names - preferaly separae for each  label Type
+-) ovewrite the pixel data of the dicom file 
+-) get all files from the series to the pydicom or better sitk and create image
+
+
 SeriesInstanceUID is a globally unique identifier for a single series. SOPInstanceUID is a globally unique identifier for a DICOM file.
  A series can have multiple DICOM files, so each would share that same SeriesInstanceUID, but each file would have it's own SOPInstanceUID.
 

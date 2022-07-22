@@ -18,15 +18,34 @@ import random
 
 mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
 p = mdai_client.project('gaq3y0Rl', path='/workspaces/konwersjaJsonData/data')
-p.set_labels_dict(labels_dict)
+p.set_labels_dict(labelDict.labels_dict)
 datasetId='D_8og9ON'
 dataset = p.get_dataset_by_id(datasetId)
 dataset.prepare()
 
+
+datasetId='D_gQm1nQ'
+dataset = p.get_dataset_by_id(datasetId)
+dataset.prepare()
+
+
+
+
+
+arr = ds.pixel_array
+arr[arr < 300] = 0
+ds.PixelData = arr.tobytes()
+ds.save_as("temp.dcm")
+
+image = pydicom.dcmread(someFileLocRepo)
+mask = mdai.visualize.load_mask(someFileLocRepo, dataset)
+
 image_filenames = dataset.get_image_ids()
 fn = image_filenames[0]
+
 image = pydicom.dcmread(fn)
 mask = mdai.visualize.load_mask(fn, dataset)
+
 img = image.pixel_array
 
 
@@ -95,3 +114,5 @@ D_gQm1nQ
 dataset2
 
 project_id - gaq3y0Rl
+
+len(image_filenames)

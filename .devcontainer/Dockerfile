@@ -1,16 +1,3 @@
-# Copyright 2018 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 FROM nvidia/cuda:11.2.1-base-ubuntu18.04 as base_build
 
 ARG TF_SERVING_VERSION_GIT_BRANCH=master
@@ -249,30 +236,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ENV CXX /opt/rh/devtoolset-2/root/usr/bin/g++
 # ENV FC /opt/rh/devtoolset-2/root/usr/bin/gfortran
 
-RUN mkdir ${HOME}/externalRepos/qiicr
-RUN git clone https://github.com/QIICR/dcmqi.git ${HOME}/externalRepos/qiicr
+# RUN mkdir ${HOME}/externalRepos/qiicr
+# RUN git clone https://github.com/QIICR/dcmqi.git ${HOME}/externalRepos/qiicr
 
-# RUN export PATH=$PATH:/usr/lib/gcc
-# RUN export CC=gcc
-RUN cd ${HOME}/externalRepos/qiicr && \
-    mkdir buildd && \
-    cd buildd && \
-    cmake -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER=/usr/bin/gcc ${HOME}/externalRepos/qiicr && \
-    make -j6
-
-# # Build and install ninja from source.
-# WORKDIR /usr/src
-# RUN git clone https://github.com/martine/ninja.git && \
-#   cd ninja && \
-#   git checkout v1.6.0 && \
-#   ./configure.py --bootstrap && \
-#   mv ninja /usr/bin/ && \
-#   cd .. && rm -rf ninja
-
-# Build and install dcmqi
-# WORKDIR /usr/src
-# RUN git clone https://github.com/QIICR/dcmqi.git && \
-#   mkdir dcmqi-superbuild && \
-#   cd dcmqi-superbuild && \
-#   cmake -DCMAKE_INSTALL_PREFIX=/usr ../dcmqi && \
-#   make -j$(grep -c processor /proc/cpuinfo)
+# # RUN export PATH=$PATH:/usr/lib/gcc
+# # RUN export CC=gcc
+# RUN cd ${HOME}/externalRepos/qiicr && \
+#     mkdir buildd && \
+#     cd buildd && \
+#     cmake -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER=/usr/bin/gcc ${HOME}/externalRepos/qiicr && \
+#     make -j6
