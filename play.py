@@ -20,256 +20,95 @@ results = mdai.common_utils.json_to_dataframe(JSON)
 results.keys()#'annotations', 'studies', 'labels'
 annot=results['annotations']
 
-exampleRow=list(results['annotations'].iterrows())[0]
-binArray= mainFuncs.load_mask_instance(exampleRow[1])
-binArray.shape
-
 #path to folder with all required data
 dataDir='/workspaces/konwersjaJsonData/data'
 outputDir='/workspaces/konwersjaJsonData/output'
 files_df= mainFuncs.get_df_file_info(dataDir)
 
-# #adding columns to dataframe collecting information about outputs paths
-# uniq_labels= np.unique(annot['labelName'].to_numpy())
-# uniq_labels_and_vol=np.concatenate((uniq_labels,['volume']))
+def mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath):
+    """
+    main functions that gives single series of single annotator specialist
+    will create files with 3d mha of this series plus 3d nii.gz files for each annotation label
+    """
+    ### 1) now we will get single series - get all paths of files related to it
+    paths_in_series= files_df.loc[files_df['SeriesInstanceUID'] == currentSeries]['paths'].to_numpy() 
+    ### 2) we will check how many diffrent labels are associated 
+    uniq_labels= np.unique(annot_for_series['labelName'].to_numpy())
 
-# for lab in uniq_labels_and_vol:
-#     annot[lab]=''
+    copiedPath=os.path.join(studyPath,currentSeries )
+    origVolPath = os.path.join(copiedPath ,'origVol')
+    os.makedirs(origVolPath ,exist_ok = True)
+    # into each subfolder we will copy the full  set of files related to main image at hand
+    for path_to_copy in paths_in_series:
+        os.system(f'cp {path_to_copy} {origVolPath}')  
+
+    series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
+    series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
+
+    #getseries file names in correct order
+    #series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(copiedPath, currentSeries)
+    series_reader = sitk.ImageSeriesReader()
+    series_reader.MetaDataDictionaryArrayUpdateOn()
+    series_reader.LoadPrivateTagsOn()
+    series_reader.SetFileNames(series_file_names)
+
+    image3D = series_reader.Execute()
+    writer = sitk.ImageFileWriter()
+    # Use the study/series/frame of reference information given in the meta-data
+    # dictionary and not the automatically generated information from the file IO
+    #writer.KeepOriginalImageUIDOn()
+    newPath= os.path.join(copiedPath,'volume.mha')
+    writer.SetFileName(newPath)
+    writer.Execute(image3D)   
+    data=sitk.GetArrayFromImage(image3D)
+
+    ### we will change the data type of each file into boolean and fil it with zeros
+    #first get all files paths - but not of the original file
+    for lab in uniq_labels:
+        dtype=np.uint16
+        annot_for_label=annot_for_series.loc[annot_for_series['labelName'] == lab]
+        
+        zeroArray=np.zeros(data.shape, dtype=dtype)
+        print(f"data.shape {data.shape}")
+        for index,loccPath in enumerate(series_file_names):
+            #open file to get sop id
+            ds = pydicom.dcmread(loccPath)
+            sop=mainFuncs.get_SOPInstanceUID(ds)
+            annot_for_sop= annot_for_label.loc[annot_for_label['SOPInstanceUID'] == sop]       
+            if(len(annot_for_sop)>0):
+                print("overWriting")
+                rowOfIntr=list(annot_for_sop.iterrows())[0]
+                #we obtain mask as a boolean array
+                binArray= mainFuncs.load_mask_instance(rowOfIntr).astype(dtype)  
+                print(f"binArray {binArray} lab {lab}")
+                #time to overwrite the data
+                # ds.PixelData = binArray.tostring() 
+                zeroArray[index,:,:]=binArray
+
+        # data is already overwritten
+        # reading series of dicom and save them as nii.gz in case of the 
+        # from https://simpleitk.readthedocs.io/en/master/link_DicomSeriesReadModifyWrite_docs.html
+        #series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(locPath)
+        image = sitk.GetImageFromArray(zeroArray)  
+        image.SetSpacing(image3D.GetSpacing())
+        image.SetOrigin(image3D.GetOrigin())
+        image.SetDirection(image3D.GetDirection())    
+
+        newPath= os.path.join(copiedPath,lab+'.nii.gz')
+        writer.SetFileName(newPath)
+        writer.Execute(image)   
+
 
 ## get single study
-current_study_id=np.unique(annot['StudyInstanceUID'].to_numpy())[0]
-
-
-annot_for_study_id=annot.loc[annot['StudyInstanceUID'] == current_study_id]
-
-#get annotator id 
-current_doctor_id=np.unique(annot_for_study_id['createdById'].to_numpy())[0]
-annot_for_doctor=annot_for_study_id.loc[annot_for_study_id['createdById'] == current_doctor_id]
-
-#create directory for this study
-studyPath = os.path.join(outputDir, current_study_id,current_doctor_id)
-os.makedirs(studyPath, exist_ok = True)
-
-
-#get single series
-example_series_id=np.unique(annot_for_doctor['SeriesInstanceUID'].to_numpy())[0]
-
-
-currentSeries=example_series_id
-annot_for_series=annot_for_doctor.loc[annot_for_doctor['SeriesInstanceUID'] == currentSeries]
-
-### 1) now we will get single series - get all paths of files related to it
-paths_in_series= files_df.loc[files_df['SeriesInstanceUID'] == currentSeries]['paths'].to_numpy() 
-### 2) we will check how many diffrent labels are associated 
-uniq_labels= np.unique(annot_for_series['labelName'].to_numpy())
-uniq_labels_and_vol=np.concatenate((uniq_labels,['volume']))
-
-#adding folder for each label and pass all files into it
-# for each label we will generate searate subfolder
-# for lab in uniq_labels_and_vol:
-#     locPath=os.path.join(studyPath,currentSeries ,lab.replace(" ","_"))
-#     out_paths=[]
-#     os.makedirs(locPath ,exist_ok = True)
-#     # into each subfolder we will copy the full  set of files related to main image at hand
-#     for path_to_copy in paths_in_series:
-#         os.system(f'cp {path_to_copy} {locPath}')  
-    
-
-copiedPath=os.path.join(studyPath,currentSeries )
-origVolPath = os.path.join(copiedPath ,'origVol')
-out_paths=[]
-
-os.makedirs(origVolPath ,exist_ok = True)
-# into each subfolder we will copy the full  set of files related to main image at hand
-for path_to_copy in paths_in_series:
-    os.system(f'cp {path_to_copy} {origVolPath}')  
-
-series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
-series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
-
-#getseries file names in correct order
-#series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(copiedPath, currentSeries)
-series_reader = sitk.ImageSeriesReader()
-series_reader.MetaDataDictionaryArrayUpdateOn()
-series_reader.LoadPrivateTagsOn()
-series_reader.SetFileNames(series_file_names)
-
-image3D = series_reader.Execute()
-writer = sitk.ImageFileWriter()
-# Use the study/series/frame of reference information given in the meta-data
-# dictionary and not the automatically generated information from the file IO
-#writer.KeepOriginalImageUIDOn()
-newPath= os.path.join(copiedPath,'volume.mha')
-writer.SetFileName(newPath)
-writer.Execute(image3D)   
-data=sitk.GetArrayFromImage(image3D)
-
-### we will change the data type of each file into boolean and fil it with zeros
-#first get all files paths - but not of the original file
-completePaths= []
-for lab in uniq_labels:
-    dtype=np.uint16
-    annot_for_label=annot_for_series.loc[annot_for_series['labelName'] == lab]
-    
-    zeroArray=np.zeros(data.shape, dtype=dtype)
-    for index,loccPath in enumerate(series_file_names):
-        #open file to get sop id
-        ds = pydicom.dcmread(loccPath)
-        sop=mainFuncs.get_SOPInstanceUID(ds)
-        annot_for_sop= annot_for_label.loc[annot_for_label['SOPInstanceUID'] == sop]       
-        if(len(annot_for_sop)>0):
-            print("overWriting")
-            rowOfIntr=list(annot_for_sop.iterrows())[0]
-            #we obtain mask as a boolean array
-            binArray= mainFuncs.load_mask_instance(rowOfIntr).astype(dtype)  
-            #time to overwrite the data
-            # ds.PixelData = binArray.tostring() 
-            zeroArray[index,:,:]=binArray
-
-    # data is already overwritten
-    # reading series of dicom and save them as nii.gz in case of the 
-    # from https://simpleitk.readthedocs.io/en/master/link_DicomSeriesReadModifyWrite_docs.html
-    #series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(locPath)
-    image = sitk.GetImageFromArray(zeroArray)  
-    image.SetSpacing(image3D.GetSpacing())
-    image.SetOrigin(image3D.GetOrigin())
-    image.SetDirection(image3D.GetDirection())    
-
-    newPath= os.path.join(copiedPath,lab+'.nii.gz')
-    writer.SetFileName(newPath)
-    writer.Execute(image)   
-
-
-
-# for lab in uniq_labels_and_vol:
-#     locPath=os.path.join(studyPath,currentSeries ,lab.replace(" ","_"))
-
-pathhg='/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.2.41.69644.30000020011405272273800000001/U_8ZmM76/1.3.12.2.1107.5.2.41.69644.2020011406404167573202555.0.0.0/volume/volume.mha'
-img=sitk.ReadImage(pathhg)
-data=sitk.GetArrayFromImage(img)
-# exampleRow=list(mergedWithPaths.iterrows())[0]
-
-
-
-#now we associate the path with proper row in annotation dataframe
-
-
-### for slices where annotations are present we will ovewrite data in file with data from dataframe
-#we need to change data type of each voxel to boolean and set it to zeros
-
-ds = pydicom.dcmread(somePath)
-pxx= ds.pixel_array
-pxx.shape
-somePath=completePaths[1]
-
-
-
-#for labPath in completePaths:
-
-
-
-###  we will load all files from each subfolder using simpleitk and save them in case of main image as mha in case of labels as nii.gz
-
-
-
-
-files_df #438554 rows
-annot #15975
-
-mergedWithPaths=pd.merge(annot,files_df,on='SOPInstanceUID',how='inner')
-mergedWithPaths.iloc()[1]
-
-numpy_StudyInstanceUID=annot['StudyInstanceUID'].to_numpy()
-len(np.unique(numpy_StudyInstanceUID))
-
-mergedWithPaths=pd.merge(annot,files_df,on='SOPInstanceUID',how='inner')
-mergedWithPaths.columns
-
-parsedd = list(map(mainFuncs.load_mask_instance  ,list(mergedWithPaths.iterrows())))
-filtered= list(filter(lambda it : np.sum(it) >0,parsedd))
-len(filtered)
-
-
-example_study_id=np.unique(annot['StudyInstanceUID'].to_numpy())[0]
-
-annots_for_study_id= annot.loc[annot['StudyInstanceUID'] == example_study_id]
-files_for_study_id=files_df.loc[files_df['StudyInstanceUID'] == example_study_id]
-
-#get single series
-example_series_id=np.unique(annots_for_study_id['SeriesInstanceUID'].to_numpy())[0]
-
-annots_for_series_id= annots_for_study_id.loc[annots_for_study_id['SeriesInstanceUID'] == example_series_id]
-files_for_series_id=files_for_study_id.loc[files_for_study_id['SeriesInstanceUID'] == example_series_id]
-
-
-#get sop
-lenn= len(np.unique(files_for_series_id['SOPInstanceUID'].to_numpy()))
-lenn
-
-for i in range(0,lenn-1):
-    example_sop_id=np.unique(annots_for_series_id['SOPInstanceUID'].to_numpy())[i]
-
-    annots_for_sop_id= annots_for_series_id.loc[annots_for_series_id['SOPInstanceUID'] == example_sop_id]
-    files_for_sop_id=files_for_series_id.loc[files_for_series_id['SOPInstanceUID'] == example_sop_id]
-    print(f" annots_for_sop_id {len(annots_for_sop_id)} files_for_sop_id {len(files_for_sop_id)}  ")
-
-
-annots_for_sop_id
-files_for_sop_id
-
-files_for_sop_id['paths'].to_numpy()[0]
-files_for_sop_id['paths'].to_numpy()[1]
-
-'1.3.12.2.1107.5.2.41.69644.2020011406404167573202555.0.0.0/1.3.12.2.1107.5.2.41.69644.2020011406404215288402586'=='1.3.12.2.1107.5.2.41.69644.2020011406404167573202555.0.0.0/1.3.12.2.1107.5.2.41.69644.2020011406404215288402586'
-
-files_for_sop_id.columns
-
-annots_for_study_id
-files_for_study_id
-
-# Get DICOM pixel array
-# pixel_array = mdai.visualize.load_dicom_image(image_id, to_RGB=False, rescale=True)
-
-# number_of_masks = len(mask[1])
-# fig = plt.figure()
-# for i in range(0,number_of_masks):
-#     cols = 3
-#     rows = np.ceil(number_of_masks/float(cols))
-#     ax = fig.add_subplot(rows, cols, i + 1)
-#     ax.axis('off')
-#     plt.imshow((cv2.bitwise_and(img, img, mask = mask[0][:,:,i].astype(np.uint8))))
-#     ax.set_title(mask[1][i])
-
-
-someFile='/workspaces/konwersjaJsonData/data/054/DICOM/22021715/11310000/39978953'
-someFileB='/workspaces/konwersjaJsonData/data/054/DICOM/22021715/11310000/39984365'
-ds = pydicom.dcmread(someFileB)
-
-
-singleSeries='/workspaces/konwersjaJsonData/locData/055/DICOM/22022414/23560000/39048749'
-single_series_files_df= mainFuncs.get_df_file_info(singleSeries)
-
-exampleRow=list(mergedWithPaths.iterrows())[0]
-binArray= mainFuncs.load_mask_instance(exampleRow)
-
-
-
-# resList=[]
-# with mp.Pool(processes = mp.cpu_count()) as pool:
-#     resList=pool.map(mainFuncs.load_mask_instance  ,list(mergedWithPaths.iterrows()))
-
-
-
-#SOPInstanceUID 31950
-#SeriesInstanceUID 1485150
-#StudyInstanceUID 24252720
-
-
-
-## now performing outer join
-#from annotations
-#StudyInstanceUID - 199 unique
-#SeriesInstanceUID - 743 unique
-#from files
-#StudyInstanceUID - 3 unique
-#SeriesInstanceUID - 44 unique
+for current_study_id in np.unique(annot['StudyInstanceUID'].to_numpy()):
+    annot_for_study_id=annot.loc[annot['StudyInstanceUID'] == current_study_id]
+    #get annotator id 
+    for current_doctor_id in np.unique(annot_for_study_id['createdById'].to_numpy()):
+        annot_for_doctor=annot_for_study_id.loc[annot_for_study_id['createdById'] == current_doctor_id]
+        #create directory for this study
+        studyPath = os.path.join(outputDir, current_study_id,current_doctor_id)
+        os.makedirs(studyPath, exist_ok = True)
+        #get single series
+        for currentSeries in np.unique(annot_for_doctor['SeriesInstanceUID'].to_numpy()):
+            annot_for_series=annot_for_doctor.loc[annot_for_doctor['SeriesInstanceUID'] == currentSeries]
+            mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath)
