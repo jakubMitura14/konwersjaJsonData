@@ -66,89 +66,79 @@ uniq_labels_and_vol=np.concatenate((uniq_labels,['volume']))
 
 #adding folder for each label and pass all files into it
 # for each label we will generate searate subfolder
-for lab in uniq_labels_and_vol:
-    locPath=os.path.join(studyPath,currentSeries ,lab.replace(" ","_"))
-    out_paths=[]
-    os.makedirs(locPath ,exist_ok = True)
-    # into each subfolder we will copy the full  set of files related to main image at hand
-    for path_to_copy in paths_in_series:
-        os.system(f'cp {path_to_copy} {locPath}')  
+# for lab in uniq_labels_and_vol:
+#     locPath=os.path.join(studyPath,currentSeries ,lab.replace(" ","_"))
+#     out_paths=[]
+#     os.makedirs(locPath ,exist_ok = True)
+#     # into each subfolder we will copy the full  set of files related to main image at hand
+#     for path_to_copy in paths_in_series:
+#         os.system(f'cp {path_to_copy} {locPath}')  
     
 
+copiedPath=os.path.join(studyPath,currentSeries )
+origVolPath = os.path.join(copiedPath ,'origVol')
+out_paths=[]
+
+os.makedirs(origVolPath ,exist_ok = True)
+# into each subfolder we will copy the full  set of files related to main image at hand
+for path_to_copy in paths_in_series:
+    os.system(f'cp {path_to_copy} {origVolPath}')  
+
+series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
+series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
+
+#getseries file names in correct order
+#series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(copiedPath, currentSeries)
+series_reader = sitk.ImageSeriesReader()
+series_reader.MetaDataDictionaryArrayUpdateOn()
+series_reader.LoadPrivateTagsOn()
+series_reader.SetFileNames(series_file_names)
+
+image3D = series_reader.Execute()
+writer = sitk.ImageFileWriter()
+# Use the study/series/frame of reference information given in the meta-data
+# dictionary and not the automatically generated information from the file IO
+#writer.KeepOriginalImageUIDOn()
+newPath= os.path.join(copiedPath,'volume.mha')
+writer.SetFileName(newPath)
+writer.Execute(image3D)   
+data=sitk.GetArrayFromImage(image3D)
 
 ### we will change the data type of each file into boolean and fil it with zeros
 #first get all files paths - but not of the original file
 completePaths= []
-for lab in uniq_labels_and_vol:
-    locPath=os.path.join(studyPath,currentSeries ,lab.replace(" ","_"))
-    locPaths=mainFuncs.get_all_file_paths(locPath)
+for lab in uniq_labels:
     dtype=np.uint16
-    completePaths=completePaths+locPaths
-    if(lab!='volume'):
-        annot_for_label=annot_for_series.loc[annot_for_series['labelName'] == lab]
-        for loccPath in locPaths:
-            #open file to get sop id
-            ds = pydicom.dcmread(loccPath)
-            sop=mainFuncs.get_SOPInstanceUID(ds)
-            annot_for_sop= annot_for_label.loc[annot_for_label['SOPInstanceUID'] == sop]       
-            if(len(annot_for_sop)>0):
-                print("overWriting")
-                rowOfIntr=list(annot_for_sop.iterrows())[0]
-                #we obtain mask as a boolean array
-                binArray= mainFuncs.load_mask_instance(rowOfIntr).astype(dtype)  
-                #time to overwrite the data
-                ds.PixelData = binArray.tostring() 
- 
-                ds.save_as(loccPath)
-                
-                # img=sitk.ReadImage(loccPath)
-                # #data=sitk.GetArrayFromImage(image1))
-                # #recreating image keeping relevant metadata
-                # img2 = sitk.GetImageFromArray(binArray)  
-                # for key in img.GetMetaDataKeys(): 
-                #     img2.SetMetaData(key, img.GetMetaData(key))           
-                # writer = sitk.ImageFileWriter()
-                # # writer.KeepOriginalImageUIDOn()
-                # writer.SetFileName(loccPath)
-                # writer.Execute(img2)
-            else: # for case we have no data we will just overwrite the pixel data
-                img=sitk.ReadImage(loccPath)
-                data=sitk.GetArrayFromImage(img)
+    annot_for_label=annot_for_series.loc[annot_for_series['labelName'] == lab]
+    
+    zeroArray=np.zeros(data.shape, dtype=dtype)
+    for index,loccPath in enumerate(series_file_names):
+        #open file to get sop id
+        ds = pydicom.dcmread(loccPath)
+        sop=mainFuncs.get_SOPInstanceUID(ds)
+        annot_for_sop= annot_for_label.loc[annot_for_label['SOPInstanceUID'] == sop]       
+        if(len(annot_for_sop)>0):
+            print("overWriting")
+            rowOfIntr=list(annot_for_sop.iterrows())[0]
+            #we obtain mask as a boolean array
+            binArray= mainFuncs.load_mask_instance(rowOfIntr).astype(dtype)  
+            #time to overwrite the data
+            # ds.PixelData = binArray.tostring() 
+            zeroArray[index,:,:]=binArray
 
-                binArray=np.zeros(data.shape, dtype=dtype)
-                ds.PixelData = binArray.tostring() 
-                ds.save_as(loccPath)
-
-                # #recreating image keeping relevant metadata
-                # img2 = sitk.GetImageFromArray(binArray)  
-                # for key in img.GetMetaDataKeys(): 
-                #     img2.SetMetaData(key, img.GetMetaData(key))           
-                # writer = sitk.ImageFileWriter()
-                # # writer.KeepOriginalImageUIDOn()
-                # writer.SetFileName(loccPath)
-                # writer.Execute(img2)          
     # data is already overwritten
     # reading series of dicom and save them as nii.gz in case of the 
     # from https://simpleitk.readthedocs.io/en/master/link_DicomSeriesReadModifyWrite_docs.html
     #series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(locPath)
-    series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(
-    locPath, currentSeries)
-    series_reader = sitk.ImageSeriesReader()
-    series_reader.SetFileNames(locPaths)
-    # series_reader.SetFileNames(series_file_names)
-    series_reader.MetaDataDictionaryArrayUpdateOn()
-    series_reader.LoadPrivateTagsOn()
-    image3D = series_reader.Execute()
-    writer = sitk.ImageFileWriter()
-    # Use the study/series/frame of reference information given in the meta-data
-    # dictionary and not the automatically generated information from the file IO
-    writer.KeepOriginalImageUIDOn()
-    newPath= os.path.join(locPath,lab+'.nii.gz')
-    if(lab=='volume'):
-        newPath= os.path.join(locPath,'volume.mha')
-    print("nnnnnnn "+newPath)
+    image = sitk.GetImageFromArray(zeroArray)  
+    image.SetSpacing(image3D.GetSpacing())
+    image.SetOrigin(image3D.GetOrigin())
+    image.SetDirection(image3D.GetDirection())    
+
+    newPath= os.path.join(copiedPath,lab+'.nii.gz')
     writer.SetFileName(newPath)
-    writer.Execute(image3D)    
+    writer.Execute(image)   
+
 
 
 # for lab in uniq_labels_and_vol:
