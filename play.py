@@ -36,7 +36,7 @@ def findTheSame(slice,slices_with_sop,sops_in_anot):
     """
 
     # we look for all slices holding the same data
-    theSame= list(filter(lambda tupl : np.equal(tupl[1],slice)  ,slices_with_sop))
+    theSame= list(filter(lambda tupl : np.array_equal(tupl[1],slice)  ,slices_with_sop))
     #in case we have just single slice data with such data we will return just this single slice
     first=theSame[0]
     if len(theSame)==1:
@@ -66,7 +66,7 @@ def mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath):
     copiedPath=os.path.join(studyPath,currentSeries )
     origVolPath = os.path.join(copiedPath ,'origVol')
 
-    
+
     # checking weather there are more than one file with the same data
     slices_with_sop =[]
     with mp.Pool(processes = mp.cpu_count()) as pool:
@@ -168,3 +168,9 @@ for current_study_id in np.unique(annot['StudyInstanceUID'].to_numpy()):
         for currentSeries in np.unique(annot_for_doctor['SeriesInstanceUID'].to_numpy()):
             annot_for_series=annot_for_doctor.loc[annot_for_doctor['SeriesInstanceUID'] == currentSeries]
             mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath)
+
+
+#/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714130657000003016/U_OjmNZ8/1.3.12.2.1107.5.8.15.100960.30000022021714130657000003047/volume.mha
+#/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714463775000001099/U_OjmNZ8/1.3.12.2.1107.5.8.15.100960.30000022021714463775000001281/volume.mha
+
+/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714130657000000014/U_8ZmM76/1.3.12.2.1107.5.8.15.100960.30000022021714130657000001555/volume.mha
