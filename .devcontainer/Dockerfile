@@ -196,11 +196,13 @@ ENV TF_NCCL_VERSION=
 ENV TMP="/tmp"
 
 #RUN pip install itk
+RUN pip install jsonschema==3.0.2
 RUN pip install mdai
 RUN pip install numpy
 RUN pip install pandas
 RUN pip install opencv-python
 RUN pip install pydicom
+RUN pip install SimpleITK
 # RUN pip install SimpleITK-SimpleElastix==2.0.0rc2.dev910
 # RUN mkdir ${HOME}/elastixx
 # RUN git clone https://github.com/SuperElastix/elastix.git ${HOME}/elastixx

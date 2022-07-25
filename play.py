@@ -1,10 +1,8 @@
 import SimpleITK as sitk
-import itk
 import mdai
 import pandas as pd
 import numpy as np
 import cv2
-import mainFuncs
 import pydicom
 import os
 import multiprocessing as mp
@@ -13,6 +11,7 @@ from functools import partial
 import mdai
 import math
 import time
+import mainFuncs
 
 JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-07-15-104055.json'
 results = mdai.common_utils.json_to_dataframe(JSON)
@@ -173,4 +172,4 @@ for current_study_id in np.unique(annot['StudyInstanceUID'].to_numpy()):
 #/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714130657000003016/U_OjmNZ8/1.3.12.2.1107.5.8.15.100960.30000022021714130657000003047/volume.mha
 #/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714463775000001099/U_OjmNZ8/1.3.12.2.1107.5.8.15.100960.30000022021714463775000001281/volume.mha
 
-/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714130657000000014/U_8ZmM76/1.3.12.2.1107.5.8.15.100960.30000022021714130657000001555/volume.mha
+#/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714130657000000014/U_8ZmM76/1.3.12.2.1107.5.8.15.100960.30000022021714130657000001555/volume.mha
