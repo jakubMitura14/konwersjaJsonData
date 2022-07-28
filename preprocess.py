@@ -140,10 +140,10 @@ def modify_bool_arrs(current_row,boolArrs ,indicies_to_mod ,labelsOfIntrest_inne
 def grow_labels(current_row,labelsOfIntrest):
     current_row=current_row[1]
     all_labels_types=np.unique(annot['labelName'].to_numpy())
-    # getting powerset in order to simplify futher iterations
     
     labelsOfIntrest_inner= list(filter(lambda labell: current_row[labell]!=" ",labelsOfIntrest )  )
     if(len(labelsOfIntrest_inner)>0):
+        # getting powerset in order to simplify futher iterations
         cart_prod=list(more_itertools.powerset(labelsOfIntrest_inner))
         cart_prod=list(filter(lambda tupl:len(tupl)==2  ,cart_prod))
         prostateBool = get_bool_arr_from_path(prostateLab,current_row )
