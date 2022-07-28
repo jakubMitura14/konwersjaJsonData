@@ -197,7 +197,7 @@ def getLabelPathOrEmpty(targetLab, tupl):
     for labb in listLabs :
         if(labb[0]== targetLab):
             return labb[1]
-    return ""    
+    return " "    
 
 def get_frame_with_output():
     out_files_frame= pd.DataFrame()
@@ -224,6 +224,7 @@ out_files_frame= get_frame_with_output()
 
 
 out_files_frame.to_csv(resCSVDir)
+
 
 # out_files_frame.columns
 
