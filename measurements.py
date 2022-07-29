@@ -103,19 +103,20 @@ def get_dice_from_tupl(tupl, locDf):
 
 
 
-def get_dice_in_all_pairs(currentSeries):
+def get_dice_in_all_pairs(currentSeries,preprocessed_df,col_names_for_dice):
     """
     analyzing all possible combination o lesions descriped by diffrent annotators
     calculating dice score between them and returning nested tuple with series id and dice score for each pair
     """
-    locDf = files_df.loc[files_df['series_id'] == currentSeries]
+    
+    locDf = preprocessed_df.loc[preprocessed_df['series_id'] == currentSeries]
     doctors= np.unique(locDf['doctor_id'].to_numpy())
     if(len(doctors)>1):
         #getting the combinations of possible labels and doctor comparing all
         labels_per_doctor =list( map(partial(get_label_per_doc, col_names_for_dice=col_names_for_dice,locDf=locDf ),doctors   ))
         labels_per_doctor=list(itertools.chain(*labels_per_doctor))
 
-        print(labels_per_doctor)
+#        print(labels_per_doctor)
 
         labels_per_doctor_all_pairs=list(more_itertools.powerset(labels_per_doctor))
         #filter only those of length 2
@@ -124,42 +125,47 @@ def get_dice_in_all_pairs(currentSeries):
         labels_per_doctor_all_pairs=list(filter(lambda tupl: tupl[0].split('_@_')[0]!=tupl[1].split('_@_')[0]  ,labels_per_doctor_all_pairs))
         #calculating dice values
         dice_vals= list(map(partial(get_dice_from_tupl,locDf=locDf), labels_per_doctor_all_pairs ))
-        return (currentSeries,list(zip(labels_per_doctor_all_pairs,dice_vals)))
-    return (" ", " ")
+        #adding data about series to each tuple
+        labels_per_doctor_all_pairs= list(map( lambda tupl: (currentSeries,tupl[0],tupl[1] )   ,labels_per_doctor_all_pairs))
+        labels_per_doctor_all_pairs= list(zip(labels_per_doctor_all_pairs,dice_vals))
+        #prepared for 
+        labels_per_doctor_all_pairs=list(map(lambda tupl : (tupl[0][0],tupl[0][1].split('_@_')[0],tupl[0][1].split('_@_')[1]
+                                  ,tupl[0][2].split('_@_')[0],tupl[0][2].split('_@_')[1] ,tupl[1])   ,labels_per_doctor_all_pairs))
+        return labels_per_doctor_all_pairs
+    return [(" ", " ", " ", " ", " ", " ")]
 
-def get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, out_files_frame ):
+def get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, preprocessed_df,volumes_csv_dir,dice_csv_dir):
     """
     reads the data from associated data frame and creates new dataframe
     with data about volumes 
     with data about the volume of each label where we want it
     additionally creates a new dataframe with data about dice scores
     """
-    all_volumes_data= list(map( partial(getVolumes(current_row),col_names_to_volume=col_names_to_volume)   , out_files_frame.iterrows))
+    all_volumes_data= list(map( partial(getVolumes,col_names_to_volume=col_names_to_volume)   , preprocessed_df.iterrows()))
     volumes_frame= pd.DataFrame()
     #populating frame with data
-    volumes_frame['study_id']=out_files_frame['study_id']   
-    volumes_frame['doctor_id']=out_files_frame['doctor_id']   
-    volumes_frame['series_id']=out_files_frame['series_id']
+    volumes_frame['study_id']=preprocessed_df['study_id']   
+    volumes_frame['doctor_id']=preprocessed_df['doctor_id']   
+    volumes_frame['series_id']=preprocessed_df['series_id']
     
     for col_vol_name in col_names_to_volume:
         curr_vol_dat= list(map(lambda zipped : list(filter(lambda tupl: tupl[0]==col_vol_name ,zipped ))[0]  ,all_volumes_data))
         volumes_frame[col_vol_name]=curr_vol_dat
     
-    #### 
-
-#list(zip(col_names_for_volumes_inner,volumes))
-
-    for_dice_all_pairs=list(more_itertools.powerset(col_names_for_dice))
-    for_dice_all_pairs=list(filter(lambda tupl:len(tupl)==2  ,for_dice_all_pairs))
-
-    volumes_data
-
-    series = np.unique(out_files_frame['series_id'].to_numpy())
-
-    list_dice_score = list(map( get_dice_in_all_pairs,series ))
+    #### Dice
+    series = np.unique(preprocessed_df['series_id'].to_numpy())
+    list_dice_score = list(map( partial(get_dice_in_all_pairs,preprocessed_df=preprocessed_df,col_names_for_dice=col_names_for_dice),series ))
     list_dice_score=list(itertools.chain(*list_dice_score))
-    list_dice_score
 
+    #(currentSeries,list(zip(labels_per_doctor_all_pairs,dice_vals)))
+    #so now we have the series of nested tuples entry 1 is series uid second entry is list of tuples where fitst entry marks what
+    #lesion and which annotator did it
+    # goal isto  create dataframe where column
+        #1) series id 2) first annotator id 3) first lesion name 4) second annotator id 5) socond lesion name 6) dice score
+    dice_df = pd.DataFrame(list_dice_score, columns =['SeriesId', 'doctor_a', 'lesion_a','doctor_b','lesion_b', 'dice'])
+    volumes_frame.to_csv(volumes_csv_dir) 
+    dice_df.to_csv(dice_csv_dir)
+    return (all_volumes_data,dice_df) 
 
 
 

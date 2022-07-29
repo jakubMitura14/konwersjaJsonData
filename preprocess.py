@@ -126,9 +126,9 @@ def modify_bool_arrs(current_row,boolArrs ,indicies_to_mod ,labelsOfIntrest_inne
             boolArrs[aug_index[3]][aug_index[0],aug_index[1],aug_index[2]]=True
         
         #we call recursively function in order to dilatate all needed voxels
-        modify_bool_arrs(current_row,boolArrs ,indiciesToGoFuther,labelsOfIntrest_inne,indicies_aroundr)
+        modify_bool_arrs(current_row,boolArrs ,indiciesToGoFuther,labelsOfIntrest_inner,indicies_around)
 
-def grow_labels(current_row,labelsOfIntrest,indicies_around):
+def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab):
     current_row=current_row[1]
     all_labels_types=np.unique(annot['labelName'].to_numpy())
     
@@ -169,7 +169,7 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around):
 # prostateLab = 'prostate'
 # labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 
-def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ):
+def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot):
     #usefull to iterate around
     indicies_around=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([-1,0,1])))
     # using only those rows where we have prostate
@@ -177,7 +177,7 @@ def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ):
     #list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest), list(frame_of_intr.iterrows())))
     #modify all arrays in parallel
     with mp.Pool(processes = mp.cpu_count()) as pool:
-        pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around), list(frame_of_intr.iterrows()))
+        pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab), list(frame_of_intr.iterrows()))
 
 
 

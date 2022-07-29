@@ -41,9 +41,9 @@ def getFileData(current_file_ref,currentFold):
     return (currentFold,filePath,stidy_instanceUID,SeriesInstanceUID,sop  )
 
 
-def get_df_orig_dir_info(orig_data_dir):
-    if(pathOs.exists(orig_data_dir)):
-            return pd.read_csv(orig_data_dir)    
+def get_df_orig_dir_info(orig_data_dir,csvDir):
+    if(pathOs.exists(csvDir)):
+        return pd.read_csv(csvDir)    
     #get all paths of DICOMDIR files
     listOfPatsh=mainFuncs.get_all_file_paths(orig_data_dir)
     pathsDICOMDIR= list(filter(lambda pathh:  'DICOMDIR' in pathh,listOfPatsh ))
@@ -64,8 +64,30 @@ def get_df_orig_dir_info(orig_data_dir):
     df['paths']=currentFilePath   
     df['SOPInstanceUID']=sops   
     df['SeriesInstanceUID']=SeriesInstanceUIDs   
-    df['StudyInstanceUID']=StudyInstanceUID   
+    df['StudyInstanceUID']=StudyInstanceUID  
+    df.to_csv(csvDir) 
     return df 
+
+def get_orig_fold(uid,dictt):
+       if(uid in dictt):
+              return dictt[uid]
+       return " "       
+
+def add_orig_dir_data(files_df, files_df_origFolds):
+       """
+       we got the data about original folder s from orig folders frame
+       now we add this data to data downloaded from mdai by client library
+       """
+       smaller_df=files_df_origFolds[['masterolds','StudyInstanceUID']].drop_duplicates()
+       masterolds=smaller_df['masterolds'].to_numpy()
+       StudyInstanceUID=smaller_df['StudyInstanceUID'].to_numpy()
+       dictt ={StudyInstanceUID[i]: masterolds[i] for i in range(len(masterolds))}
+       StudyInstanceUID_mdai= files_df['StudyInstanceUID'].to_numpy()
+       orig_folds_dat= list(map(lambda uid :get_orig_fold(uid,dictt) ,StudyInstanceUID_mdai))
+       files_df['masterolds']=orig_folds_dat
+       return files_df
+
+
 
 
 # resDf=get_df_orig_dir_info(orig_data_dir)

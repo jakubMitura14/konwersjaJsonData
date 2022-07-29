@@ -116,12 +116,12 @@ def getUids(row):
         return ('','','')   
 
 
-def get_df_file_info(dataDir):
+def get_df_file_info(dataDir,client_down_csv):
     """
     get paths and UIds related to given directory if the rtelated csv is not yet present
     """
-    if(pathOs.exists(dataDir)):
-        return pd.read_csv(dataDir)
+    if(pathOs.exists(client_down_csv)):
+        return pd.read_csv(client_down_csv)
     listOfPatsh=get_all_file_paths(dataDir)
     df = pd.DataFrame()
     df['paths']=listOfPatsh
@@ -134,5 +134,6 @@ def get_df_file_info(dataDir):
     InstanceUIDs = list(map(lambda tupl: tupl[2], resList))
     df['SOPInstanceUID']=sops   
     df['SeriesInstanceUID']=SeriesInstanceUIDs   
-    df['StudyInstanceUID']=InstanceUIDs   
+    df['StudyInstanceUID']=InstanceUIDs
+    df.to_csv(client_down_csv)       
     return df        

@@ -199,7 +199,10 @@ def getLabelPathOrEmpty(targetLab, tupl):
             return labb[1]
     return " "    
 
-def get_frame_with_output(files_df,annot,outputDir):
+def get_frame_with_output(files_df,annot,outputDir,resCSVDir):
+    if(pathOs.exists(resCSVDir)):
+        return pd.read_csv(resCSVDir) 
+    
     out_files_frame= pd.DataFrame()
     #iterate over all files
     allPaths=[]
@@ -217,7 +220,8 @@ def get_frame_with_output(files_df,annot,outputDir):
     all_labels_types=np.unique(annot['labelName'].to_numpy())
     for targetLab in all_labels_types :
         out_files_frame[targetLab]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl),flatten_list_paths))
-
+    out_files_frame.to_csv(resCSVDir) 
+    
     return out_files_frame
 
 
