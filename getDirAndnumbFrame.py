@@ -17,9 +17,9 @@ from pydicom.fileset import FileSet
 from os import path as pathOs
 from pathlib import Path
 
-orig_data_dir='/workspaces/konwersjaJsonData/nas-lssi-dco'
-resCSVDir='/workspaces/orig_files_dir.csv'
-#getting paths to dicom dir files
+# orig_data_dir='/workspaces/konwersjaJsonData/nas-lssi-dco'
+# resCSVDir='/workspaces/orig_files_dir.csv'
+# #getting paths to dicom dir files
 
 
 
@@ -42,6 +42,8 @@ def getFileData(current_file_ref,currentFold):
 
 
 def get_df_orig_dir_info(orig_data_dir):
+    if(pathOs.exists(orig_data_dir)):
+            return pd.read_csv(orig_data_dir)    
     #get all paths of DICOMDIR files
     listOfPatsh=mainFuncs.get_all_file_paths(orig_data_dir)
     pathsDICOMDIR= list(filter(lambda pathh:  'DICOMDIR' in pathh,listOfPatsh ))
@@ -52,7 +54,6 @@ def get_df_orig_dir_info(orig_data_dir):
     #flatten array
     resList=list(itertools.chain(*resList))
 
-# (currentFold,filePath,stidy_instanceUID,SeriesInstanceUID,sop  )
     masterolds=list(map(lambda tupl: tupl[0], resList))
     currentFilePath=list(map(lambda tupl: tupl[1], resList))
     StudyInstanceUID = list(map(lambda tupl: tupl[2], resList))
@@ -60,17 +61,17 @@ def get_df_orig_dir_info(orig_data_dir):
     sops = list(map(lambda tupl: tupl[4], resList))
 
     df['masterolds']=masterolds   
-    df['currentFilePath']=currentFilePath   
+    df['paths']=currentFilePath   
     df['SOPInstanceUID']=sops   
     df['SeriesInstanceUID']=SeriesInstanceUIDs   
     df['StudyInstanceUID']=StudyInstanceUID   
     return df 
 
 
-resDf=get_df_orig_dir_info(orig_data_dir)
-resDf.to_csv(resCSVDir)
+# resDf=get_df_orig_dir_info(orig_data_dir)
+# resDf.to_csv(resCSVDir)
 
-print(resDf)
+# print(resDf)
 
 # currentDicomDirPath=pathsDICOMDIR[0]
 

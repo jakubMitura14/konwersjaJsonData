@@ -9,6 +9,8 @@ import multiprocessing as mp
 import functools
 from functools import partial
 import math
+from os.path import basename, dirname, exists, isdir, join, split
+from os import path as pathOs
 
 def load_mask_instance(row):
     """Load instance masks for the given annotation row. Masks can be different types,
@@ -115,6 +117,11 @@ def getUids(row):
 
 
 def get_df_file_info(dataDir):
+    """
+    get paths and UIds related to given directory if the rtelated csv is not yet present
+    """
+    if(pathOs.exists(dataDir)):
+        return pd.read_csv(dataDir)
     listOfPatsh=get_all_file_paths(dataDir)
     df = pd.DataFrame()
     df['paths']=listOfPatsh

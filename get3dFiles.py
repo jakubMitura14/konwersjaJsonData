@@ -16,20 +16,20 @@ import itertools
 
 from os import path as pathOs
 
-JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-07-15-104055.json'
-results = mdai.common_utils.json_to_dataframe(JSON)
-#so we have dictionary of dataframes
-results.keys()#'annotations', 'studies', 'labels'
-annot=results['annotations']
+# JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-07-15-104055.json'
+# results = mdai.common_utils.json_to_dataframe(JSON)
+# #so we have dictionary of dataframes
+# results.keys()#'annotations', 'studies', 'labels'
+# annot=results['annotations']
 
-np.unique(annot['radlexTagIdsLabel'].to_numpy())
+# np.unique(annot['radlexTagIdsLabel'].to_numpy())
 
-#path to folder with all required data
-dataDir='/workspaces/konwersjaJsonData/data'
-outputDir='/workspaces/konwersjaJsonData/output'
-resCSVDir='/workspaces/konwersjaJsonData/resCSV'
+# #path to folder with all required data
+# dataDir='/workspaces/konwersjaJsonData/data'
+# outputDir='/workspaces/konwersjaJsonData/output'
+# resCSVDir='/workspaces/konwersjaJsonData/resCSV'
 
-files_df= mainFuncs.get_df_file_info(dataDir)
+# files_df= mainFuncs.get_df_file_info(dataDir)
 
 
 def getSliceAndSOP(filename):
@@ -175,7 +175,7 @@ def mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath,current_
         
 
 
-def iterate_overStudy(current_study_id):
+def iterate_overStudy(current_study_id,files_df,annot,outputDir):
     res=[]
     annot_for_study_id=annot.loc[annot['StudyInstanceUID'] == current_study_id]
     #get annotator id 
@@ -199,12 +199,12 @@ def getLabelPathOrEmpty(targetLab, tupl):
             return labb[1]
     return " "    
 
-def get_frame_with_output():
+def get_frame_with_output(files_df,annot,outputDir):
     out_files_frame= pd.DataFrame()
     #iterate over all files
     allPaths=[]
     with mp.Pool(processes = mp.cpu_count()) as pool:
-        allPaths=pool.map(iterate_overStudy, np.unique(annot['StudyInstanceUID'].to_numpy()))
+        allPaths=pool.map(partial(iterate_overStudy, files_df=files_df,annot=annot,outputDir=outputDir), np.unique(annot['StudyInstanceUID'].to_numpy()))
 
 
     # (current_study_id,current_doctor_id,currentSeries,newPath,labelNameAndPaths  )
@@ -220,10 +220,7 @@ def get_frame_with_output():
 
     return out_files_frame
 
-out_files_frame= get_frame_with_output()
 
-
-out_files_frame.to_csv(resCSVDir)
 
 
 # out_files_frame.columns

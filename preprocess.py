@@ -17,16 +17,16 @@ import torch
 from os import path as pathOs
 import more_itertools
 
-### first one need to invoke the get3dFiles to produce dataframe and save it in resCSVDir
-resCSVDir='/workspaces/konwersjaJsonData/resCSV'
+# ### first one need to invoke the get3dFiles to produce dataframe and save it in resCSVDir
+# resCSVDir='/workspaces/konwersjaJsonData/resCSV'
 
-JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-07-15-104055.json'
-results = mdai.common_utils.json_to_dataframe(JSON)
-#so we have dictionary of dataframes
-results.keys()#'annotations', 'studies', 'labels'
-annot=results['annotations']
+# JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-07-15-104055.json'
+# results = mdai.common_utils.json_to_dataframe(JSON)
+# #so we have dictionary of dataframes
+# results.keys()#'annotations', 'studies', 'labels'
+# annot=results['annotations']
 
-files_df = pd.read_csv(resCSVDir)
+# files_df = pd.read_csv(resCSVDir)
 
 
 
@@ -90,13 +90,11 @@ def get_bool_arr_from_path(colName,current_row):
 
 
 
-def look_around_to_true(cart_index,boolArrs,index):
+def look_around_to_true(cart_index,boolArrs,index,indicies_around):
     """
     we look around given coordinates if we will find  some true we return currect index
     if nothing was found we return -1
     """
-
-
     for index_change in indicies_around:
         #get coordinate of neighbour
         newX=cart_index[0]+index_change[0]
@@ -107,22 +105,18 @@ def look_around_to_true(cart_index,boolArrs,index):
             return index
     return -1
 
-def find_new_label(cart_index,boolArrs,labelsOfIntrest_inner):
+def find_new_label(cart_index,boolArrs,labelsOfIntrest_inner,indicies_around):
 
     #lloking for index - index is marking the label in labelsOfIntrest
-    proposedIndicies=list(map(lambda index:look_around_to_true(cart_index,boolArrs,index)   ,range(0,len(labelsOfIntrest_inner) )))
+    proposedIndicies=list(map(lambda index:look_around_to_true(cart_index,boolArrs,index,indicies_around)   ,range(0,len(labelsOfIntrest_inner) )))
     chosen_index = np.max(proposedIndicies)
     return (cart_index[0],cart_index[1],cart_index[2],chosen_index  )  
 
 
-
-
-
-
-def modify_bool_arrs(current_row,boolArrs ,indicies_to_mod ,labelsOfIntrest_inner):
+def modify_bool_arrs(current_row,boolArrs ,indicies_to_mod ,labelsOfIntrest_inner,indicies_around):
 
     if(len(indicies_to_mod)>0):#condition needed to make recursion possible
-        augmented_indicies = list(map(lambda cart_index: find_new_label(cart_index,boolArrs,labelsOfIntrest_inner),indicies_to_mod))
+        augmented_indicies = list(map(lambda cart_index: find_new_label(cart_index,boolArrs,labelsOfIntrest_inner,indicies_around),indicies_to_mod))
         indiciesToMod= list( filter( lambda tupl: tupl[3]>=0  ,augmented_indicies))
 
         indiciesToGoFuther= list( filter( lambda tupl: tupl[3]<0  ,augmented_indicies))
@@ -132,12 +126,9 @@ def modify_bool_arrs(current_row,boolArrs ,indicies_to_mod ,labelsOfIntrest_inne
             boolArrs[aug_index[3]][aug_index[0],aug_index[1],aug_index[2]]=True
         
         #we call recursively function in order to dilatate all needed voxels
-        modify_bool_arrs(current_row,boolArrs ,indiciesToGoFuther,labelsOfIntrest_inner)
+        modify_bool_arrs(current_row,boolArrs ,indiciesToGoFuther,labelsOfIntrest_inne,indicies_aroundr)
 
-
-
-
-def grow_labels(current_row,labelsOfIntrest):
+def grow_labels(current_row,labelsOfIntrest,indicies_around):
     current_row=current_row[1]
     all_labels_types=np.unique(annot['labelName'].to_numpy())
     
@@ -150,12 +141,8 @@ def grow_labels(current_row,labelsOfIntrest):
         negatedProstate=np.logical_not(prostateBool)
         #setting entries that are overlapping ina any two labels to 0
         list(map( lambda tupl : get_common_indicies(current_row,negatedProstate,*tupl),cart_prod))
-
-
-
         #now we want to find the entries that are 1 in 'prostate' but zero in labelsOfIntrest_inner masks
         boolArrs = list(map( lambda colName :get_bool_arr_from_path(colName,current_row ) ,labelsOfIntrest_inner))
-
         #now we get what is True in at least one of arrays
         print(labelsOfIntrest_inner)
         common = functools.reduce(np.logical_or, boolArrs)
@@ -165,11 +152,9 @@ def grow_labels(current_row,labelsOfIntrest):
         voxels_to_mod = np.logical_and(common_not, prostateBool)
         #time to get indicies of the voxels to modify
         indicies_to_mod =  np.argwhere(voxels_to_mod) #torch.t(voxels_to_mod.coalesce().contiguous().to_sparse().indices()).contiguous().coalesce().type(torch.int32).numpy()
-
         #got indicies of labels the will be used to dilatate given masks
         #now we need to use augmented indicies and execute the function one more time if some augmented indicies returned -1
-        modify_bool_arrs(current_row,boolArrs,indicies_to_mod ,labelsOfIntrest_inner)
-
+        modify_bool_arrs(current_row,boolArrs,indicies_to_mod ,labelsOfIntrest_inner,indicies_around)
         #now we have modified the arrays we need to overwrite it 
         for index, label in enumerate(labelsOfIntrest_inner):
             print(label)
@@ -179,23 +164,20 @@ def grow_labels(current_row,labelsOfIntrest):
 
 
 
-#first filter out only the rows with prostate as only this is intresting for us at the moment 
-all_labels_types=np.unique(annot['labelName'].to_numpy())
-prostateLab = 'prostate'
-labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
+# #first filter out only the rows with prostate as only this is intresting for us at the moment 
+# all_labels_types=np.unique(annot['labelName'].to_numpy())
+# prostateLab = 'prostate'
+# labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 
-#usefull to iterate around
-indicies_around=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([-1,0,1])))
-
-
-# using only those rows where we have prostate
-frame_of_intr=files_df.loc[files_df[prostateLab]!=" "]
-
-#list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest), list(frame_of_intr.iterrows())))
-#modify all arrays in parallel
-
-with mp.Pool(processes = mp.cpu_count()) as pool:
-    pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest), list(frame_of_intr.iterrows()))
+def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ):
+    #usefull to iterate around
+    indicies_around=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([-1,0,1])))
+    # using only those rows where we have prostate
+    frame_of_intr=files_df.loc[files_df[prostateLab]!=" "]
+    #list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest), list(frame_of_intr.iterrows())))
+    #modify all arrays in parallel
+    with mp.Pool(processes = mp.cpu_count()) as pool:
+        pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around), list(frame_of_intr.iterrows()))
 
 
 
