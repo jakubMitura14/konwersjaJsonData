@@ -17,14 +17,11 @@ from pydicom.fileset import FileSet
 from os import path as pathOs
 from pathlib import Path
 
-# orig_data_dir='/workspaces/konwersjaJsonData/nas-lssi-dco'
-# resCSVDir='/workspaces/orig_files_dir.csv'
-# #getting paths to dicom dir files
-
-
-
-
 def getListMeta(currentDicomDirPath):
+    """
+    iterates ove files associated with single dicom dir
+    and returns the metadata related to them
+    """
     pathhh = Path(currentDicomDirPath)
     currentFold=str(os.path.relpath(pathhh.parent))
     ds = pydicom.dcmread(currentDicomDirPath)
@@ -33,6 +30,9 @@ def getListMeta(currentDicomDirPath):
     return fileMataDatas
 
 def getFileData(current_file_ref,currentFold):
+    """
+    given file return its series, sop and study UID
+    """
     filePath=current_file_ref.path
     current_file = current_file_ref.load()
     sop=mainFuncs.get_SOPInstanceUID(current_file)
@@ -42,6 +42,9 @@ def getFileData(current_file_ref,currentFold):
 
 
 def get_df_orig_dir_info(orig_data_dir,csvDir):
+    """
+    iterates over files and saves ther paths and matadata to dataframe and subsequently to csv
+    """
     if(pathOs.exists(csvDir)):
         return pd.read_csv(csvDir)    
     #get all paths of DICOMDIR files
@@ -69,9 +72,12 @@ def get_df_orig_dir_info(orig_data_dir,csvDir):
     return df 
 
 def get_orig_fold(uid,dictt):
-       if(uid in dictt):
-              return dictt[uid]
-       return " "       
+    """
+    getting the folder name in original folder
+    """
+    if(uid in dictt):
+            return dictt[uid]
+    return " "       
 
 def add_orig_dir_data(files_df, files_df_origFolds):
        """
@@ -88,22 +94,6 @@ def add_orig_dir_data(files_df, files_df_origFolds):
        return files_df
 
 
-
-
-# resDf=get_df_orig_dir_info(orig_data_dir)
-# resDf.to_csv(resCSVDir)
-
-# print(resDf)
-
-# currentDicomDirPath=pathsDICOMDIR[0]
-
-# allMetaDat=[]
-# with mp.Pool(processes = mp.cpu_count()) as pool:
-#     allMetaDat=pool.map( getListMeta ,pathsDICOMDIR )
-
-# allMetaDat_flat=list(itertools.chain(*allMetaDat))
-
-# print(allMetaDat_flat)
 
 
     

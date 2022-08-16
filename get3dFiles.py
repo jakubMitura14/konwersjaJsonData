@@ -16,23 +16,10 @@ import itertools
 
 from os import path as pathOs
 
-# JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-07-15-104055.json'
-# results = mdai.common_utils.json_to_dataframe(JSON)
-# #so we have dictionary of dataframes
-# results.keys()#'annotations', 'studies', 'labels'
-# annot=results['annotations']
-
-# np.unique(annot['radlexTagIdsLabel'].to_numpy())
-
-# #path to folder with all required data
-# dataDir='/workspaces/konwersjaJsonData/data'
-# outputDir='/workspaces/konwersjaJsonData/output'
-# resCSVDir='/workspaces/konwersjaJsonData/resCSV'
-
-# files_df= mainFuncs.get_df_file_info(dataDir)
-
-
 def getSliceAndSOP(filename):
+    """
+    finds SOP uid of the given dicom file
+    """
     ds = pydicom.dcmread(filename)
     return (mainFuncs.get_SOPInstanceUID(ds),ds.pixel_array ,filename)
 
@@ -40,7 +27,6 @@ def findTheSame(slice,slices_with_sop,sops_in_anot):
     """
     used in order to be sure that we do not have two slices with the same data
     """
-
     # we look for all slices holding the same data
     theSame= list(filter(lambda tupl : np.array_equal(tupl[1],slice)  ,slices_with_sop))
     #in case we have just single slice data with such data we will return just this single slice
@@ -155,7 +141,6 @@ def mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath,current_
         writer = sitk.ImageFileWriter()
         # Use the study/series/frame of reference information given in the meta-data
         # dictionary and not the automatically generated information from the file IO
-        #writer.KeepOriginalImageUIDOn()
         writer.SetFileName(newPath)
         writer.Execute(image3D)   
         print(f"newPath image3D {newPath}")
@@ -169,13 +154,14 @@ def mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath,current_
 
     labelNameAndPaths=list(map(lambda lab: createLabelFile(annot_for_series,lab,data,copiedPath,series_file_names,image3D),uniq_labels ))
     return (current_study_id,current_doctor_id,currentSeries,newPath,labelNameAndPaths  )
-    ### we will change the data type of each file into boolean and fil it with zeros
-    #first get all files paths - but not of the original file
-    #for lab in uniq_labels:
+
         
 
 
 def iterate_overStudy(current_study_id,files_df,annot,outputDir):
+    """
+    iterate ove all series with the same study UID
+    """
     res=[]
     annot_for_study_id=annot.loc[annot['StudyInstanceUID'] == current_study_id]
     #get annotator id 
@@ -193,6 +179,9 @@ def iterate_overStudy(current_study_id,files_df,annot,outputDir):
 
 
 def getLabelPathOrEmpty(targetLab, tupl):
+    """
+    return path to the label file if it exists otherwise " "
+    """
     listLabs=tupl[4]
     for labb in listLabs :
         if(labb[0]== targetLab):
@@ -200,6 +189,9 @@ def getLabelPathOrEmpty(targetLab, tupl):
     return " "    
 
 def get_frame_with_output(files_df,annot,outputDir,resCSVDir):
+    """
+    in parallel iterates over all studies and series and save the paths of created files in the csv file
+    """
     if(pathOs.exists(resCSVDir)):
         return pd.read_csv(resCSVDir) 
     

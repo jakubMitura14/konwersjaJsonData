@@ -31,16 +31,16 @@ JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_d
 #directory where the output will be stored
 outputDir='/workspaces/konwersjaJsonData/output'
 #directory of the csv storing most relevant data per each series
-resCSVDir='/workspaces/konwersjaJsonData/resCSV'
+resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory of the csv to save data about dice scores of compared lesions
-dice_csv_dir='/workspaces/konwersjaJsonData/diceFrame.csv'
-volumes_csv_dir='/workspaces/konwersjaJsonData/volumesFrame.csv'
+dice_csv_dir='/workspaces/konwersjaJsonData/outCsv/diceFrame.csv'
+volumes_csv_dir='/workspaces/konwersjaJsonData/outCsv/volumesFrame.csv'
 #downloaded manually
 orig_data_dir='/workspaces/konwersjaJsonData/nas-lssi-dco'
-orig_data_csv='/workspaces/konwersjaJsonData/orig_files.csv'
+orig_data_csv='/workspaces/konwersjaJsonData/outCsv/orig_files.csv'
 #path to folder with all required data downloaded with mdai client
 dataDir='/workspaces/konwersjaJsonData/data'
-client_down_csv='/workspaces/konwersjaJsonData/client_files.csv'
+client_down_csv='/workspaces/konwersjaJsonData/outCsv/client_files.csv'
 
 
 #loading data from JSON
@@ -66,7 +66,7 @@ out_files_frame= get_frame_with_output(files_df_with_orig_folds,annot,outputDir,
 prostateLab = 'prostate'
 labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 #files will be overwritten in the output folder
-#dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
 
 ##measurements
 #after data is preprocessed we will perform measurements like volumes of labels

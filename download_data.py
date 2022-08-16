@@ -155,7 +155,9 @@ labels_dict = {
     "L_8KGxb8": 521,  # curvilinear contact
 }
 
-
+"""
+downloading data from mdai client
+"""
 mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
 p = mdai_client.project('gaq3y0Rl', path='/workspaces/konwersjaJsonData/data')
 p.set_labels_dict(labels_dict)
