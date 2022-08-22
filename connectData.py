@@ -24,6 +24,7 @@ import preprocess
 from preprocess import dilatate_erode_conditionally
 from os.path import basename, dirname, exists, isdir, join, split
 import measurements
+import re
 
 #JSON filr from mdai summarizing data about annotations etc. 
 JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-07-15-104055.json'
@@ -64,8 +65,8 @@ out_files_frame= get_frame_with_output(files_df_with_orig_folds,annot,outputDir,
 #we first define the labels that should as a sum be included in a prostate gland 
 # so we get rid of overlaps and inconsistencies with main prostate mask
 prostateLab = 'prostate'
-labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 #files will be overwritten in the output folder
+labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
 
 ##measurements
@@ -82,4 +83,26 @@ col_names_for_dice=['lesion 1', 'lesion 2', 'lesion 3','lesion 4']
 
 all_volumes_data,dice_df=measurements.get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, out_files_frame,volumes_csv_dir,dice_csv_dir)
 
+##changing names of the directories from series number to folder number in original folders 
 
+#import re
+#https://www.tutorialspoint.com/python/os_rename.htm
+#os.rename(src, dst)
+
+
+
+
+
+# import preprocess
+
+# # dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+
+# #usefull to iterate around not including iteration in z direction
+# indicies_around=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([0])))
+# indicies_around_full=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([-1,0,1])))
+
+# # using only those rows where we have prostate
+# frame_of_intr=out_files_frame.loc[out_files_frame[prostateLab]!=" "]
+# current_row=list(frame_of_intr.iterrows())[10]
+
+# grow_labels(current_row=current_row,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full)

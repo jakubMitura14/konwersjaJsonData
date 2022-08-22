@@ -16,6 +16,7 @@ import itertools
 from pydicom.fileset import FileSet
 from os import path as pathOs
 from pathlib import Path
+import re
 
 def getListMeta(currentDicomDirPath):
     """
