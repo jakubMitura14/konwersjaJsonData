@@ -84,7 +84,10 @@ RUN pip3 --no-cache-dir install \
     #itk \
     #SimpleITK>=2.1.1.2 \
     pandas \
-    comet_ml 
+    comet_ml \
+    jax[cpu] \
+    optax \
+    ott-jax
 RUN export GITHUB_USER=jakubMitura14
 
 ENV env_var_name=$argTokenGithub
