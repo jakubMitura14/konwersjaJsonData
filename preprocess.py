@@ -87,7 +87,9 @@ def get_bool_arr_from_path(colName,current_row):
 
 
 def getModDistance(indexTop,indexIn):
-    return (((indexTop[0]-indexIn[0])^2)+((indexTop[1]-indexIn[1])^2)+((indexTop[2]-indexIn[2])^2)+(abs(indexTop[2]-indexIn[2])*5))
+    res=((abs(indexTop[0]-indexIn[0])^2 )+(abs(indexTop[1]-indexIn[1])^2)+(abs(indexTop[2]-indexIn[2])^2)+(abs(indexTop[2]-indexIn[2])*5))^2
+    print(res)
+    return res 
 
 def sortAndGetSubsection(indList,indexTop,numbToAnalyze):
     res=list(map(lambda indexIn: getModDistance(indexTop,indexIn)  ,indList))
@@ -102,9 +104,9 @@ def getClosestIndex2D(indexTop,boolArrs_indicies):
     """
     given cartesian index it return the label number with some index closest to queried index
     """
-    numbToAnalyze=12
+    numbToAnalyze=9
     boolArrs_indiciesIn= list(map(lambda indList : sortAndGetSubsection(indList,indexTop,numbToAnalyze) ,boolArrs_indicies ))
-    
+    print(f"boolArrs_indiciesIn {boolArrs_indiciesIn}")
 
     return np.where(boolArrs_indiciesIn == np.min(boolArrs_indiciesIn))[0][0]
    

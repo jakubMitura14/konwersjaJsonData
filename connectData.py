@@ -67,6 +67,7 @@ out_files_frame= get_frame_with_output(files_df_with_orig_folds,annot,outputDir,
 prostateLab = 'prostate'
 #files will be overwritten in the output folder
 labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
+####
 #dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
 
 ##measurements
@@ -103,11 +104,13 @@ indicies_around_full=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([-1,
 
 # using only those rows where we have prostate
 frame_of_intr=out_files_frame.loc[out_files_frame[prostateLab]!=" "]
-current_row=list(frame_of_intr.iterrows())[3]
+current_row=list(frame_of_intr.iterrows())[10]
+
+labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 
 grow_labels(current_row=current_row,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full)
 
 
 current_row[1]['prostate']
 
-#'/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714130657000004012/U_8ZmM76/1.3.12.2.1107.5.8.15.100960.30000022021714130657000004042/prostate.nii.gz'
+# /workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714463775000005182/U_8ekGLQ/1.3.12.2.1107.5.8.15.100960.30000022021714463775000005214/prostate.nii.gz
