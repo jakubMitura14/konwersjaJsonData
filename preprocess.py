@@ -85,42 +85,9 @@ def get_bool_arr_from_path(colName,current_row):
     return sitk.GetArrayFromImage(imageA).astype(bool)
 
 
-# def getClosestIndex2D(index,boolArrs_indicies):
-#     """
-#     given cartesian index it return the label number with some index closest to queried index
-#     """
-#     #getting minimal distance (with added penalty for diffrent z coordinate) 
-#     boolArrs_indicies= list(map(lambda indicies : list(filter(lambda indd:indd[2]== index[2],indicies  ))  ,boolArrs_indicies  ))
-#     print(" ****  boolArrs_indicies *****   ")
-#     print(boolArrs_indicies)
-#     minDists = list(map(lambda boolArrTupl : 
-#                             #getting euclidean distances with added cost if the points are not in the same layer (have diffrent z coordinates)
-#                             #and return the minimum distance preserving the index of the array
-#                             np.min(list(map(lambda point : np.linalg.norm(point - index) +(abs((point[2]-index[2])))   ,boolArrTupl))   ) 
-#                             ,boolArrs_indicies))
-
-
-#     return np.where(minDists == np.min(minDists))[0][0]
-
-# def getClosestIndex2D(index,boolArrs_indicies):
-#     """
-#     given cartesian index it return the label number with some index closest to queried index
-#     """
-#     #getting minimal distance (with added penalty for diffrent z coordinate) 
-#     boolArrs_indicies= list(map(lambda indicies : list(filter(lambda indd:indd[2]== index[2],indicies  ))  ,boolArrs_indicies  ))
-#     boolArrs_indicies= list(filter(lambda indicies : len(indicies)>0 ,boolArrs_indicies  ))
-#     #print(boolArrs_indicies)
-#     minDists = list(map(lambda boolArrTupl : 
-#                             #getting euclidean distances with added cost if the points are not in the same layer (have diffrent z coordinates)
-#                             #and return the minimum distance preserving the index of the array
-#                             np.min(list(map(lambda point : np.linalg.norm(point - index) +(abs((point[2]-index[2])))   ,boolArrTupl))   ) 
-#                             ,boolArrs_indicies))
-#     if(len(minDists)>0):
-#         return np.where(minDists == np.min(minDists))[0][0]
-#     return -1
 
 def getModDistance(indexTop,indexIn):
-    return (indexTop[0]-indexIn[0])^2+(indexTop[1]-indexIn[1])^2+((indexTop[2]-indexIn[2]))^2+(abs(indexTop[2]-indexIn[2])*5)
+    return (((indexTop[0]-indexIn[0])^2)+((indexTop[1]-indexIn[1])^2)+((indexTop[2]-indexIn[2])^2)+(abs(indexTop[2]-indexIn[2])*5))^3
 
 def sortAndGetSubsection(indList,indexTop,numbToAnalyze):
     res=list(map(lambda indexIn: getModDistance(indexTop,indexIn)  ,indList))
@@ -135,22 +102,9 @@ def getClosestIndex2D(indexTop,boolArrs_indicies):
     """
     given cartesian index it return the label number with some index closest to queried index
     """
-    #getting minimal distance (with added penalty for diffrent z coordinate) 
-    #boolArrs_indiciesIn= list(map(lambda indexIn :indexIn[2]==indexTop[2]   ,boolArrs_indicies  ))
-    
-    #print(boolArrs_indicies)
-    # if(len(boolArrs_indiciesIn)>0):
-        # boolArrs_indiciesIn= list(map(lambda indexIn :[indexIn[0],indexIn[1],indexIn[2],indexIn[3]
-        #                                                 , abs(indexTop[0]-indexIn[0])+abs(indexTop[1]-indexIn[1])+abs(indexTop[2]-indexIn[2])*5   ]
-        #                                                   ,boolArrs_indicies  ))       
-    #     return min(boolArrs_indiciesIn, key = lambda t: t[4])[3]
-    # return -1
-    #boolArrs_indiciesIn=list(filter( lambda inn: inn[2]==indexTop[2] ,boolArrs_indicies ))
-
     numbToAnalyze=12
     boolArrs_indiciesIn= list(map(lambda indList : sortAndGetSubsection(indList,indexTop,numbToAnalyze) ,boolArrs_indicies ))
     
-    #print(f"indexTop {indexTop} min index {min(boolArrs_indiciesIn, key = lambda t: t[4])}"  )
 
     return np.where(boolArrs_indiciesIn == np.min(boolArrs_indiciesIn))[0][0]
    
@@ -165,14 +119,6 @@ def augment_indicies2D(indicies_to_mod,boolArrs_indicies):
     res= list(map( lambda index : (index[0],index[1],index[2] ,getClosestIndex2D(index, boolArrs_indicies)) ,indicies_to_mod))
     #res= list(filter(lambda indd : indd[3]>0,res))
     return res
-def augment_indicies3D(indicies_to_mod,boolArrs_indicies):
-    """
-    go through all indicies that needs to be modified and associate index of the label with ith that should be set
-    so it return original cartesian index plus index of the array where this index should be set to true
-    """ 
-    return list(map( lambda index : (index[0],index[1],index[2] ,getClosestIndex3D(index, boolArrs_indicies)) ,indicies_to_mod))
-
-
 
 
 def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,indicies_around_full):
