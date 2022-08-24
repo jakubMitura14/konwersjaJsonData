@@ -68,7 +68,7 @@ prostateLab = 'prostate'
 #files will be overwritten in the output folder
 labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 ####
-#dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
 
 ##measurements
 #after data is preprocessed we will perform measurements like volumes of labels
@@ -96,21 +96,21 @@ all_volumes_data,dice_df=measurements.get_volume_and_dice_data(col_names_for_dic
 
 # import preprocess
 
-# dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+# # dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
 
-#usefull to iterate around not including iteration in z direction
-indicies_around=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([0])))
-indicies_around_full=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([-1,0,1])))
+# #usefull to iterate around not including iteration in z direction
+# indicies_around=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([0])))
+# indicies_around_full=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([-1,0,1])))
 
-# using only those rows where we have prostate
-frame_of_intr=out_files_frame.loc[out_files_frame[prostateLab]!=" "]
-current_row=list(frame_of_intr.iterrows())[10]
+# # using only those rows where we have prostate
+# frame_of_intr=out_files_frame.loc[out_files_frame[prostateLab]!=" "]
+# current_row=list(frame_of_intr.iterrows())[11]
 
-labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
+# labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 
-grow_labels(current_row=current_row,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full)
+# grow_labels(current_row=current_row,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full)
 
 
-current_row[1]['prostate']
+# current_row[1]['prostate']
 
-# /workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714463775000005182/U_8ekGLQ/1.3.12.2.1107.5.8.15.100960.30000022021714463775000005214/prostate.nii.gz
+# # '/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714463775000004282/U_8ZmM76/1.3.12.2.1107.5.8.15.100960.30000022021714463775000004504/prostate.nii.gz'

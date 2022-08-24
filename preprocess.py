@@ -85,18 +85,35 @@ def get_bool_arr_from_path(colName,current_row):
     return sitk.GetArrayFromImage(imageA).astype(bool)
 
 
+# def getModDistance(indexTop,indexIn):
+#     res=((abs(indexTop[0]-indexIn[0])^2)
+#         +(abs(indexTop[1]-indexIn[1])^2)
+#         +(abs(indexTop[2]-indexIn[2])^2)
+#         +(abs(indexTop[2]-indexIn[2])*5))^2
+#     # if(res<0):
+#     #     print("aaaa")
+#     #     print(res)
+    
+#     return res 
+
 
 def getModDistance(indexTop,indexIn):
-    res=((abs(indexTop[0]-indexIn[0])^2 )+(abs(indexTop[1]-indexIn[1])^2)+(abs(indexTop[2]-indexIn[2])^2)+(abs(indexTop[2]-indexIn[2])*5))^2
-    print(res)
+    res=((abs(indexTop[0]-indexIn[0]))
+        +(abs(indexTop[1]-indexIn[1]))
+        +(abs(indexTop[2]-indexIn[2]))
+        +(abs(indexTop[0]-indexIn[0])*5))
+    # if(res<0):
+    #     print("aaaa")
+    #     print(res)
+    
     return res 
 
 def sortAndGetSubsection(indList,indexTop,numbToAnalyze):
     res=list(map(lambda indexIn: getModDistance(indexTop,indexIn)  ,indList))
     if(len(res)>=numbToAnalyze):
         res=list(sorted(res))[0:numbToAnalyze]
-        return (np.min(res),np.mean(res))
-    return (10000.0,10000.0)    
+        return np.mean(res)
+    return 10000.0    
 
 
 
@@ -104,10 +121,10 @@ def getClosestIndex2D(indexTop,boolArrs_indicies):
     """
     given cartesian index it return the label number with some index closest to queried index
     """
-    numbToAnalyze=9
+    numbToAnalyze=5
     boolArrs_indiciesIn= list(map(lambda indList : sortAndGetSubsection(indList,indexTop,numbToAnalyze) ,boolArrs_indicies ))
-    print(f"boolArrs_indiciesIn {boolArrs_indiciesIn}")
-
+    #print(f"boolArrs_indiciesIn {boolArrs_indiciesIn}")
+    print(np.min(boolArrs_indiciesIn))
     return np.where(boolArrs_indiciesIn == np.min(boolArrs_indiciesIn))[0][0]
    
 
@@ -119,6 +136,7 @@ def augment_indicies2D(indicies_to_mod,boolArrs_indicies):
     so it return original cartesian index plus index of the array where this index should be set to true
     """ 
     res= list(map( lambda index : (index[0],index[1],index[2] ,getClosestIndex2D(index, boolArrs_indicies)) ,indicies_to_mod))
+    #print(res)
     #res= list(filter(lambda indd : indd[3]>0,res))
     return res
 
@@ -218,7 +236,7 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
             print(label)
             pathA= current_row[label]
             image3D=sitk.ReadImage(pathA)
-            pathB= pathA.replace(".nii.gz", "_b_.nii.gz")
+            pathB=  pathA#pathA.replace(".nii.gz", "_b_.nii.gz")
             #print(pathB)
             save_from_arr(boolArrs[index].astype(np.int16),image3D,pathB)
 
