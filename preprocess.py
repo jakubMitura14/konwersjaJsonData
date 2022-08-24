@@ -87,14 +87,14 @@ def get_bool_arr_from_path(colName,current_row):
 
 
 def getModDistance(indexTop,indexIn):
-    return (((indexTop[0]-indexIn[0])^2)+((indexTop[1]-indexIn[1])^2)+((indexTop[2]-indexIn[2])^2)+(abs(indexTop[2]-indexIn[2])*5))^3
+    return (((indexTop[0]-indexIn[0])^2)+((indexTop[1]-indexIn[1])^2)+((indexTop[2]-indexIn[2])^2)+(abs(indexTop[2]-indexIn[2])*5))
 
 def sortAndGetSubsection(indList,indexTop,numbToAnalyze):
     res=list(map(lambda indexIn: getModDistance(indexTop,indexIn)  ,indList))
     if(len(res)>=numbToAnalyze):
         res=list(sorted(res))[0:numbToAnalyze]
-        return np.mean(res)
-    return 10000.0    
+        return (np.min(res),np.mean(res))
+    return (10000.0,10000.0)    
 
 
 
@@ -216,7 +216,9 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
             print(label)
             pathA= current_row[label]
             image3D=sitk.ReadImage(pathA)
-            save_from_arr(boolArrs[index].astype(np.int16),image3D,pathA)
+            pathB= pathA.replace(".nii.gz", "_b_.nii.gz")
+            #print(pathB)
+            save_from_arr(boolArrs[index].astype(np.int16),image3D,pathB)
 
 
 
