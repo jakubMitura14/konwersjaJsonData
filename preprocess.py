@@ -124,7 +124,7 @@ def getModDistance(indexTop,indexIn):
 
 def sortAndGetSubsection(indList,indexTop,numbToAnalyze):
     res=list(map(lambda indexIn: getModDistance(indexTop,indexIn)  ,indList))
-    if(len(res>=numbToAnalyze)):
+    if(len(res)>=numbToAnalyze):
         res=list(sorted(res))[0:numbToAnalyze]
         return np.mean(res)
     return 10000.0    
@@ -148,7 +148,7 @@ def getClosestIndex2D(indexTop,boolArrs_indicies):
     #boolArrs_indiciesIn=list(filter( lambda inn: inn[2]==indexTop[2] ,boolArrs_indicies ))
 
     numbToAnalyze=12
-    boolArrs_indiciesIn= list(map(lambda indList : sortAndGetSubsection(indList,indexTop,numbToAnalyze)  ))
+    boolArrs_indiciesIn= list(map(lambda indList : sortAndGetSubsection(indList,indexTop,numbToAnalyze) ,boolArrs_indicies ))
     
     #print(f"indexTop {indexTop} min index {min(boolArrs_indiciesIn, key = lambda t: t[4])}"  )
 
