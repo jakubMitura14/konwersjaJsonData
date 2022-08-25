@@ -1,0 +1,235 @@
+{
+    "ContentCreatorName": "JM",
+    "ClinicalTrialSeriesID": "Session1",
+    "ClinicalTrialTimePointID": "1",
+    "SeriesDescription": "Anatomy",
+    "SeriesNumber": "300",
+    "InstanceNumber": "1",
+    "segmentAttributes": [
+        [
+            {
+                "labelID": 1,
+                "SegmentDescription": "anterior fibromuscular stroma",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 2,
+                "SegmentDescription": "central zone",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 3,
+                "SegmentDescription": "external iliac",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 4,
+                "SegmentDescription": "internal iliac",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 5,
+                "SegmentDescription": "obturator",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 6,
+                "SegmentDescription": "peripheral zone",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 7,
+                "SegmentDescription": "prostate",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 8,
+                "SegmentDescription": "seminal vesicles L",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 9,
+                "SegmentDescription": "seminal vesicles R",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 10,
+                "SegmentDescription": "transition zone",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            },
+            {
+                "labelID": 11,
+                "SegmentDescription": "urethra",
+                "SegmentAlgorithmType": "MANUAL",
+                "SegmentedPropertyCategoryCodeSequence": {
+                    "CodeValue": "123037004",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Anatomical Structure"
+                },
+                "SegmentedPropertyTypeCodeSequence": {
+                    "CodeValue": "41216001",
+                    "CodingSchemeDesignator": "SCT",
+                    "CodeMeaning": "Prostate"
+                },
+                "recommendedDisplayRGBValue": [
+                    230,
+                    158,
+                    140
+                ]
+            }
+        ]
+    ],
+    "ContentLabel": "SEGMENTATION",
+    "ContentDescription": "Image segmentation",
+    "ClinicalTrialCoordinatingCenterName": "dcmqi"
+}

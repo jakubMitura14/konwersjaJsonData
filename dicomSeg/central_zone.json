@@ -1,0 +1,36 @@
+{
+    "ContentCreatorName": "Reader1",
+    "ClinicalTrialSeriesID": "Session1",
+    "ClinicalTrialTimePointID": "1",
+    "SeriesDescription": "central_zone",
+    "SeriesNumber": "300",
+    "InstanceNumber": "1",
+    "segmentAttributes": [
+      [
+        {
+          "labelID": 2,
+          "SegmentDescription": "central_zone",
+          "SegmentAlgorithmType": "MANUAL",
+          "SegmentedPropertyCategoryCodeSequence": {
+            "CodeValue": "123037004",
+            "CodingSchemeDesignator": "SCT",
+            "CodeMeaning": "Anatomical Structure"
+          },
+          "SegmentedPropertyTypeCodeSequence": {
+            "CodeValue": "41216001",
+            "CodingSchemeDesignator": "SCT",
+            "CodeMeaning": "Prostate"
+          },
+          "recommendedDisplayRGBValue": [
+            230,
+            158,
+            140
+          ]
+        }
+      ]
+    ],
+    "ContentLabel": "SEGMENTATION",
+    "ContentDescription": "Image segmentation",
+    "ClinicalTrialCoordinatingCenterName": "dcmqi",
+    "BodyPartExamined": ""
+  }

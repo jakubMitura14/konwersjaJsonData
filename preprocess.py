@@ -144,7 +144,8 @@ def augment_indicies2D(indicies_to_mod,boolArrs_indicies):
 def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,indicies_around_full):
     """
     iterate over data - looks for any overlap between labels in labelsOfIntrest aand set such voxel to 0
-    additionally it also take into account voxels that were not marked as any part of the prostate but are present in some subsection of prostate
+    additionally it also take into account voxels that were not marked as any part of the prostate but are present in some subsection of 
+    
     both groups will be then processed and will be changed into a label of the closest label
     """
     

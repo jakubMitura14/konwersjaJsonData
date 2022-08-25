@@ -87,7 +87,10 @@ RUN pip3 --no-cache-dir install \
     comet_ml \
     jax[cpu] \
     optax \
-    ott-jax
+    ott-jax \
+    pydicom-seg
+
+
 RUN export GITHUB_USER=jakubMitura14
 
 ENV env_var_name=$argTokenGithub
