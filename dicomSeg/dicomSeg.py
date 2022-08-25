@@ -23,98 +23,105 @@ jsonFolder='/workspaces/konwersjaJsonData/dicomSeg'
 
 prostateLab='prostate'
 
-out_files_frame=pd.read_csv(resCSVDir) 
+# out_files_frame=pd.read_csv(resCSVDir) 
 
 
 
-index=0
+# index=0
 
-def save_dicom_seg_label():
-#name to retrieve json
-curr_no_space_name=innerLabel_json_names[index]
-#name as column name in pandas dataframe
-curr_with_space_name=col_names_to_analyze[index]
-#getting path to json in order to get template specification and instantiate dicom seg writer
-currentJson_path=join(jsonFolder,curr_no_space_name+".json") 
-template_curr= pydicom_seg.template.from_dcmqi_metainfo(currentJson_path)
-writer = pydicom_seg.MultiClassWriter(
-    template=template_curr,
-    inplane_cropping=False,  # Crop image slices to the minimum bounding box on
-                            # x and y axes
-    skip_empty_slices=False,  # Don't encode slices with only zeros
-    skip_missing_segment=False,  # If a segment definition is missing in the
-                                 # template, then raise an error instead of
-                                 # skipping it.
-)
-frame_of_intr=out_files_frame.loc[out_files_frame[prostateLab]!=" "]
-row = list(frame_of_intr.iterrows())[0]
-roww=row[1]
-roww[curr_with_space_name]
-
-segmentation=sitk.ReadImage(roww[curr_with_space_name])
-
-folderWithDicoms=roww['series_MRI_path'].replace('volume.mha','origVol')
-reader = sitk.ImageSeriesReader()
-dcm_files = reader.GetGDCMSeriesFileNames(folderWithDicoms, roww['series_id'])
-
-source_images = [
-    pydicom.dcmread(x, stop_before_pixels=True)
-    for x in dcm_files
-]
-
-dcm = writer.write(sitk.Cast(segmentation, sitk.sitkUInt8), source_images)
-dcm.save_as('segmentation.dcm')
-
-
-roww['series_MRI_path']
-
+def save_dicom_seg_label(row,index,innerLabel_json_names,col_names_to_analyze, path_to_save):
+    """
+    saves single label from single series into dicom seg format
+    row - row in dataframes of intrest
+    index - points to which label from supplied innerLabel_json_names and col_names_to_analyze entry to refer
+    """
+    roww=row[1]
+    #name to retrieve json
+    curr_no_space_name=innerLabel_json_names[index]
+    #name as column name in pandas dataframe
+    curr_with_space_name=col_names_to_analyze[index]
+    #getting path to json in order to get template specification and instantiate dicom seg writer
+    currentJson_path=join(jsonFolder,curr_no_space_name+".json") 
+    template_curr= pydicom_seg.template.from_dcmqi_metainfo(currentJson_path)
+    writer = pydicom_seg.MultiClassWriter(
+        template=template_curr,
+        inplane_cropping=False,  # Crop image slices to the minimum bounding box on
+                                # x and y axes
+        skip_empty_slices=False,  # Don't encode slices with only zeros
+        skip_missing_segment=False,  # If a segment definition is missing in the
+                                    # template, then raise an error instead of
+                                    # skipping it.
+    )
+    #retrieving segmentation label
+    segmentation=sitk.ReadImage(roww[curr_with_space_name])
+    #getting folder with original dicoms of the MRI
+    folderWithDicoms=roww['series_MRI_path'].replace('volume.mha','origVol')
+    #read oridginal dicoms
+    reader = sitk.ImageSeriesReader()
+    dcm_files = reader.GetGDCMSeriesFileNames(folderWithDicoms, roww['series_id'])
+    source_images = [
+        pydicom.dcmread(x, stop_before_pixels=True)
+        for x in dcm_files
+    ]
+    #save segmentation in dicom seg format to path
+    dcm = writer.write(sitk.Cast(segmentation, sitk.sitkUInt8), source_images)
+    dcm.save_as(join(path_to_save, curr_no_space_name+".dcm"))
 
 
-#image_mri = sitk.ReadImage(roww['series_MRI_path'])
+#     roww[curr_with_space_name]
 
-mriImage=sitk.ReadImage(pathA)
-out_files_frame.columns
 
-writer_anatomy
-
-# image_orig = sitk.ReadImage(pathA)
-# image_data_orig = sitk.GetArrayFromImage(image)
+#     frame_of_intr=out_files_frame.loc[out_files_frame[prostateLab]!=" "]
+#     row = list(frame_of_intr.iterrows())[0]
+# roww['series_MRI_path']
 
 
 
+# #image_mri = sitk.ReadImage(roww['series_MRI_path'])
 
-# template_lesion = pydicom_seg.template.from_dcmqi_metainfo(dseg_lesion_json)
+# mriImage=sitk.ReadImage(pathA)
+# out_files_frame.columns
 
-# writer_anatomy = pydicom_seg.MultiClassWriter(
-#     template=template_anatomy,
-#     inplane_cropping=False,  # Crop image slices to the minimum bounding box on
-#                             # x and y axes
-#     skip_empty_slices=False,  # Don't encode slices with only zeros
-#     skip_missing_segment=False,  # If a segment definition is missing in the
-#                                  # template, then raise an error instead of
-#                                  # skipping it.
-# )
+# writer_anatomy
+
+# # image_orig = sitk.ReadImage(pathA)
+# # image_data_orig = sitk.GetArrayFromImage(image)
 
 
-#     def segments(self) -> List[Segment]:
-#         """
-#         Segments property.
-#         Returns
-#         -------
-#         segments : List[Segment]
-#             List of all the segments.
-#         """
-#         reader =pydicom_seg.SegmentReader()
 
-#         segments = []
-#         for segment_number, dicom_header in result.segment_infos.items():
-#             if dicom_header.__contains__("SegmentLabel"):
-#                 organ_name = dicom_header.SegmentLabel
-#             else:
-#                 organ_name = dicom_header.SegmentDescription
 
-#             simple_itk_label_map = result.segment_image(segment_number)
+# # template_lesion = pydicom_seg.template.from_dcmqi_metainfo(dseg_lesion_json)
 
-#             segments.append(Segment(name=organ_name, simple_itk_label_map=simple_itk_label_map))
+# # writer_anatomy = pydicom_seg.MultiClassWriter(
+# #     template=template_anatomy,
+# #     inplane_cropping=False,  # Crop image slices to the minimum bounding box on
+# #                             # x and y axes
+# #     skip_empty_slices=False,  # Don't encode slices with only zeros
+# #     skip_missing_segment=False,  # If a segment definition is missing in the
+# #                                  # template, then raise an error instead of
+# #                                  # skipping it.
+# # )
 
-#         return segments
+
+# #     def segments(self) -> List[Segment]:
+# #         """
+# #         Segments property.
+# #         Returns
+# #         -------
+# #         segments : List[Segment]
+# #             List of all the segments.
+# #         """
+# #         reader =pydicom_seg.SegmentReader()
+
+# #         segments = []
+# #         for segment_number, dicom_header in result.segment_infos.items():
+# #             if dicom_header.__contains__("SegmentLabel"):
+# #                 organ_name = dicom_header.SegmentLabel
+# #             else:
+# #                 organ_name = dicom_header.SegmentDescription
+
+# #             simple_itk_label_map = result.segment_image(segment_number)
+
+# #             segments.append(Segment(name=organ_name, simple_itk_label_map=simple_itk_label_map))
+
+# #         return segments
