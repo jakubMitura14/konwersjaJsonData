@@ -85,18 +85,6 @@ def get_bool_arr_from_path(colName,current_row):
     return sitk.GetArrayFromImage(imageA).astype(bool)
 
 
-# def getModDistance(indexTop,indexIn):
-#     res=((abs(indexTop[0]-indexIn[0])^2)
-#         +(abs(indexTop[1]-indexIn[1])^2)
-#         +(abs(indexTop[2]-indexIn[2])^2)
-#         +(abs(indexTop[2]-indexIn[2])*5))^2
-#     # if(res<0):
-#     #     print("aaaa")
-#     #     print(res)
-    
-#     return res 
-
-
 def getModDistance(indexTop,indexIn):
     res=((abs(indexTop[0]-indexIn[0]))
         +(abs(indexTop[1]-indexIn[1]))

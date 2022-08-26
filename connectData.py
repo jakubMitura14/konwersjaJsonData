@@ -42,6 +42,8 @@ orig_data_csv='/workspaces/konwersjaJsonData/outCsv/orig_files.csv'
 #path to folder with all required data downloaded with mdai client
 dataDir='/workspaces/konwersjaJsonData/data'
 client_down_csv='/workspaces/konwersjaJsonData/outCsv/client_files.csv'
+#name of the folder where files with comparisons of lesions will be stored
+rootFolder_lesion_analysis='/workspaces/konwersjaJsonData/forLesionAnalysis'
 
 
 #loading data from JSON
@@ -68,7 +70,13 @@ prostateLab = 'prostate'
 #files will be overwritten in the output folder
 labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 ####
-dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+
+
+
+#dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+
+
+
 
 ##measurements
 #after data is preprocessed we will perform measurements like volumes of labels

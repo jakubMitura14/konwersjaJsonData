@@ -105,6 +105,7 @@ RUN git config -l
 
 RUN mkdir ${HOME}/scripts
 RUN mkdir ${HOME}/externalRepos
+RUN mkdir ${HOME}/forLesionAnalysis
 
 RUN mkdir ${HOME}/externalRepos/elastix
 RUN git clone https://github.com/SuperElastix/SimpleElastix ${HOME}/externalRepos/elastix

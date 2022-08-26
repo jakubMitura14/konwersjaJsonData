@@ -17,6 +17,21 @@ import torch
 from os import path as pathOs
 import more_itertools
 from os.path import basename, dirname, exists, isdir, join, split
+import shutil
+
+def save_from_arr(zeroArray,image3D,newPathLab):
+    """
+    given array saves it to file into defined path using simpleitk
+    """
+    writer = sitk.ImageFileWriter()
+    image = sitk.GetImageFromArray(zeroArray)  
+    image.SetSpacing(image3D.GetSpacing())
+    image.SetOrigin(image3D.GetOrigin())
+    image.SetDirection(image3D.GetDirection())    
+
+    writer.SetFileName(newPathLab)
+    writer.Execute(image)
+
 
 def get_volume(path):
     """
@@ -67,7 +82,10 @@ def get_label_per_doc(doctor_id,locDf,col_names_for_dice):
     utility function getting label for each annotator and combines it into single string
     """
     locLocDf = list(locDf.loc[locDf['doctor_id'] == doctor_id].iterrows())[0][1]
+    #we filter all lesion names that happen to be present with this annotator doctor
     liist= list( filter(lambda clN: locLocDf[clN]!=" " ,col_names_for_dice))
+    liist= list( map(lambda clN: clN+'_@_'+locLocDf[clN] ,liist))
+    #we will add also a path to the lesions of intrest
     return list(map(lambda entry : doctor_id+'_@_'+entry   ,liist))
 
 
@@ -89,7 +107,20 @@ def get_dice_from_tupl(tupl, locDf):
     pathB = list(locDf.loc[locDf['doctor_id'] == doctorB].iterrows())[0][1][labelB]
     return get_dice_between(pathA,pathB)
 
-
+def splitLabelDataForFrame(tupl):
+    """
+    given tupl with data return list that is ready to be row in the output dataframe
+    """
+    return(tupl[0][0]#series id
+    ,tupl[0][1].split('_@_')[0] #doctor a
+    ,tupl[0][1].split('_@_')[1] #lesion a
+    ,tupl[0][1].split('_@_')[2] #path to lesion a
+    ,tupl[0][2].split('_@_')[0] #doctor b
+    ,tupl[0][2].split('_@_')[1] #lesion b
+    ,tupl[0][2].split('_@_')[2] #path to lesion b
+    ,tupl[1]#dice
+    ,tupl[2]  #mriPath    
+    ) 
 
 def get_dice_in_all_pairs(currentSeries,preprocessed_df,col_names_for_dice):
     """
@@ -99,6 +130,8 @@ def get_dice_in_all_pairs(currentSeries,preprocessed_df,col_names_for_dice):
     
     locDf = preprocessed_df.loc[preprocessed_df['series_id'] == currentSeries]
     doctors= np.unique(locDf['doctor_id'].to_numpy())
+    mriPath= np.unique(locDf['series_MRI_path'].to_numpy())[0]
+
     if(len(doctors)>1):
         #getting the combinations of possible labels and doctor comparing all
         labels_per_doctor =list( map(partial(get_label_per_doc, col_names_for_dice=col_names_for_dice,locDf=locDf ),doctors   ))
@@ -116,11 +149,13 @@ def get_dice_in_all_pairs(currentSeries,preprocessed_df,col_names_for_dice):
         #adding data about series to each tuple
         labels_per_doctor_all_pairs= list(map( lambda tupl: (currentSeries,tupl[0],tupl[1] )   ,labels_per_doctor_all_pairs))
         labels_per_doctor_all_pairs= list(zip(labels_per_doctor_all_pairs,dice_vals))
-        #prepared for 
-        labels_per_doctor_all_pairs=list(map(lambda tupl : (tupl[0][0],tupl[0][1].split('_@_')[0],tupl[0][1].split('_@_')[1]
-                                  ,tupl[0][2].split('_@_')[0],tupl[0][2].split('_@_')[1] ,tupl[1])   ,labels_per_doctor_all_pairs))
+        labels_per_doctor_all_pairs= list(map(lambda tupl: (tupl[0],tupl[1],mriPath  ) ,labels_per_doctor_all_pairs))
+
+        
+        #prepared for returning
+        labels_per_doctor_all_pairs=list(map(splitLabelDataForFrame   ,labels_per_doctor_all_pairs))
         return labels_per_doctor_all_pairs
-    return [(" ", " ", " ", " ", " ", " ")]
+    return [(" ", " ", " ", " ", " ", " ", " ", " "," ")]
 
 def get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, preprocessed_df,volumes_csv_dir,dice_csv_dir):
     """
@@ -145,17 +180,92 @@ def get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, preprocesse
     list_dice_score = list(map( partial(get_dice_in_all_pairs,preprocessed_df=preprocessed_df,col_names_for_dice=col_names_for_dice),series ))
     list_dice_score=list(itertools.chain(*list_dice_score))
 
-    #(currentSeries,list(zip(labels_per_doctor_all_pairs,dice_vals)))
     #so now we have the series of nested tuples entry 1 is series uid second entry is list of tuples where fitst entry marks what
     #lesion and which annotator did it
     # goal isto  create dataframe where column
         #1) series id 2) first annotator id 3) first lesion name 4) second annotator id 5) socond lesion name 6) dice score
-    dice_df = pd.DataFrame(list_dice_score, columns =['SeriesId', 'doctor_a', 'lesion_a','doctor_b','lesion_b', 'dice'])
+    dice_df = pd.DataFrame(list_dice_score, columns =['SeriesId', 'doctor_a', 'lesion_a','path_lesion_a','doctor_b','lesion_b','path_lesion_b', 'dice','mriPath'])
     volumes_frame.to_csv(volumes_csv_dir) 
     dice_df.to_csv(dice_csv_dir)
     return (all_volumes_data,dice_df) 
 
 
+def labelNamesForDoc(coc,locDf):
+    """
+    given dataframe it looks for all of the names of lesions associated with given human annotator
+    """
+    rows = list(locDf.iterrows())
+    rows = list(map(lambda row:row[1],rows))
+    rows = list(filter(lambda row:row['doctor_a']==doc or row['doctor_b']==doc,rows))
+    rows = list(map(lambda row:[row['lesion_a'],row['lesion_b']],rows))
+    return np.unique(list(itertools.chain(*rows)))
+
+dice_df.columns
+
+#we have list of SeriesId,doctor_a,lesion_a,path_lesion_a,doctor_b,lesion_b,path_lesion_b,dice
+#fisrt we will filter rows where dice is not 0
+preprocessed_df=dice_df.loc[dice_df['dice'] != " "]
+preprocessed_df=preprocessed_df.loc[preprocessed_df['dice'] != 0]
+#then we get all unique series id
+series = np.unique(preprocessed_df['SeriesId'].to_numpy())
 
 
 
+currentSeries=series[0]
+##per unique series id
+locDf = preprocessed_df.loc[preprocessed_df['SeriesId'] == currentSeries]
+
+#create folder with this series id and copy there the MRI mha file and original lesion files
+locFolderPath=join(rootFolder_lesion_analysis,currentSeries)
+os.makedirs(locFolderPath,exist_ok=True)
+#get some mri path it should point to the same mri in all cases for this series
+mriPath=list(locDf['mriPath'].to_numpy())[0]
+#copy files
+shutil.copyfile(mriPath, join(locFolderPath, 'volume.mha'))
+
+#then  unique lesion names and doctor names from lesion_a and lesion_b in this series n_lesions
+lesion_names= np.unique(np.concatenate([locDf['lesion_a'].to_numpy(),locDf['lesion_b'].to_numpy()]))
+doctor_names= np.unique(np.concatenate([locDf['doctor_a'].to_numpy(),locDf['doctor_b'].to_numpy()]))
+#we select the doctor with most lesion names present
+doctor_lesions=list(map(partial(labelNamesForDoc,locDf=locDf) ,doctor_names))
+doctor_lesions_len=list(map(lambda lesionList:len(lesionList) , doctor_lesions ))
+zipped= list(zip(doctor_names, doctor_lesions,doctor_lesions_len))
+
+
+
+labelNamesForDoc(doc,df )
+
+lesion_names= np.unique(lesion_names)
+n_lesions=len(lesion_names)
+
+#copy files
+aaa
+shutil.copyfile(pp, join(locFolderPath, xxx))
+
+#next we choose n_lesions rows from our series id frame with highest dice score
+final_df = locDf.sort_values(by=['dice'], ascending=False)
+
+
+
+#read associated files
+row=row[1]
+pathA = row['path_lesion_a']
+pathB = row['path_lesion_b']
+
+imageA=sitk.ReadImage(pathA)
+imageB=sitk.ReadImage(pathB)
+
+dataA=sitk.GetArrayFromImage(imageA).astype(bool)
+dataB=sitk.GetArrayFromImage(imageB).astype(bool)
+
+#save the boolean and of tose two files as the common part 
+commonPart= np.boolean_and(dataA,dataB)
+namee=_row["doctor_a"]+'_'+row["lesion_a"]+'_'+row["doctor_b"]+'_'+row["lesion_b"]+'nii.gz'
+newPath=join(locFolderPath,namee)
+save_from_arr(commonPart.astype(np.uint8),imageA,newPath)
+
+
+
+
+
+# #we have list of SeriesId,doctor_a,lesion_a,path_lesion_a,doctor_b,lesion_b,path_lesion_b,dice
