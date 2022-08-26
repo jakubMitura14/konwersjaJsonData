@@ -89,11 +89,7 @@ def getModDistance(indexTop,indexIn):
     res=((abs(indexTop[0]-indexIn[0]))
         +(abs(indexTop[1]-indexIn[1]))
         +(abs(indexTop[2]-indexIn[2]))
-        +(abs(indexTop[0]-indexIn[0])*5))
-    # if(res<0):
-    #     print("aaaa")
-    #     print(res)
-    
+        +(abs(indexTop[0]-indexIn[0])*3))  
     return res 
 
 def sortAndGetSubsection(indList,indexTop,numbToAnalyze):
@@ -111,7 +107,6 @@ def getClosestIndex2D(indexTop,boolArrs_indicies):
     """
     numbToAnalyze=5
     boolArrs_indiciesIn= list(map(lambda indList : sortAndGetSubsection(indList,indexTop,numbToAnalyze) ,boolArrs_indicies ))
-    #print(f"boolArrs_indiciesIn {boolArrs_indiciesIn}")
     print(np.min(boolArrs_indiciesIn))
     return np.where(boolArrs_indiciesIn == np.min(boolArrs_indiciesIn))[0][0]
    
@@ -124,8 +119,6 @@ def augment_indicies2D(indicies_to_mod,boolArrs_indicies):
     so it return original cartesian index plus index of the array where this index should be set to true
     """ 
     res= list(map( lambda index : (index[0],index[1],index[2] ,getClosestIndex2D(index, boolArrs_indicies)) ,indicies_to_mod))
-    #print(res)
-    #res= list(filter(lambda indd : indd[3]>0,res))
     return res
 
 
@@ -145,11 +138,6 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
         # getting powerset in order to simplify futher iterations
         cart_prod=list(more_itertools.powerset(labelsOfIntrest_inner))
         cart_prod=list(filter(lambda tupl:len(tupl)==2  ,cart_prod))
-        #the same but without urethra
-        #cart_prod_no_urethra= list(filter(lambda tupl: tupl[0]!='urethra' and tupl[1]!='urethra'  ,cart_prod))
-        # print(" cart_prod  ")
-        # print(cart_prod)
-
         prostateBool = get_bool_arr_from_path(prostateLab,current_row )
         negatedProstate=np.logical_not(prostateBool)
 
@@ -192,14 +180,6 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
         indicies_to_mod =  np.argwhere(voxels_to_mod)
         #getting indicies of current positions of labels
         boolArrs_indicies=list(map(np.argwhere,boolArrs ))
-        # enumm= list(enumerate(boolArrs_indicies))
-        # boolArrs_indicies_with_source= list(map(lambda tupl: list(map(lambda ind:[ind[0],ind[1],ind[2],tupl[0]],tupl[1] ))   ,enumm))
-        # boolArrs_indicies_with_source= list(itertools.chain(*boolArrs_indicies_with_source))
-
-        #print(f"boolArrs_indicies_with_source {boolArrs_indicies_with_source}  ")
-
-        # #adding indicies to associated boolean array
-        # boolArrs_indicies=enumerate(boolArrs_indicies)
         #getting the labels to indicies_to_mod 
         augmentedIndicies2D = augment_indicies2D(indicies_to_mod,boolArrs_indicies)
         # print(f"indicies_to_mod {indicies_to_mod} \n")
@@ -210,15 +190,6 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
 
         for aug_index in augmentedIndicies2D:
             boolArrs[aug_index[3]][aug_index[0],aug_index[1],aug_index[2]]=True
-        #in case 2D (in the same plane) is not found we will look in between planes
-        # augmentedIndicies3D = augment_indicies3D(indicies_to_mod,boolArrs_indicies)
-        # for aug_index in augmentedIndicies2D:
-        #     #we set new value if ist is still false ire it was not set from augmentedIndicies2D
-        #     if(not boolArrs[aug_index[3]][aug_index[0],aug_index[1],aug_index[2]]):
-        #         boolArrs[aug_index[3]][aug_index[0],aug_index[1],aug_index[2]]=True
-
-
-
 
         #now we have modified the arrays we need to overwrite it 
         for index, label in enumerate(labelsOfIntrest_inner):
@@ -241,8 +212,7 @@ def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot):
 
     # using only those rows where we have prostate
     frame_of_intr=files_df.loc[files_df[prostateLab]!=" "]
-    #list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest), list(frame_of_intr.iterrows())))
-    #modify all arrays in parallel
+
     #list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows())))
 
     with mp.Pool(processes = mp.cpu_count()) as pool:
