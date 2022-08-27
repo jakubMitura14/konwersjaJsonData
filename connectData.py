@@ -92,6 +92,10 @@ col_names_for_dice=['lesion 1', 'lesion 2', 'lesion 3','lesion 4']
 
 all_volumes_data,dice_df=measurements.get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, out_files_frame,volumes_csv_dir,dice_csv_dir)
 
+#saving the lesions and their common parts
+measurements.save_lesions_consensus(dice_df,rootFolder_lesion_analysis )
+
+
 ##changing names of the directories from series number to folder number in original folders 
 
 #import re
