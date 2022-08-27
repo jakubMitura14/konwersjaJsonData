@@ -200,6 +200,38 @@ def labelNamesForDoc(coc,locDf):
     rows = list(map(lambda row:[row['lesion_a'],row['lesion_b']],rows))
     return np.unique(list(itertools.chain(*rows)))
 
+
+def getLenInDoc(tupl):
+    """
+    helper function to find doctor with biggest number of lesions described
+    """
+    return len(tupl[1])
+
+def getmaxDiceInDoc(row):
+    """
+    helper function to find doctor with biggest number of lesions described
+    """
+    return row['dice']
+
+def choosePath(row, docName):
+    """
+    choose the path associated with human annotator
+    """
+    if(row['doctor_a']==docName):
+        return row['path_lesion_a']
+    return row['path_lesion_b'] 
+
+def chooseLesionName(row, docName):
+    """
+    choose the path associated with human annotator
+    """
+    if(row['doctor_a']==docName):
+        return row['lesion_a']
+    return row['lesion_b'] 
+
+
+lesion_a
+
 dice_df.columns
 
 #we have list of SeriesId,doctor_a,lesion_a,path_lesion_a,doctor_b,lesion_b,path_lesion_b,dice
@@ -211,7 +243,7 @@ series = np.unique(preprocessed_df['SeriesId'].to_numpy())
 
 
 
-currentSeries=series[0]
+currentSeries=series[0] # aaa
 ##per unique series id
 locDf = preprocessed_df.loc[preprocessed_df['SeriesId'] == currentSeries]
 
@@ -220,46 +252,60 @@ locFolderPath=join(rootFolder_lesion_analysis,currentSeries)
 os.makedirs(locFolderPath,exist_ok=True)
 #get some mri path it should point to the same mri in all cases for this series
 mriPath=list(locDf['mriPath'].to_numpy())[0]
-#copy files
-shutil.copyfile(mriPath, join(locFolderPath, 'volume.mha'))
-
 #then  unique lesion names and doctor names from lesion_a and lesion_b in this series n_lesions
 lesion_names= np.unique(np.concatenate([locDf['lesion_a'].to_numpy(),locDf['lesion_b'].to_numpy()]))
 doctor_names= np.unique(np.concatenate([locDf['doctor_a'].to_numpy(),locDf['doctor_b'].to_numpy()]))
+#**copy files
+aZipped=list(zip(locDf['lesion_a'].to_numpy(),locDf['doctor_a'].to_numpy(),locDf['path_lesion_a'].to_numpy()    ))
+bZipped=list(zip(locDf['lesion_b'].to_numpy(),locDf['doctor_b'].to_numpy(),locDf['path_lesion_b'].to_numpy()    ))
+allZipped= list(np.concatenate([aZipped,bZipped]))
+#get only unique
+allZipped=list(map(lambda tupl: tupl[0]+'___' +tupl[1]+'___'+tupl[2], allZipped  ))
+allZipped=np.unique(allZipped )
+allZipped=list(map( lambda fused : fused.split("___")  ,allZipped ))
+#name of the copied file will point to the lesion name and annotator
+list(map( lambda tupl: shutil.copyfile(tupl[2] ,join( locFolderPath ,tupl[0]+'_'+tupl[1]+'nii.gz')  ),allZipped))
+shutil.copyfile(mriPath, join(locFolderPath, 'volume.mha'))
+
 #we select the doctor with most lesion names present
 doctor_lesions=list(map(partial(labelNamesForDoc,locDf=locDf) ,doctor_names))
-doctor_lesions_len=list(map(lambda lesionList:len(lesionList) , doctor_lesions ))
-zipped= list(zip(doctor_names, doctor_lesions,doctor_lesions_len))
+zipped= list(zip(doctor_names, doctor_lesions))
+#data about human annotator with max number of lesions described
+docTuplMax=max(zipped, key=getLenInDoc)
+#now we keep doc max as reference we iterate over his/her lesions and associate it with lesions of other annotator with highest dice score with this lesion
+maxDocName=docTuplMax[0]
+lesions_to_analyze=docTuplMax[1]
+doctors_not_max=list(filter(lambda docName:docName!=maxDocName  ,doctor_names))
+rows=list(locDf.iterrows())
+rows=list(map(lambda row: row[1] ,rows))
 
 
 
-labelNamesForDoc(doc,df )
+current_lesion=lesions_to_analyze[0]# krowa
+#we choose sinlge lesion and get rows only associated with it
+rows=list(filter(lambda row: 
+                        (row['lesion_a']==current_lesion and row['doctor_a']==maxDocName)
+                        or 
+                        (row['lesion_b']==current_lesion and row['doctor_b']==maxDocName ),rows ))
+#now we will analyze non chosen doctors and from their data we will choose the image that is most simmilar to chosen label of max doctor
+rows_not_max_doc=list(map(lambda doctorNotMaxName :list(filter(lambda row: 
+                        (row['doctor_a']==doctorNotMaxName or row['doctor_b']==doctorNotMaxName)
+                        ,rows )) ,doctors_not_max))
+perDocRows=list(map(lambda doctorNotMaxName :list(filter(lambda row: 
+                        (row['doctor_a']==doctorNotMaxName or row['doctor_b']==doctorNotMaxName)
+                        ,rows )) ,doctors_not_max))
 
-lesion_names= np.unique(lesion_names)
-n_lesions=len(lesion_names)
+perDocRows=list(map(lambda docRows : max(docRows, key=getmaxDiceInDoc)   ,perDocRows))
 
-#copy files
-aaa
-shutil.copyfile(pp, join(locFolderPath, xxx))
+zipped_perDocRows= list(zip(doctors_not_max,perDocRows ))
 
-#next we choose n_lesions rows from our series id frame with highest dice score
-final_df = locDf.sort_values(by=['dice'], ascending=False)
+paths_to_fuse= list(map( lambda tupl: choosePath(tupl[1],tupl[0]) ,zipped_perDocRows))
+images_toFuse= list(map( sitk.ReadImage ,paths_to_fuse))
+images_toFuse= list(map( sitk.GetArrayFromImage ,images_toFuse))
+images_toFuse= list(map(lambda imDat : imDat.astype(bool) ,images_toFuse))
+fused = functools.reduce(np.logical_and, images_toFuse)
 
 
-
-#read associated files
-row=row[1]
-pathA = row['path_lesion_a']
-pathB = row['path_lesion_b']
-
-imageA=sitk.ReadImage(pathA)
-imageB=sitk.ReadImage(pathB)
-
-dataA=sitk.GetArrayFromImage(imageA).astype(bool)
-dataB=sitk.GetArrayFromImage(imageB).astype(bool)
-
-#save the boolean and of tose two files as the common part 
-commonPart= np.boolean_and(dataA,dataB)
 namee=_row["doctor_a"]+'_'+row["lesion_a"]+'_'+row["doctor_b"]+'_'+row["lesion_b"]+'nii.gz'
 newPath=join(locFolderPath,namee)
 save_from_arr(commonPart.astype(np.uint8),imageA,newPath)
