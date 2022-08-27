@@ -190,7 +190,7 @@ def get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, preprocesse
     return (all_volumes_data,dice_df) 
 
 
-def labelNamesForDoc(coc,locDf):
+def labelNamesForDoc(doc,locDf):
     """
     given dataframe it looks for all of the names of lesions associated with given human annotator
     """
@@ -230,88 +230,112 @@ def chooseLesionName(row, docName):
     return row['lesion_b'] 
 
 
-lesion_a
-
-dice_df.columns
-
-#we have list of SeriesId,doctor_a,lesion_a,path_lesion_a,doctor_b,lesion_b,path_lesion_b,dice
-#fisrt we will filter rows where dice is not 0
-preprocessed_df=dice_df.loc[dice_df['dice'] != " "]
-preprocessed_df=preprocessed_df.loc[preprocessed_df['dice'] != 0]
-#then we get all unique series id
-series = np.unique(preprocessed_df['SeriesId'].to_numpy())
+def getForSaveName(row, docName):
+    """
+    creates a string for creating file name
+    """
+    if(row['doctor_a']==docName):
+        return row['lesion_a']+'_'+docName
+    return row['lesion_b']+'_'+docName
 
 
+def save_lesions_consensus(dice_df,rootFolder_lesion_analysis ):
+    """
+    on the basis of the data from dice frame we will establish the consensus of the images and save them to appropriate set folder
+    """
+    #we have list of SeriesId,doctor_a,lesion_a,path_lesion_a,doctor_b,lesion_b,path_lesion_b,dice
+    #fisrt we will filter rows where dice is not 0
+    preprocessed_df=dice_df.loc[dice_df['dice'] != " "]
+    preprocessed_df=preprocessed_df.loc[preprocessed_df['dice'] != 0]
+    #then we get all unique series id
+    series = np.unique(preprocessed_df['SeriesId'].to_numpy())
+    list(map(lambda currentSeries : iter_over_series_and_save_cons(currentSeries,preprocessed_df,rootFolder_lesion_analysis )   ))
 
-currentSeries=series[0] # aaa
-##per unique series id
-locDf = preprocessed_df.loc[preprocessed_df['SeriesId'] == currentSeries]
+def iter_over_series_and_save_cons(currentSeries,preprocessed_df,rootFolder_lesion_analysis ):
+    """
+    iterates over each image series and saves the consensus
+    """
+    ##per unique series id
+    locDf = preprocessed_df.loc[preprocessed_df['SeriesId'] == currentSeries]
 
-#create folder with this series id and copy there the MRI mha file and original lesion files
-locFolderPath=join(rootFolder_lesion_analysis,currentSeries)
-os.makedirs(locFolderPath,exist_ok=True)
-#get some mri path it should point to the same mri in all cases for this series
-mriPath=list(locDf['mriPath'].to_numpy())[0]
-#then  unique lesion names and doctor names from lesion_a and lesion_b in this series n_lesions
-lesion_names= np.unique(np.concatenate([locDf['lesion_a'].to_numpy(),locDf['lesion_b'].to_numpy()]))
-doctor_names= np.unique(np.concatenate([locDf['doctor_a'].to_numpy(),locDf['doctor_b'].to_numpy()]))
-#**copy files
-aZipped=list(zip(locDf['lesion_a'].to_numpy(),locDf['doctor_a'].to_numpy(),locDf['path_lesion_a'].to_numpy()    ))
-bZipped=list(zip(locDf['lesion_b'].to_numpy(),locDf['doctor_b'].to_numpy(),locDf['path_lesion_b'].to_numpy()    ))
-allZipped= list(np.concatenate([aZipped,bZipped]))
-#get only unique
-allZipped=list(map(lambda tupl: tupl[0]+'___' +tupl[1]+'___'+tupl[2], allZipped  ))
-allZipped=np.unique(allZipped )
-allZipped=list(map( lambda fused : fused.split("___")  ,allZipped ))
-#name of the copied file will point to the lesion name and annotator
-list(map( lambda tupl: shutil.copyfile(tupl[2] ,join( locFolderPath ,tupl[0]+'_'+tupl[1]+'nii.gz')  ),allZipped))
-shutil.copyfile(mriPath, join(locFolderPath, 'volume.mha'))
+    #create folder with this series id and copy there the MRI mha file and original lesion files
+    locFolderPath=join(rootFolder_lesion_analysis,currentSeries)
+    os.makedirs(locFolderPath,exist_ok=True)
+    #get some mri path it should point to the same mri in all cases for this series
+    mriPath=list(locDf['mriPath'].to_numpy())[0]
+    #then  unique lesion names and doctor names from lesion_a and lesion_b in this series n_lesions
+    lesion_names= np.unique(np.concatenate([locDf['lesion_a'].to_numpy(),locDf['lesion_b'].to_numpy()]))
+    doctor_names= np.unique(np.concatenate([locDf['doctor_a'].to_numpy(),locDf['doctor_b'].to_numpy()]))
+    #**copy files
+    aZipped=list(zip(locDf['lesion_a'].to_numpy(),locDf['doctor_a'].to_numpy(),locDf['path_lesion_a'].to_numpy()    ))
+    bZipped=list(zip(locDf['lesion_b'].to_numpy(),locDf['doctor_b'].to_numpy(),locDf['path_lesion_b'].to_numpy()    ))
+    allZipped= list(np.concatenate([aZipped,bZipped]))
+    #get only unique
+    allZipped=list(map(lambda tupl: tupl[0]+'___' +tupl[1]+'___'+tupl[2], allZipped  ))
+    allZipped=np.unique(allZipped )
+    allZipped=list(map( lambda fused : fused.split("___")  ,allZipped ))
+    #name of the copied file will point to the lesion name and annotator
+    list(map( lambda tupl: shutil.copyfile(tupl[2] ,join( locFolderPath ,tupl[0]+'_'+tupl[1]+'nii.gz')  ),allZipped))
+    shutil.copyfile(mriPath, join(locFolderPath, 'volume.mha'))
 
-#we select the doctor with most lesion names present
-doctor_lesions=list(map(partial(labelNamesForDoc,locDf=locDf) ,doctor_names))
-zipped= list(zip(doctor_names, doctor_lesions))
-#data about human annotator with max number of lesions described
-docTuplMax=max(zipped, key=getLenInDoc)
-#now we keep doc max as reference we iterate over his/her lesions and associate it with lesions of other annotator with highest dice score with this lesion
-maxDocName=docTuplMax[0]
-lesions_to_analyze=docTuplMax[1]
-doctors_not_max=list(filter(lambda docName:docName!=maxDocName  ,doctor_names))
-rows=list(locDf.iterrows())
-rows=list(map(lambda row: row[1] ,rows))
+    #we select the doctor with most lesion names present
+    doctor_lesions=list(map(partial(labelNamesForDoc,locDf=locDf) ,doctor_names))
+    zipped= list(zip(doctor_names, doctor_lesions))
+    #data about human annotator with max number of lesions described
+    docTuplMax=max(zipped, key=getLenInDoc)
+    #now we keep doc max as reference we iterate over his/her lesions and associate it with lesions of other annotator with highest dice score with this lesion
+    maxDocName=docTuplMax[0]
+    lesions_to_analyze=docTuplMax[1]
+    doctors_not_max=list(filter(lambda docName:docName!=maxDocName  ,doctor_names))
+    rows=list(locDf.iterrows())
+    rows=list(map(lambda row: row[1] ,rows))
 
-
-
-current_lesion=lesions_to_analyze[0]# krowa
-#we choose sinlge lesion and get rows only associated with it
-rows=list(filter(lambda row: 
-                        (row['lesion_a']==current_lesion and row['doctor_a']==maxDocName)
-                        or 
-                        (row['lesion_b']==current_lesion and row['doctor_b']==maxDocName ),rows ))
-#now we will analyze non chosen doctors and from their data we will choose the image that is most simmilar to chosen label of max doctor
-rows_not_max_doc=list(map(lambda doctorNotMaxName :list(filter(lambda row: 
-                        (row['doctor_a']==doctorNotMaxName or row['doctor_b']==doctorNotMaxName)
-                        ,rows )) ,doctors_not_max))
-perDocRows=list(map(lambda doctorNotMaxName :list(filter(lambda row: 
-                        (row['doctor_a']==doctorNotMaxName or row['doctor_b']==doctorNotMaxName)
-                        ,rows )) ,doctors_not_max))
-
-perDocRows=list(map(lambda docRows : max(docRows, key=getmaxDiceInDoc)   ,perDocRows))
-
-zipped_perDocRows= list(zip(doctors_not_max,perDocRows ))
-
-paths_to_fuse= list(map( lambda tupl: choosePath(tupl[1],tupl[0]) ,zipped_perDocRows))
-images_toFuse= list(map( sitk.ReadImage ,paths_to_fuse))
-images_toFuse= list(map( sitk.GetArrayFromImage ,images_toFuse))
-images_toFuse= list(map(lambda imDat : imDat.astype(bool) ,images_toFuse))
-fused = functools.reduce(np.logical_and, images_toFuse)
-
-
-namee=_row["doctor_a"]+'_'+row["lesion_a"]+'_'+row["doctor_b"]+'_'+row["lesion_b"]+'nii.gz'
-newPath=join(locFolderPath,namee)
-save_from_arr(commonPart.astype(np.uint8),imageA,newPath)
+    list(map( lambda current_lesion : alalyze_per_lesion_for_consensus(current_lesion,maxDocName,doctors_not_max,mriPath,locFolderPath )  ,lesions_to_analyze))
 
 
 
+def alalyze_per_lesion_for_consensus(current_lesion,maxDocName,doctors_not_max,mriPath,locFolderPath ):
+    #we choose sinlge lesion and get rows only associated with it
+    rows=list(filter(lambda row: 
+                            (row['lesion_a']==current_lesion and row['doctor_a']==maxDocName)
+                            or 
+                            (row['lesion_b']==current_lesion and row['doctor_b']==maxDocName ),rows ))
+    #now we will analyze non chosen doctors and from their data we will choose the image that is most simmilar to chosen label of max doctor
+    rows_not_max_doc=list(map(lambda doctorNotMaxName :list(filter(lambda row: 
+                            (row['doctor_a']==doctorNotMaxName or row['doctor_b']==doctorNotMaxName)
+                            ,rows )) ,doctors_not_max))
+    perDocRows=list(map(lambda doctorNotMaxName :list(filter(lambda row: 
+                            (row['doctor_a']==doctorNotMaxName or row['doctor_b']==doctorNotMaxName)
+                            ,rows )) ,doctors_not_max))
+
+    perDocRows=list(map(lambda docRows : max(docRows, key=getmaxDiceInDoc)   ,perDocRows))
+
+    zipped_perDocRows= list(zip(doctors_not_max,perDocRows ))
+
+    #establishing what needs to be fused to obtain consensus
+    paths_to_fuse= list(map( lambda tupl: choosePath(tupl[1],tupl[0]) ,zipped_perDocRows))
+    images_toFuse= list(map( sitk.ReadImage ,paths_to_fuse))
+    images_toFuse= list(map( sitk.GetArrayFromImage ,images_toFuse))
+    images_toFuse= list(map(lambda imDat : imDat.astype(bool) ,images_toFuse))
+    fused = functools.reduce(np.logical_and, images_toFuse)
+    name_not_main=list(map(lambda tupl: getForSaveName(tupl[1],tupl[0])  ,zipped_perDocRows))
+    name_not_main='_'.join(name_not_main)
+    name=current_lesion+'_'+maxDocName+'_'+name_not_main
+    name=name.replace(' ','_')
+    #original MRI to load metadata
+    image3D=sitk.ReadImage(mriPath)
+    #saving the consensus of 3 images
+    save_from_arr(fused.astype(np.uint8),image3D,join(locFolderPath,name+'.nii.gz'))
+    #saving the paired consensus
+    #first getting image data
+    biPathImage=list(map(lambda row : (row['path_lesion_a'], row['path_lesion_b']   )  ,perDocRows   ))
+    biPathImage=list(map(lambda paths : ( sitk.ReadImage(paths[0]) , sitk.ReadImage(paths[1]) )  ,biPathImage   ))
+    biPathImage=list(map(lambda images :( sitk.GetArrayFromImage(images[0]) , sitk.GetArrayFromImage(images[1]) )  ,biPathImage   ))
+    fusedBiImages=list(map(lambda imagesDat : np.logical_and( imagesDat[0].astype(bool),imagesDat[1].astype(bool))  ,biPathImage   ))
+    #now get name for the new file with bi consensus
+    fusedBiImageNames= list(map( lambda row:row["doctor_a"]+'_'+row["lesion_a"]+'_'+row["doctor_b"]+'_'+row["lesion_b"]+'.nii.gz'  ,perDocRows ))
+    zippedBiImage=list(zip(fusedBiImages,fusedBiImageNames   ))
+    #saving the paired consensus
+    list(map( lambda tupl : save_from_arr(tupl[0].astype(np.uint8),image3D,join(locFolderPath,tupl[1])) ,zippedBiImage  ))
 
 
-# #we have list of SeriesId,doctor_a,lesion_a,path_lesion_a,doctor_b,lesion_b,path_lesion_b,dice
