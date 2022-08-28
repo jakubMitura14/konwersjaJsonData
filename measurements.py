@@ -195,9 +195,15 @@ def labelNamesForDoc(doc,locDf):
     """
     rows = list(locDf.iterrows())
     rows = list(map(lambda row:row[1],rows))
-    rows = list(filter(lambda row:row['doctor_a']==doc or row['doctor_b']==doc,rows))
-    rows = list(map(lambda row:[row['lesion_a'],row['lesion_b']],rows))
-    return np.unique(list(itertools.chain(*rows)))
+    rowsA = list(filter(lambda row:row['doctor_a']==doc,rows))
+    rowsB = list(filter(lambda row:row['doctor_b']==doc,rows))
+    rowsA=list(map(lambda row: row['lesion_a'] ,rowsA   ))
+    rowsB=list(map(lambda row: row['lesion_b'] ,rowsB   ))
+    concated= rowsA+rowsB#+rowsB #np.concatenate([ rowsA,rowsB ])
+
+    #print(f"rowsB {rowsB}   plus {concated}   ")
+    # return np.unique(list(itertools.chain(*concated)))
+    return np.unique(concated)
 
 
 def getLenInDoc(tupl):
@@ -254,46 +260,52 @@ def iter_over_series_and_save_cons(currentSeries,preprocessed_df,rootFolder_lesi
     """
     iterates over each image series and saves the consensus
     """
-    ##per unique series id
-    locDf = preprocessed_df.loc[preprocessed_df['SeriesId'] == currentSeries]
+    debugSeries='1.3.12.2.1107.5.2.41.69644.202006090804423911430615.0.0.0'
+    if(currentSeries==debugSeries):
+        ##per unique series id
+        locDf = preprocessed_df.loc[preprocessed_df['SeriesId'] == currentSeries]
 
-    #create folder with this series id and copy there the MRI mha file and original lesion files
-    locFolderPath=join(rootFolder_lesion_analysis,currentSeries)
-    os.makedirs(locFolderPath,exist_ok=True)
-    #get some mri path it should point to the same mri in all cases for this series
-    mriPath=list(locDf['mriPath'].to_numpy())[0]
-    #then  unique lesion names and doctor names from lesion_a and lesion_b in this series n_lesions
-    lesion_names= np.unique(np.concatenate([locDf['lesion_a'].to_numpy(),locDf['lesion_b'].to_numpy()]))
-    doctor_names= np.unique(np.concatenate([locDf['doctor_a'].to_numpy(),locDf['doctor_b'].to_numpy()]))
-    #**copy files
-    aZipped=list(zip(locDf['lesion_a'].to_numpy(),locDf['doctor_a'].to_numpy(),locDf['path_lesion_a'].to_numpy()    ))
-    bZipped=list(zip(locDf['lesion_b'].to_numpy(),locDf['doctor_b'].to_numpy(),locDf['path_lesion_b'].to_numpy()    ))
-    allZipped= list(np.concatenate([aZipped,bZipped]))
-    #get only unique
-    allZipped=list(map(lambda tupl: tupl[0]+'___' +tupl[1]+'___'+tupl[2], allZipped  ))
-    allZipped=np.unique(allZipped )
-    allZipped=list(map( lambda fused : fused.split("___")  ,allZipped ))
-    #name of the copied file will point to the lesion name and annotator
-    list(map( lambda tupl: shutil.copyfile(tupl[2] ,join( locFolderPath ,tupl[0]+'_'+tupl[1]+'nii.gz')  ),allZipped))
-    shutil.copyfile(mriPath, join(locFolderPath, 'volume.mha'))
+        #create folder with this series id and copy there the MRI mha file and original lesion files
+        locFolderPath=join(rootFolder_lesion_analysis,currentSeries)
+        os.makedirs(locFolderPath,exist_ok=True)
+        #get some mri path it should point to the same mri in all cases for this series
+        mriPath=list(locDf['mriPath'].to_numpy())[0]
+        #then  unique lesion names and doctor names from lesion_a and lesion_b in this series n_lesions
+        lesion_names= np.unique(np.concatenate([locDf['lesion_a'].to_numpy(),locDf['lesion_b'].to_numpy()]))
+        doctor_names= np.unique(np.concatenate([locDf['doctor_a'].to_numpy(),locDf['doctor_b'].to_numpy()]))
+        #**copy files
+        aZipped=list(zip(locDf['lesion_a'].to_numpy(),locDf['doctor_a'].to_numpy(),locDf['path_lesion_a'].to_numpy()    ))
+        bZipped=list(zip(locDf['lesion_b'].to_numpy(),locDf['doctor_b'].to_numpy(),locDf['path_lesion_b'].to_numpy()    ))
+        allZipped= list(np.concatenate([aZipped,bZipped]))
+        #get only unique
+        allZipped=list(map(lambda tupl: tupl[0]+'___' +tupl[1]+'___'+tupl[2], allZipped  ))
+        allZipped=np.unique(allZipped )
+        allZipped=list(map( lambda fused : fused.split("___")  ,allZipped ))
+        #name of the copied file will point to the lesion name and annotator
+        list(map( lambda tupl: shutil.copyfile(tupl[2] ,join( locFolderPath ,tupl[0]+'_'+tupl[1]+'.nii.gz')  ),allZipped))
+        shutil.copyfile(mriPath, join(locFolderPath, 'volume.mha'))
 
-    #we select the doctor with most lesion names present
-    doctor_lesions=list(map(partial(labelNamesForDoc,locDf=locDf) ,doctor_names))
-    zipped= list(zip(doctor_names, doctor_lesions))
-    #data about human annotator with max number of lesions described
-    docTuplMax=max(zipped, key=getLenInDoc)
-    #now we keep doc max as reference we iterate over his/her lesions and associate it with lesions of other annotator with highest dice score with this lesion
-    maxDocName=docTuplMax[0]
-    lesions_to_analyze=docTuplMax[1]
+        #we select the doctor with most lesion names present
+        doctor_lesions=list(map(partial(labelNamesForDoc,locDf=locDf) ,doctor_names))
+        print(f"doctor_lesions {doctor_lesions}")
+        zipped= list(zip(doctor_names, doctor_lesions))
+        #data about human annotator with max number of lesions described
+        docTuplMax=max(zipped, key=getLenInDoc)
+        print(f"docTuplMax {docTuplMax}")
+        #now we keep doc max as reference we iterate over his/her lesions and associate it with lesions of other annotator with highest dice score with this lesion
+        maxDocName=docTuplMax[0]
+        lesions_to_analyze=docTuplMax[1]
 
-    doctors_not_max=list(filter(lambda docName:docName!=maxDocName  ,doctor_names))
-    
-    #print(f"doctors_not_max {doctors_not_max} all docs {doctor_names}")
+        doctors_not_max=list(filter(lambda docName:docName!=maxDocName  ,doctor_names))
+        
+        #print(f"doctors_not_max {doctors_not_max} all docs {doctor_names}")
 
-    rows=list(locDf.iterrows())
-    rows=list(map(lambda row: row[1] ,rows))
+        rows=list(locDf.iterrows())
+        rows=list(map(lambda row: row[1] ,rows))
 
-    list(map( lambda current_lesion : alalyze_per_lesion_for_consensus(current_lesion,maxDocName,doctors_not_max,mriPath,locFolderPath,rows )  ,lesions_to_analyze))
+        list(map( lambda current_lesion : alalyze_per_lesion_for_consensus(current_lesion,maxDocName,doctors_not_max,mriPath,locFolderPath,rows )  ,lesions_to_analyze))
+        # with mp.Pool(processes = mp.cpu_count()) as pool:
+        #     pool.map( lambda current_lesion : alalyze_per_lesion_for_consensus(current_lesion,maxDocName,doctors_not_max,mriPath,locFolderPath,rows )  ,lesions_to_analyze)
 
 
 
@@ -309,7 +321,13 @@ def alalyze_per_lesion_for_consensus(current_lesion,maxDocName,doctors_not_max,m
                             ,rows )) ,doctors_not_max))
 
     toPrint=list(map(lambda listt: len(listt)  ,perDocRows))
+    
     print(f"perDocRows len {toPrint} rows len {len(rows)} ")
+    print(f"lesionA {list(map(lambda row:row['lesion_a']   ,rowsOut))}   ")
+    print(f"lesionB {list(map(lambda row:row['lesion_b']   ,rowsOut))}   ")
+    print(f"doctor_a {list(map(lambda row:row['doctor_a']   ,rowsOut))}   ")
+    print(f"doctor_b {list(map(lambda row:row['doctor_b']   ,rowsOut))}   ")
+
     if(len(rows)>0  ):
         perDocRows=list(filter(lambda docRows : len(docRows)>0   ,perDocRows))
         perDocRows=list(map(lambda docRows : max(docRows, key=getmaxDiceInDoc)   ,perDocRows))
@@ -348,3 +366,5 @@ def alalyze_per_lesion_for_consensus(current_lesion,maxDocName,doctors_not_max,m
         return [*fusedBiImageNames,name ]
 
 
+#/media/jakub/NewVolume/projects/konwersjaJsonData/forLesionAnalysis/1.3.12.2.1107.5.2.41.69644.202006090804423911430615.0.0.0
+#1.3.12.2.1107.5.2.41.69644.202006090804423911430615.0.0.0
