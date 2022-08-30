@@ -322,11 +322,11 @@ def alalyze_per_lesion_for_consensus(current_lesion,maxDocName,doctors_not_max,m
 
     toPrint=list(map(lambda listt: len(listt)  ,perDocRows))
     
-    print(f"perDocRows len {toPrint} rows len {len(rows)} ")
-    print(f"lesionA {list(map(lambda row:row['lesion_a']   ,rowsOut))}   ")
-    print(f"lesionB {list(map(lambda row:row['lesion_b']   ,rowsOut))}   ")
-    print(f"doctor_a {list(map(lambda row:row['doctor_a']   ,rowsOut))}   ")
-    print(f"doctor_b {list(map(lambda row:row['doctor_b']   ,rowsOut))}   ")
+    # print(f"perDocRows len {toPrint} rows len {len(rows)} ")
+    # print(f"lesionA {list(map(lambda row:row['lesion_a']   ,rowsOut))}   ")
+    # print(f"lesionB {list(map(lambda row:row['lesion_b']   ,rowsOut))}   ")
+    # print(f"doctor_a {list(map(lambda row:row['doctor_a']   ,rowsOut))}   ")
+    # print(f"doctor_b {list(map(lambda row:row['doctor_b']   ,rowsOut))}   ")
 
     if(len(rows)>0  ):
         perDocRows=list(filter(lambda docRows : len(docRows)>0   ,perDocRows))

@@ -113,7 +113,7 @@ def getUids(row):
         InstanceUID=get_StudyInstanceUID(ds)
         return(sop,SeriesInstanceUID,InstanceUID  )
     except:
-        return ('','','')   
+        return (' ',' ',' ')   
 
 
 def get_df_file_info(dataDir,client_down_csv):

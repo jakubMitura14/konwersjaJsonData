@@ -139,6 +139,7 @@ RUN pip install pydicom
 RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
 RUN pip install more-itertools
 RUN pip install SimpleITK
+RUN pip install toolz
 # RUN pip install SimpleITK-SimpleElastix==2.0.0rc2.dev910
 # RUN mkdir ${HOME}/elastixx
 # RUN git clone https://github.com/SuperElastix/elastix.git ${HOME}/elastixx

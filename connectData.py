@@ -54,46 +54,67 @@ annot=results['annotations']
 
 #files passed from the folder where they were downloaded by mdai client
 files_df= mainFuncs.get_df_file_info(dataDir,client_down_csv)
-#adding data  about original folders from orig folder
-files_df_origFolds= get_df_orig_dir_info(orig_data_dir,orig_data_csv)
-#add data about original folder structure to frame based on data downloaded with mdai client
-files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
-
-#parsing files and saving 3D data in the output folder
-out_files_frame= get_frame_with_output(files_df_with_orig_folds,annot,outputDir,resCSVDir)
 
 
-### preprocessing
-#we first define the labels that should as a sum be included in a prostate gland 
-# so we get rid of overlaps and inconsistencies with main prostate mask
-prostateLab = 'prostate'
-#files will be overwritten in the output folder
-labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
-####
+# #adding data  about original folders from orig folder
+# files_df_origFolds= get_df_orig_dir_info(orig_data_dir,orig_data_csv)
+# #add data about original folder structure to frame based on data downloaded with mdai client
+# files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
+
+# #parsing files and saving 3D data in the output folder
+# out_files_frame= get_frame_with_output(files_df_with_orig_folds,annot,outputDir,resCSVDir)
 
 
-
-#dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+# ### preprocessing
+# #we first define the labels that should as a sum be included in a prostate gland 
+# # so we get rid of overlaps and inconsistencies with main prostate mask
+# prostateLab = 'prostate'
+# #files will be overwritten in the output folder
+# labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
+# ####
 
 
 
+# dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
 
-##measurements
-#after data is preprocessed we will perform measurements like volumes of labels
-#names of labels in which we will measure volumes
-col_names_to_volume = ['anterior fibromuscular stroma', 'central zone', 
-       'external iliac', 'internal iliac', 'lesion 1', 'lesion 2', 'lesion 3',
-       'lesion 4', 'lymph node regional', 'lymph node regional group',
-       'obturator', 'peripheral zone', 'prostate', 'seminal vesicles L',
-       'seminal vesicles R', 'transition zone', 'urethra']
 
-#names of labels that will be compare between themselves between diffrent annotators and DICE score will be saved
-col_names_for_dice=['lesion 1', 'lesion 2', 'lesion 3','lesion 4']
 
-all_volumes_data,dice_df=measurements.get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, out_files_frame,volumes_csv_dir,dice_csv_dir)
 
-#saving the lesions and their common parts
-measurements.save_lesions_consensus(dice_df,rootFolder_lesion_analysis )
+# ##measurements
+# #after data is preprocessed we will perform measurements like volumes of labels
+# #names of labels in which we will measure volumes
+# col_names_to_volume = ['anterior fibromuscular stroma', 'central zone', 
+#        'external iliac', 'internal iliac', 'lesion 1', 'lesion 2', 'lesion 3',
+#        'lesion 4', 'lymph node regional', 'lymph node regional group',
+#        'obturator', 'peripheral zone', 'prostate', 'seminal vesicles L',
+#        'seminal vesicles R', 'transition zone', 'urethra']
+
+# #names of labels that will be compare between themselves between diffrent annotators and DICE score will be saved
+# col_names_for_dice=['lesion 1', 'lesion 2', 'lesion 3','lesion 4']
+
+# all_volumes_data,dice_df=measurements.get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, out_files_frame,volumes_csv_dir,dice_csv_dir)
+
+# #saving the lesions and their common parts
+# measurements.save_lesions_consensus(dice_df,rootFolder_lesion_analysis )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ##changing names of the directories from series number to folder number in original folders 
