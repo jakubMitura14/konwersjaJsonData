@@ -19,6 +19,9 @@ from pathlib import Path
 import re
 from os.path import basename, dirname, exists, isdir, join, split
 import shutil
+import toolz
+from toolz.curried import pipe, map, filter, get
+from toolz import curry
 
 def getListMeta(currentDicomDirPath):
     """
@@ -97,9 +100,7 @@ def add_orig_dir_data(files_df, files_df_origFolds):
        return files_df
 
 
-import toolz
-from toolz.curried import pipe, map, filter, get
-from toolz import curry
+
 
 
 
@@ -141,39 +142,54 @@ def mapTagwithPath(rowws,tag):
     ,filter(lambda it : it[0]!=' ' )
     ,list)
 
+# rowws=list(out_files_frame.iterrows())
+# rowws=list(map(lambda row: row[1]  ,rowws))
+# uniqseriesDesc_with_path=list(toolz.itertoolz.unique(rowws,key=lambda row : row['series_desc']))
+# list(map(lambda row : row['series_desc'],uniqseriesDesc_with_path))
+
+# uniqseriesDesc_with_path
+# len(uniqseriesDesc_with_path)
+
+# row=uniqseriesDesc_with_path[1]
+# strr=row['series_desc'].replace("'","")+'.mha'
+# join(uniqseriesDesc_with_path, +'.mha')
+
+# pathExploreFolder='/workspaces/konwersjaJsonData/exploration'
+# list(map(lambda row :
+#     shutil.copyfile(row['series_MRI_path'], join(pathExploreFolder, row['series_desc'].replace("'","")+'.mha')) 
+#      ,uniqseriesDesc_with_path))
+
+# seriesTag=(0x0008, 0x103e)
+# modalityTag=(0x0008, 0x0060)
+# scanningSeqTag=(0x0018, 0x0020)
+# SequenceNameTag=(0x0018, 0x0024)
+# angioFlagTag=(0x0018, 0x0025)
+# planeTag= (0x0051, 0x100e)
+
+# rowws=list(files_df.iterrows())
+# shutil.copyfile(mriPath, join(locFolderPath, 'volume.mha'))
+
+# uniqseriesDesc=mapTag(rowws,seriesTag)
+# seriesDesc_with_path=mapTagwithPath(rowws,seriesTag)
+
+# uniqseriesDesc_with_path=list(toolz.itertoolz.unique(seriesDesc_with_path,key=lambda tupl: tupl[1]))
+
+# len(uniqseriesDesc_with_path)
+
+# len(uniqseriesDesc)
+# uniqseriesDesc_with_path[2]
+
+# pathExploreFolder='/workspaces/konwersjaJsonData/exploration'
+# list(map(lambda tupl :
+#     shutil.copyfile(tupl[0], join(pathExploreFolder, tupl[1]+'.mha')) 
+#      ,uniqseriesDesc_with_path))
 
 
-seriesTag=(0x0008, 0x103e)
-modalityTag=(0x0008, 0x0060)
-scanningSeqTag=(0x0018, 0x0020)
-SequenceNameTag=(0x0018, 0x0024)
-angioFlagTag=(0x0018, 0x0025)
-planeTag= (0x0051, 0x100e)
-
-rowws=list(files_df.iterrows())
-shutil.copyfile(mriPath, join(locFolderPath, 'volume.mha'))
-
-uniqseriesDesc=mapTag(rowws,seriesTag)
-seriesDesc_with_path=mapTagwithPath(rowws,seriesTag)
-
-uniqseriesDesc_with_path=list(toolz.itertoolz.unique(seriesDesc_with_path,key=lambda tupl: tupl[1]))
-
-len(uniqseriesDesc_with_path)
-
-len(uniqseriesDesc)
-uniqseriesDesc_with_path[2]
-
-pathExploreFolder='/workspaces/konwersjaJsonData/exploration'
-list(map(lambda tupl :
-    shutil.copyfile(tupl[0], join(pathExploreFolder, tupl[1]+'.mha')) 
-     ,uniqseriesDesc_with_path))
-
-
-pathsForDesc=pipe(uniqseriesDesc
-,map(lambda descc : list(filter(lambda row : get_fromTag(row[1])==descc ,rowws ))[0]   )
-# ,map(lambda row ,row[1]['paths'] )
-,list
-)
+# pathsForDesc=pipe(uniqseriesDesc
+# ,map(lambda descc : list(filter(lambda row : get_fromTag(row[1])==descc ,rowws ))[0]   )
+# # ,map(lambda row ,row[1]['paths'] )
+# ,list
+# )
 
 # uniqModalityTag= mapTag(rowws,modalityTag)
 # uniqscanningSeqTag= mapTag(rowws,scanningSeqTag)
@@ -181,12 +197,12 @@ pathsForDesc=pipe(uniqseriesDesc
 # uniqangioFlagTag= mapTag(rowws,angioFlagTag)
 # uniqPlaneTag= mapTag(rowws,planeTag)
 
-uniqseriesDesc
-uniqModalityTag
-uniqscanningSeqTag
-uniqSequenceNameTag
-uniqangioFlagTag
-uniqPlaneTag
+# uniqseriesDesc
+# uniqModalityTag
+# uniqscanningSeqTag
+# uniqSequenceNameTag
+# uniqangioFlagTag
+# uniqPlaneTag
 """
 https://www.mr-tip.com/serv1.php?type=cam
 Siemens dicom conformance statement
@@ -227,26 +243,26 @@ t2 transverse - "'t2_bl_tse_fs_tra'", "'t2_bl_tse_tra_P'"
 """
 
 
-row=rowws[10][1]
-row
-ds = pydicom.dcmread(row['paths'])
-ds
+# row=rowws[10][1]
+# row
+# ds = pydicom.dcmread(row['paths'])
+# ds
 
 
 
-seriesDs = pipe(rowws
-,map(lambda row : row[1])
-,filter(lambda row :row['SeriesInstanceUID']!=' ')
-,map(get_modality)
-,toolz.itertoolz.unique
-,list)
-seriesDs
-res
+# seriesDs = pipe(rowws
+# ,map(lambda row : row[1])
+# ,filter(lambda row :row['SeriesInstanceUID']!=' ')
+# ,map(get_modality)
+# ,toolz.itertoolz.unique
+# ,list)
+# seriesDs
+# res
 
-(0008, 0060) 
+# (0008, 0060) 
 
 
-get_SeriesDesc(res[9])
+# get_SeriesDesc(res[9])
 
 
 

@@ -107,7 +107,7 @@ def getClosestIndex2D(indexTop,boolArrs_indicies):
     """
     numbToAnalyze=5
     boolArrs_indiciesIn= list(map(lambda indList : sortAndGetSubsection(indList,indexTop,numbToAnalyze) ,boolArrs_indicies ))
-    print(np.min(boolArrs_indiciesIn))
+    #print(np.min(boolArrs_indiciesIn))
     return np.where(boolArrs_indiciesIn == np.min(boolArrs_indiciesIn))[0][0]
    
 
@@ -193,7 +193,7 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
 
         #now we have modified the arrays we need to overwrite it 
         for index, label in enumerate(labelsOfIntrest_inner):
-            print(label)
+            #print(label)
             pathA= current_row[label]
             image3D=sitk.ReadImage(pathA)
             pathB=  pathA#pathA.replace(".nii.gz", "_b_.nii.gz")

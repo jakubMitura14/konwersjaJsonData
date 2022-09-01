@@ -90,6 +90,10 @@ def get_SeriesInstanceUID(ds):
 def get_StudyInstanceUID(ds):
     return ds[(0x0020, 0x000d)].repval
 
+def get_SeriesDesc(ds):
+    return ds[(0x0008, 0x103e)].repval
+
+
 def get_all_file_paths(dataDir):
     """
     get ll files with their full paths in a given folder and subfolders

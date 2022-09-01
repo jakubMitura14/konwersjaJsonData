@@ -87,6 +87,27 @@ def createLabelFile(annot_for_series,lab,data,copiedPath,series_file_names,image
         writer.Execute(image)   
     return (lab,newPathLab)
 
+def translateSeriesDesc(series_desc_string):
+    """
+    changes unintuitive series description tag into more human readable format 
+    using manually set list of tuples where first entry is the original series tag
+    and second entry human readable version
+    what is important sometimes multipla tags will map to the same human readable one
+    """
+    manual_map_list=[("'t2_bl_tse_tra_p'"                   , "t2_transverse"  )
+        ,("'ep2d_diff_b 50 400 800 1200_TRACEW'"            , "dwi_transverse"  )
+        ,("'ep2d_diff_b 50 400 800 1200_ADC'"               ,"adc_transverse"   )    
+        ,("'t1_fl3d_tra fs_dyn CM'"                         , "t1_dce_transverse"  ) 
+        ,("'t2_bl_tse_tra_P'"                               , "t2_transverse"  )
+        ,("'t2_bl_tse_tra'"                                 ,  "t2_transverse" )
+        ,("'t2_bl_tse_cor'"                                 , "t2_coronal"  )
+        ,("'t2_bl_tse_sag'"                                 , "t2_saggital"  )]
+    res=list(filter(lambda tupl: tupl[0]==series_desc_string ,manual_map_list))
+    if(len(res)==0):
+        print(f" series description string {series_desc_string} not known please adjust translateSeriesDesc function in getDirAndnumbFrame file")
+    return res[0][1]
+
+
 
 def mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath,current_study_id,current_doctor_id):
     """
@@ -113,6 +134,13 @@ def mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath,current_
     
     filtered = list(map(lambda tupl :  findTheSame(tupl[1],slices_with_sop,sops_in_anot) ,slices_with_sop))
     paths_in_series= np.unique(list(map(lambda tupl: tupl[2],filtered)))
+
+    studeDescs=list(map(pydicom.dcmread ,paths_in_series))
+    studeDescs=np.unique(list(map(mainFuncs.get_SeriesDesc  ,studeDescs)))
+    currentStudyDesc=translateSeriesDesc('_'.join(studeDescs))
+    
+    masterolds_in_series= np.unique(locDf['masterolds'].to_numpy())
+    masterolds=('_'.join(masterolds_in_series)).replace('nas-lssi-dco/','')
 
 
     newPath= os.path.join(copiedPath,'volume.mha')
@@ -153,7 +181,7 @@ def mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath,current_
 
 
     labelNameAndPaths=list(map(lambda lab: createLabelFile(annot_for_series,lab,data,copiedPath,series_file_names,image3D),uniq_labels ))
-    return (current_study_id,current_doctor_id,currentSeries,newPath,labelNameAndPaths  )
+    return (current_study_id,current_doctor_id,currentSeries,currentStudyDesc,newPath,labelNameAndPaths ,masterolds )
 
         
 
@@ -182,7 +210,7 @@ def getLabelPathOrEmpty(targetLab, tupl):
     """
     return path to the label file if it exists otherwise " "
     """
-    listLabs=tupl[4]
+    listLabs=tupl[5]
     for labb in listLabs :
         if(labb[0]== targetLab):
             return labb[1]
@@ -207,7 +235,9 @@ def get_frame_with_output(files_df,annot,outputDir,resCSVDir):
     out_files_frame['study_id']=list(map(lambda tupl: tupl[0],flatten_list_paths))
     out_files_frame['doctor_id']=list(map(lambda tupl: tupl[1],flatten_list_paths))
     out_files_frame['series_id']=list(map(lambda tupl: tupl[2],flatten_list_paths))
-    out_files_frame['series_MRI_path']=list(map(lambda tupl: tupl[3],flatten_list_paths))
+    out_files_frame['series_desc']=list(map(lambda tupl: tupl[3],flatten_list_paths))
+    out_files_frame['series_MRI_path']=list(map(lambda tupl: tupl[4],flatten_list_paths))
+    out_files_frame['masterolds']=list(map(lambda tupl: tupl[6],flatten_list_paths))
 
     all_labels_types=np.unique(annot['labelName'].to_numpy())
     for targetLab in all_labels_types :
