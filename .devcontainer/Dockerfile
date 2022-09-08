@@ -86,7 +86,7 @@ RUN apt update
 RUN echo 'deb https://download.opensuse.org/repositories/home:/npreining:/debian-ubuntu-onedrive/xUbuntu_20.04/ ./' | sudo tee /etc/apt/sources.list.d/onedrive.list
 RUN wget -qO - https://download.opensuse.org/repositories/home:/npreining:/debian-ubuntu-onedrive/xUbuntu_20.04/Release.key | sudo apt-key add -
 RUN apt-get update
-RUN apt install onedrive
+RUN apt install -y onedrive
 
 
 
