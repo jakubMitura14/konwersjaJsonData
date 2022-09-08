@@ -28,6 +28,17 @@ RUN apt-get update && apt-get install -y \
     #nvidia-cuda-toolkit-11-3\
     && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+   curl \
+   build-essential \
+   coreutils \
+   gcc \
+   gettext \
+   zlib1g-dev \
+   openssl \
+   perl \
+   wget \
+   zlib1g
 
 
 ## installing github CLI - https://github.com/cli/cli/blob/trunk/docs/install_linux.md
@@ -70,6 +81,18 @@ ENV PATH="/opt/cmake/bin:${PATH}"
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
     rm get-pip.py
+
+ENV NB_USER sliceruser
+ENV NB_UID 1000
+ENV HOME /home/${NB_USER}
+
+RUN adduser --disabled-password \
+    --gecos "Default user" \
+    --uid ${NB_UID} \
+    ${NB_USER}
+
+WORKDIR ${HOME}
+USER ${NB_USER}
 
 RUN pip3 --no-cache-dir install \
     future>=0.17.1 \
@@ -158,17 +181,6 @@ RUN pip install toolz
 #     # make -j6
 
 CMD ["/bin/bash"]
-RUN apt-get update && apt-get install -y --no-install-recommends \
-   curl \
-   build-essential \
-   coreutils \
-   gcc \
-   gettext \
-   zlib1g-dev \
-   openssl \
-   perl \
-   wget \
-   zlib1g
 
 # RUN wget http://people.centos.org/tru/devtools-2/devtools-2.repo
 # ENV CC /opt/rh/devtoolset-2/root/usr/bin/gcc
