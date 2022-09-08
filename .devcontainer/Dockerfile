@@ -126,13 +126,17 @@ RUN git config -l
 
 
 
-RUN mkdir ${HOME}/scripts
+RUN mkdir ${HOME}/data
+RUN mkdir ${HOME}/data/scripts
+
 RUN mkdir ${HOME}/externalRepos
 RUN mkdir ${HOME}/forLesionAnalysis
 
 RUN mkdir ${HOME}/externalRepos/elastix
 RUN git clone https://github.com/SuperElastix/SimpleElastix ${HOME}/externalRepos/elastix
 
+
+RUN git clone https://github.com/jakubMitura14/konwersjaJsonData.git ${HOME}/data/scripts
 
 
 # RUN cd ${HOME}/externalRepos/elastix && \
