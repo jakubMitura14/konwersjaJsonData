@@ -223,6 +223,7 @@ def saveMainMRI(paths_in_series,paths_dict,currentStudyDesc):
     return origVolPath,pathMha
 
 
+
 def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series,currentSeries,current_study_id,mainPaths_studyId):
     """
     main functions that gives single series of single annotator specialist
