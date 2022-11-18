@@ -91,7 +91,14 @@ def get_StudyInstanceUID(ds):
     return ds[(0x0020, 0x000d)].repval
 
 def get_SeriesDesc(ds):
-    return ds[(0x0008, 0x103e)].repval
+    if((0x0008, 0x103e) in ds):
+        return ds[(0x0008, 0x103e)].repval
+    return ' '
+
+def get_Aquisition_Number(ds):
+    if((0x0020, 0x0012) in ds):
+        return ds[(0x0020, 0x0012)].repval
+    return ' '
 
 
 def get_all_file_paths(dataDir):
@@ -141,3 +148,4 @@ def get_df_file_info(dataDir,client_down_csv):
     df['StudyInstanceUID']=InstanceUIDs
     df.to_csv(client_down_csv)       
     return df        
+

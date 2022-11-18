@@ -13,32 +13,10 @@ import math
 import time
 import mainFuncs
 import itertools
-
+import shutil
 from os import path as pathOs
-
-def getSliceAndSOP(filename):
-    """
-    finds SOP uid of the given dicom file
-    """
-    ds = pydicom.dcmread(filename)
-    return (mainFuncs.get_SOPInstanceUID(ds),ds.pixel_array ,filename)
-
-def findTheSame(slice,slices_with_sop,sops_in_anot):
-    """
-    used in order to be sure that we do not have two slices with the same data
-    """
-    # we look for all slices holding the same data
-    theSame= list(filter(lambda tupl : np.array_equal(tupl[1],slice)  ,slices_with_sop))
-    #in case we have just single slice data with such data we will return just this single slice
-    first=theSame[0]
-    if len(theSame)==1:
-        return first
-    #if we have multiple we need to prefer this that is included in some annotation     
-    for tupll in theSame:
-        if(tupll[0] in sops_in_anot):
-            return tupll
-    #in case it is not in annotation we return first from array (any is the same)
-    return first         
+from os.path import basename, dirname, exists, isdir, join, split
+from pathlib import Path
 
 
 def createLabelFile(annot_for_series,lab,data,copiedPath,series_file_names,image3D):
@@ -87,121 +65,271 @@ def createLabelFile(annot_for_series,lab,data,copiedPath,series_file_names,image
         writer.Execute(image)   
     return (lab,newPathLab)
 
-def translateSeriesDesc(series_desc_string):
+def translateSeriesDesc(series_desc_string,acqNumb):
     """
     changes unintuitive series description tag into more human readable format 
     using manually set list of tuples where first entry is the original series tag
     and second entry human readable version
     what is important sometimes multipla tags will map to the same human readable one
     """
-    manual_map_list=[("'t2_bl_tse_tra_p'"                   , "t2_transverse"  )
-        ,("'ep2d_diff_b 50 400 800 1200_TRACEW'"            , "dwi_transverse"  )
-        ,("'ep2d_diff_b 50 400 800 1200_ADC'"               ,"adc_transverse"   )    
-        ,("'t1_fl3d_tra fs_dyn CM'"                         , "t1_dce_transverse"  ) 
-        ,("'t2_bl_tse_tra_P'"                               , "t2_transverse"  )
-        ,("'t2_bl_tse_tra'"                                 ,  "t2_transverse" )
-        ,("'t2_bl_tse_cor'"                                 , "t2_coronal"  )
-        ,("'t2_bl_tse_sag'"                                 , "t2_saggital"  )]
+    acqNumb=acqNumb.replace("'","")
+    manual_map_list=[
+        ("'t2_bl_tse_tra_sFOV'"                   , "t2w"  )
+        ,("'t2_bl_tse_tra_p'"                   , "t2w"  )
+        ,("'ep2d_diff_b 50 400 800 1200_TRACEW'"            , "hbv"  )
+        ,("'ep2d_diff_b 50 400 800 1200_ADC'"               ,"adc"   )    
+        ,("'t1_fl3d_tra fs_dyn CM'"                         , f"dce{acqNumb}"  ) # mamy 6 punktow czasowych
+        ,("'t2_bl_tse_tra_P'"                               , "t2w"  )
+        ,("'t2_bl_tse_tra'"                                 ,  "t2w" )
+        ,("'t2_bl_tse_cor'"                                 , "cor"  )
+        ,("'t2_bl_tse_sag'"                                 , "sag"  )]
+    # manual_map_list=[
+    #     ("'t2_bl_tse_tra_sFOV'"                   , "t2_transverse"  )
+    #     ,("'t2_bl_tse_tra_p'"                   , "t2_transverse"  )
+    #     ,("'ep2d_diff_b 50 400 800 1200_TRACEW'"            , "dwi_transverse"  )
+    #     ,("'ep2d_diff_b 50 400 800 1200_ADC'"               ,"adc_transverse"   )    
+    #     ,("'t1_fl3d_tra fs_dyn CM'"                         , "t1_dce_transverse"  ) # mamy 6 punktow czasowych
+    #     ,("'t2_bl_tse_tra_P'"                               , "t2_transverse"  )
+    #     ,("'t2_bl_tse_tra'"                                 ,  "t2_transverse" )
+    #     ,("'t2_bl_tse_cor'"                                 , "t2_coronal"  )
+    #     ,("'t2_bl_tse_sag'"                                 , "t2_saggital"  )]
     res=list(filter(lambda tupl: tupl[0]==series_desc_string ,manual_map_list))
     if(len(res)==0):
         print(f" series description string {series_desc_string} not known please adjust translateSeriesDesc function in getDirAndnumbFrame file")
+        return f"unknown"
     return res[0][1]
 
+def getFirstOrEmpty(arr):
+    if(len(arr)>0):
+        return arr[0]
+    return ' '    
 
 
-def mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath,current_study_id,current_doctor_id):
+
+def getSeriesPathsAndMasterNumb(files_df,files_df_origFolds, currentSeries):
+    """
+    get list of paths in original data - There may be still duplicates in output !!!
+    apart from it we will get the master number associated to this series
+    Also it will give back the proper name of the modality
+    """
+    ### 1) now we will get single series - get all paths of files related to it
+    locDf = files_df.loc[files_df['SeriesInstanceUID'] == currentSeries]
+    locDfB = files_df_origFolds.loc[files_df_origFolds['SeriesInstanceUID'] == currentSeries]
+    locDf=locDf.drop_duplicates(subset = ["SOPInstanceUID"])
+    # in order to maximise the chance that we will getaround tag problems we will use dicoms from both sources
+    paths_in_series= np.unique(locDf['paths'].to_numpy())
+    paths_in_seriesB= np.unique(locDfB['paths'].to_numpy())
+    paths_in_series=[*paths_in_series,*paths_in_seriesB]
+    masterolds_in_series= np.unique(locDf['masterolds'].to_numpy())
+    masterolds=(masterolds_in_series[0]).replace('nas-lssi-dco/','')
+    #additionally we will get the study description and acqisition number which are needed for study type description
+    dses=list(map(pydicom.dcmread ,paths_in_series))
+    studeDescs=(list(map(mainFuncs.get_SeriesDesc  ,dses)))
+    studeDescs=(list(filter(lambda el: el!=' ',studeDescs)))
+    studeDescs=np.unique(studeDescs)
+    #acquisition number
+    acqNumbs=(list(map(mainFuncs.get_Aquisition_Number  ,dses)))
+    acqNumbs=(list(filter(lambda el: el!=' ',acqNumbs)))
+    acqNumbs=np.unique(acqNumbs)  
+    currentStudyDesc=translateSeriesDesc(getFirstOrEmpty(studeDescs),getFirstOrEmpty(acqNumbs))
+
+    return (paths_in_series,masterolds,currentStudyDesc)
+
+
+
+
+
+
+def getSliceAndSOP(filename):
+    """
+    finds SOP uid of the given dicom file
+    """
+    ds = pydicom.dcmread(filename)
+    return (mainFuncs.get_SOPInstanceUID(ds),ds.pixel_array ,filename)
+
+def findTheSame(slice,slices_with_sop,sops_in_anot):
+    """
+    used in order to be sure that we do not have two slices with the same data
+    """
+    # we look for all slices holding the same data
+    theSame= list(filter(lambda tupl : np.array_equal(tupl[1],slice)  ,slices_with_sop))
+    #in case we have just single slice data with such data we will return just this single slice
+    first=theSame[0]
+    if len(theSame)==1:
+        return first
+    #if we have multiple we need to prefer this that is included in some annotation     
+    for tupll in theSame:
+        if(tupll[0] in sops_in_anot):
+            return tupll
+    #in case it is not in annotation we return first from array (any is the same)
+    return first         
+
+
+def findTheSameNoAnnot(slice,slices_with_sop):
+    """
+    used in order to be sure that we do not have two slices with the same data
+    """
+    # we look for all slices holding the same data
+    theSame= list(filter(lambda tupl : np.array_equal(tupl[1],slice)  ,slices_with_sop))
+    return theSame[0]    
+
+
+
+def getUniqPaths(paths_in_series,annot_for_series ):
+    """
+    given the list of paths to the diffrent slice it return back only those that are unique 
+    Important is that in the dataset at hand dicoms with the same SOP ids may be repeated as well 
+    dicoms with identical data but diffrent sops - in order to deal with this problem one need to manually
+    check the pixel array of each slice for equality
+    Additional difficulty is related to the fact that in the annotations only some of the SOP ids are referenced
+    hence here if the series is annotated we need to be sure that we are returning paths that are present in annotation
+    dataframe
+    """
+    #first we get data from each file and check the sops present in annotation data frame
+    slices_with_sop = list(map(getSliceAndSOP ,paths_in_series))
+    sops_in_anot= np.unique(annot_for_series['SOPInstanceUID'].to_numpy())
+    # if there are any sops in the related annotation data frame - if there are annotations related to this series
+    if(len(sops_in_anot)>0):
+        filtered = list(map(lambda tupl :  findTheSame(tupl[1],slices_with_sop,sops_in_anot) ,slices_with_sop))
+        return np.unique(list(map(lambda tupl: tupl[2],filtered)))
+    filtered = list(map(lambda tupl :  findTheSameNoAnnot(tupl[1],slices_with_sop) ,slices_with_sop))
+    return np.unique(list(map(lambda tupl: tupl[2],filtered)))
+
+def saveMainMRI(paths_in_series,paths_dict,currentStudyDesc):
+    """
+    given paths to  dicom files with unique slices we will copy those into separate dicom folder and 
+    generate a single mha file 
+    """
+    origVolPath=join(paths_dict['data_path_seg'],currentStudyDesc)
+    pathMha=join(paths_dict['data_path_no_seg'],f"{currentStudyDesc}.mha")
+
+    for path_to_copy in paths_in_series:
+        shutil.copyfile(path_to_copy,join(origVolPath,Path(path_to_copy).name) )
+    
+    series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
+    series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
+    series_reader = sitk.ImageSeriesReader()
+    series_reader.MetaDataDictionaryArrayUpdateOn()
+    series_reader.LoadPrivateTagsOn()
+    series_reader.SetFileNames(series_file_names)
+
+    image3D = series_reader.Execute()
+    writer = sitk.ImageFileWriter()
+    # Use the study/series/frame of reference information given in the meta-data
+    # dictionary and not the automatically generated information from the file IO
+    writer.SetFileName(pathMha)
+    writer.Execute(image3D)   
+
+    return origVolPath,pathMha
+
+
+def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series,currentSeries,current_study_id,mainPaths_studyId):
     """
     main functions that gives single series of single annotator specialist
     will create files with 3d mha of this series plus 3d nii.gz files for each annotation label
     return current_study_id current_doctor_id series number, path to the main volume and list of tuples containing label name and 
     """
-    ### 1) now we will get single series - get all paths of files related to it
-    locDf = files_df.loc[files_df['SeriesInstanceUID'] == currentSeries]
-    locDf=locDf.drop_duplicates(subset = ["SOPInstanceUID"])
 
-    paths_in_series= np.unique(locDf['paths'].to_numpy())
-    ### 2) we will check how many diffrent labels are associated 
+
+    #get all dicom paths associated with series including duplicates    
+    paths_in_series,masterolds,currentStudyDesc=getSeriesPathsAndMasterNumb(files_df,files_df_origFolds, currentSeries)
+    #prepare unique paths 
+    paths_in_series=getUniqPaths(paths_in_series,annot_for_series )
+    #we will check how many diffrent labels are associated in case of no annotations it will be empty
     uniq_labels= np.unique(annot_for_series['labelName'].to_numpy())
-
-    copiedPath=os.path.join(studyPath,currentSeries )
-    origVolPath = os.path.join(copiedPath ,'origVol')
-
-
-    # checking weather there are more than one file with the same data
-    slices_with_sop = list(map(getSliceAndSOP ,paths_in_series))
-
-    sops_in_anot= np.unique(annot_for_series['SOPInstanceUID'].to_numpy())
+    #dict with paths of main folders needed here
+    paths_dict = dict((y, x) for x, y in mainPaths_studyId)
     
-    filtered = list(map(lambda tupl :  findTheSame(tupl[1],slices_with_sop,sops_in_anot) ,slices_with_sop))
-    paths_in_series= np.unique(list(map(lambda tupl: tupl[2],filtered)))
+    origVolPath,pathMha= saveMainMRI(paths_in_series,paths_dict,currentStudyDesc)
 
-    studeDescs=list(map(pydicom.dcmread ,paths_in_series))
-    studeDescs=np.unique(list(map(mainFuncs.get_SeriesDesc  ,studeDescs)))
-    currentStudyDesc=translateSeriesDesc('_'.join(studeDescs))
-    
-    masterolds_in_series= np.unique(locDf['masterolds'].to_numpy())
-    masterolds=('_'.join(masterolds_in_series)).replace('nas-lssi-dco/','')
+    for current_doctor_id in np.unique(annot_for_study_id['createdById'].to_numpy()):
+    annot_for_doctor=annot_for_study_id.loc[annot_for_study_id['createdById'] == current_doctor_id]
 
 
-    newPath= os.path.join(copiedPath,'volume.mha')
-    series_file_names=None
-    image3D=None
-    #avoiding creating file if one is present
-    if(not pathOs.exists(newPath)): 
-
-        os.makedirs(origVolPath ,exist_ok = True)
-        # into each subfolder we will copy the full  set of files related to main image at hand
-        for path_to_copy in paths_in_series:
-            os.system(f'cp {path_to_copy} {origVolPath}') 
+    # krowa add  diffrent time points in  t1_dce_transverse
+    print(f"cccccc {currentStudyDesc}  ")
 
 
-        series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
-        series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
+    # newPath= os.path.join(copiedPath,'volume.mha')
+    # series_file_names=None
+    # image3D=None
+    # #avoiding creating file if one is present
+    # if(not pathOs.exists(newPath)): 
 
-        #getseries file names in correct order
-        #series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(copiedPath, currentSeries)
-        series_reader = sitk.ImageSeriesReader()
-        series_reader.MetaDataDictionaryArrayUpdateOn()
-        series_reader.LoadPrivateTagsOn()
-        series_reader.SetFileNames(series_file_names)
+    #     os.makedirs(origVolPath ,exist_ok = True)
+    #     # into each subfolder we will copy the full  set of files related to main image at hand
+    #     for path_to_copy in paths_in_series:
+    #         os.system(f'cp {path_to_copy} {origVolPath}') 
 
-        image3D = series_reader.Execute()
-        writer = sitk.ImageFileWriter()
-        # Use the study/series/frame of reference information given in the meta-data
-        # dictionary and not the automatically generated information from the file IO
-        writer.SetFileName(newPath)
-        writer.Execute(image3D)   
-        print(f"newPath image3D {newPath}")
-    else:
-        image3D=sitk.ReadImage(newPath)
-        series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
-        series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
 
-    data=sitk.GetArrayFromImage(image3D)
+    #     series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
+    #     series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
+
+    #     #getseries file names in correct order
+    #     #series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(copiedPath, currentSeries)
+    #     series_reader = sitk.ImageSeriesReader()
+    #     series_reader.MetaDataDictionaryArrayUpdateOn()
+    #     series_reader.LoadPrivateTagsOn()
+    #     series_reader.SetFileNames(series_file_names)
+
+    #     image3D = series_reader.Execute()
+    #     writer = sitk.ImageFileWriter()
+    #     # Use the study/series/frame of reference information given in the meta-data
+    #     # dictionary and not the automatically generated information from the file IO
+    #     writer.SetFileName(newPath)
+    #     writer.Execute(image3D)   
+    #     print(f"newPath image3D {newPath}")
+    # else:
+    #     image3D=sitk.ReadImage(newPath)
+    #     series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
+    #     series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
+
+    # data=sitk.GetArrayFromImage(image3D)
 
 
     labelNameAndPaths=list(map(lambda lab: createLabelFile(annot_for_series,lab,data,copiedPath,series_file_names,image3D),uniq_labels ))
     return (current_study_id,current_doctor_id,currentSeries,currentStudyDesc,newPath,labelNameAndPaths ,masterolds )
 
         
+def createStudyFolder(item,masterolds ): 
+    key,value=item
+    masteroldsStand=str(masterolds)
+    if(len(masteroldsStand)==1):
+        masteroldsStand=f"00{masteroldsStand}"
+    if(len(masteroldsStand)==2):
+        masteroldsStand=f"0{masteroldsStand}"
+    newPath = join(value,masteroldsStand)    
+    os.makedirs(newPath ,exist_ok = True)
+    return (key,newPath)
 
-
-def iterate_overStudy(current_study_id,files_df,annot,outputDir):
+def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths):
     """
     iterate ove all series with the same study UID
     """
     res=[]
     annot_for_study_id=annot.loc[annot['StudyInstanceUID'] == current_study_id]
+    files_for_study_id=files_df.loc[files_df['StudyInstanceUID'] == current_study_id]
+
     #get annotator id 
-    for current_doctor_id in np.unique(annot_for_study_id['createdById'].to_numpy()):
-        annot_for_doctor=annot_for_study_id.loc[annot_for_study_id['createdById'] == current_doctor_id]
-        #create directory for this study
-        studyPath = os.path.join(outputDir, current_study_id,current_doctor_id)
-        os.makedirs(studyPath, exist_ok = True)
+    # for current_doctor_id in np.unique(annot_for_study_id['createdById'].to_numpy()):
+    #     annot_for_doctor=annot_for_study_id.loc[annot_for_study_id['createdById'] == current_doctor_id]
+        # #create directory for this study
+        # studyPath = os.path.join(outputDir, current_study_id,current_doctor_id)
+        # os.makedirs(studyPath, exist_ok = True)
         #get single series
-        for currentSeries in np.unique(annot_for_doctor['SeriesInstanceUID'].to_numpy()):
-            annot_for_series=annot_for_doctor.loc[annot_for_doctor['SeriesInstanceUID'] == currentSeries]
-            res.append(mainGenereteFiles(files_df,annot_for_series,currentSeries,studyPath,current_study_id,current_doctor_id))
+
+    masterolds_in_Study= np.unique(files_for_study_id['masterolds'].to_numpy())
+    masterolds=(masterolds_in_Study[0]).replace('nas-lssi-dco/','')
+
+    mainPaths_studyId=list(map(partial(createStudyFolder,masterolds=masterolds),mainPaths.items()))
+    print(f"mainPaths_studyId {mainPaths_studyId}")
+
+    for currentSeries in np.unique(annot_for_study_id['SeriesInstanceUID'].to_numpy()):
+        annot_for_series=annot_for_study_id.loc[annot_for_study_id['SeriesInstanceUID'] == currentSeries]
+        files_for_series=files_for_study_id.loc[files_for_study_id['SeriesInstanceUID'] == currentSeries]
+
+        res.append(mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series
+            ,currentSeries,current_study_id,mainPaths_studyId))
     return res
 
 
@@ -216,18 +344,39 @@ def getLabelPathOrEmpty(targetLab, tupl):
             return labb[1]
     return " "    
 
-def get_frame_with_output(files_df,annot,outputDir,resCSVDir):
+def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg):
     """
     in parallel iterates over all studies and series and save the paths of created files in the csv file
     """
     if(pathOs.exists(resCSVDir)):
         return pd.read_csv(resCSVDir) 
-    
+
+
     out_files_frame= pd.DataFrame()
+
+
+    # dicomSeg main folders
+    data_path_seg= join(mainFoldDirSeg,"Data")
+    anat_path_seg= join(mainFoldDirSeg,"Anatomical_Labels")
+    lesion_path_seg= join(mainFoldDirSeg,"Lesion_Labels")
+
+    #mha and Nifti main folders
+    data_path_no_seg= join(mainFoldDirMha,"Data")
+    anat_path_no_seg= join(mainFoldDirMha,"Anatomical_Labels")
+    lesion_path_no_seg= join(mainFoldDirMha,"Lesion_Labels")
+    #creating all required folders given they do not exist already
+    list(map(lambda pathh: os.makedirs(pathh ,exist_ok = True)  ,[data_path_seg,anat_path_seg,lesion_path_seg,data_path_no_seg,anat_path_no_seg,lesion_path_no_seg ]))
+    #dict giving access to main directories
+    mainPaths = {'data_path_seg':data_path_seg,'anat_path_seg':anat_path_seg,'lesion_path_seg':lesion_path_seg
+                 , 'data_path_no_seg':data_path_no_seg , 'anat_path_no_seg':anat_path_no_seg , 'lesion_path_no_seg':lesion_path_no_seg }
+
     #iterate over all files
     allPaths=[]
-    with mp.Pool(processes = mp.cpu_count()) as pool:
-        allPaths=pool.map(partial(iterate_overStudy, files_df=files_df,annot=annot,outputDir=outputDir), np.unique(annot['StudyInstanceUID'].to_numpy()))
+    with mp.Pool(processes = mp.cpu_count()) as pool: 
+        allPaths=pool.map(partial(iterate_overStudy, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df['StudyInstanceUID'].to_numpy()))
+    #allPaths=list(map(partial(iterate_overStudy, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir), np.unique(annot['StudyInstanceUID'].to_numpy())))
+
+
 
 
     # (current_study_id,current_doctor_id,currentSeries,newPath,labelNameAndPaths  )

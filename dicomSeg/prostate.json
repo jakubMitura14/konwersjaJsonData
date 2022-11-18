@@ -8,7 +8,7 @@
     "segmentAttributes": [
       [
         {
-          "labelID": 11,
+          "labelID": 1,
           "SegmentDescription": "prostate",
           "SegmentAlgorithmType": "MANUAL",
           "SegmentedPropertyCategoryCodeSequence": {

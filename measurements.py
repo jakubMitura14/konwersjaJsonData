@@ -19,6 +19,9 @@ import more_itertools
 from os.path import basename, dirname, exists, isdir, join, split
 import shutil
 
+
+
+
 def save_from_arr(zeroArray,image3D,newPathLab):
     """
     given array saves it to file into defined path using simpleitk

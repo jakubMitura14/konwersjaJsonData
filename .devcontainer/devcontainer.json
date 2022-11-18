@@ -53,6 +53,7 @@
 	"features": {
 		"docker-in-docker": "latest",
 		"docker-from-docker": "latest",
+		"ghcr.io/devcontainers/features/github-cli:1": {}
 		//"jupyterlab": "latest"
 	}
 }

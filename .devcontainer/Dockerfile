@@ -31,12 +31,30 @@ RUN apt-get update && apt-get install -y \
 
 
 ## installing github CLI - https://github.com/cli/cli/blob/trunk/docs/install_linux.md
-RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-# RUN sudo apt update
-RUN apt-key adv --fetch-keys 'https://packages.sury.org/php/apt.gpg' > /dev/null 2>&1
-# RUN sudo apt install gh
-RUN apt autoremove python3 -y
+# RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+# RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+# # RUN sudo apt update
+# # RUN apt-key adv --fetch-keys 'https://packages.sury.org/php/apt.gpg' > /dev/null 2>&1
+# # RUN sudo apt install gh
+
+# # RUN apt-get clean
+# # RUN mv /var/lib/apt/lists /tmp
+# # RUN mkdir -p /var/lib/apt/lists/partial
+# # RUN apt-get clean
+# # RUN apt-get update
+# # RUN gpg --keyserver keyserver.ubuntu.com --recv-keys 16126D3A3E5C1192 
+# # RUN apt-key adv --fetch-keys 'https://packages.sury.org/php/apt.gpg' > /dev/null 2>&1
+# RUN gpg --keyserver hkp://subkeys.pgp.net --recv-keys 16126D3A3E5C1192
+# RUN gpg --export --armor 16126D3A3E5C1192 | sudo apt-key add - 
+# RUN apt-get update
+
+# RUN apt-key adv --refresh-keys --keyserver keyserver.ubuntu.com
+# RUN rm -rf /var/lib/apt/lists
+# RUN mkdir /var/lib/apt/lists
+
+# RUN apt autoremove python3 -y
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/7fa2af80.pub
 
 
 
@@ -141,6 +159,7 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
 RUN pip install more-itertools
 RUN pip install SimpleITK
 RUN pip install toolz
+RUN pip install highdicom==0.19.0
 # RUN pip install SimpleITK-SimpleElastix==2.0.0rc2.dev910
 # RUN mkdir ${HOME}/elastixx
 # RUN git clone https://github.com/SuperElastix/elastix.git ${HOME}/elastixx

@@ -35,7 +35,7 @@ def get_indicies_to_zero(current_row,negatedProstate,colOfIntrA,colOfIntrB):
     """
     compares two volumes in case of overlap set the found entries to 0 and ovewrite the files
     """
-    print(f" colOfIntrA {colOfIntrA} colOfIntrB {colOfIntrB} ")
+    # print(f" colOfIntrA {colOfIntrA} colOfIntrB {colOfIntrB} ")
     pathA = current_row[colOfIntrA]
     pathB = current_row[colOfIntrB]
 
@@ -136,6 +136,7 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
     labelsOfIntrest_inner= list(filter(lambda labell: current_row[labell]!=" ",labelsOfIntrest )  )
     if(len(labelsOfIntrest_inner)>0):
         # getting powerset in order to simplify futher iterations
+        print(f"labelsOfIntrest_inner {labelsOfIntrest_inner}")
         cart_prod=list(more_itertools.powerset(labelsOfIntrest_inner))
         cart_prod=list(filter(lambda tupl:len(tupl)==2  ,cart_prod))
         prostateBool = get_bool_arr_from_path(prostateLab,current_row )
@@ -159,14 +160,15 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
 
         #indicies to set To zero
         #itertools.accumulate(cart_prod, lambda x, y: x+y))
-        
-        toSetToZeroBoolArrs= list(map( lambda tupl :  get_indicies_to_zeroLoc(tupl[0],tupl[1]) ,cart_prod ))
-        toSetToZero=functools.reduce(np.logical_or, toSetToZeroBoolArrs)
-        
-        negated_toSetToZero = np.logical_not(toSetToZero)
-
+        print(f"cart_prod {cart_prod} ")
         boolArrs = list(map( lambda colName :get_bool_arr_from_path(colName,current_row ) ,labelsOfIntrest_inner))
-        boolArrs= list(map(lambda arr : np.logical_and(arr,negated_toSetToZero )  ,boolArrs))
+        
+        
+        if(len(cart_prod)>0):
+            toSetToZeroBoolArrs= list(map( lambda tupl :  get_indicies_to_zeroLoc(tupl[0],tupl[1]) ,cart_prod ))
+            toSetToZero=functools.reduce(np.logical_or, toSetToZeroBoolArrs)     
+            negated_toSetToZero = np.logical_not(toSetToZero)
+            boolArrs= list(map(lambda arr : np.logical_and(arr,negated_toSetToZero )  ,boolArrs))
       
         #now we get what is True in at least one of arrays
         # print(" labelsOfIntrest_innerrrrrrrrrr bbbb ")
@@ -213,10 +215,10 @@ def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot):
     # using only those rows where we have prostate
     frame_of_intr=files_df.loc[files_df[prostateLab]!=" "]
 
-    #list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows())))
+    list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows())))
 
-    with mp.Pool(processes = mp.cpu_count()) as pool:
-        pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows()))
+    # with mp.Pool(processes = mp.cpu_count()) as pool:
+    #     pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows()))
 
 
 
