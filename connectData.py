@@ -65,6 +65,9 @@ files_df_origFolds= get_df_orig_dir_info(orig_data_dir,orig_data_csv)
 #add data about original folder structure to frame based on data downloaded with mdai client
 files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
 
+files_df_origFolds= files_df_with_orig_folds
+files_df_with_orig_folds= files_df_with_orig_folds
+
 #parsing files and saving 3D data in the output folder
 out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg)
 
@@ -75,7 +78,7 @@ prostateLab = 'prostate'
 #files will be overwritten in the output folder
 labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 ####
-dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+# dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
 
 
 ##measurements
@@ -90,7 +93,7 @@ col_names_to_volume = ['anterior fibromuscular stroma', 'central zone',
 # #names of labels that will be compare between themselves between diffrent annotators and DICE score will be saved
 # col_names_for_dice=['lesion 1', 'lesion 2', 'lesion 3','lesion 4']
 
-all_volumes_data,dice_df=measurements.get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, out_files_frame,volumes_csv_dir,dice_csv_dir)
+# all_volumes_data,dice_df=measurements.get_volume_and_dice_data(col_names_for_dice,col_names_to_volume, out_files_frame,volumes_csv_dir,dice_csv_dir)
 
 # #saving the lesions and their common parts
 # measurements.save_lesions_consensus(dice_df,rootFolder_lesion_analysis )

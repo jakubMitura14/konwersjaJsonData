@@ -149,3 +149,30 @@ def get_df_file_info(dataDir,client_down_csv):
     df.to_csv(client_down_csv)       
     return df        
 
+def getLabelsAbbrev(lab):
+    """
+    on the basis of manually constructed dict it will return the abbreviation for label name
+    """
+    transloateDict={'anterior fibromuscular stroma' :'afs'
+                    ,'central zone' :'cz'
+                    ,'external iliac' :'ei'
+                    , 'internal iliac' :'ii'
+                    ,'lymph node regional':'lnr'
+                    ,'lymph node regional group':'lnrg'
+                    ,'obturator' :'ob'
+                    ,'peripheral zone' : 'pz'
+                    ,'prostate' : 'pg'
+                    ,'seminal vesicles L' : 'sv_l'
+                    ,'seminal vesicles R' : 'sv_r'
+                    ,'transition zone' : 'tz'
+                    ,'urethra' : 'ur'
+                    ,'curvilinear contact' : 'cc' 
+                    ,'lesion 1' : 'lesion1' 
+                    ,'lesion 2' : 'lesion2' 
+                    ,'lesion 3' : 'lesion3' 
+                    ,'lesion 4' : 'lesion4' 
+                    ,'lesion 5' : 'lesion5'                    
+                    
+                    }
+
+    return transloateDict[lab]
