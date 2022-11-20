@@ -8,7 +8,7 @@
     "segmentAttributes": [
       [
         {
-          "labelID": 13,
+          "labelID": 1,
           "SegmentDescription": "seminal_vesiclesR",
           "SegmentAlgorithmType": "MANUAL",
           "SegmentedPropertyCategoryCodeSequence": {

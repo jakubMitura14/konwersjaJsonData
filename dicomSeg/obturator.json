@@ -8,7 +8,7 @@
     "segmentAttributes": [
       [
         {
-          "labelID": 9,
+          "labelID": 1,
           "SegmentDescription": "obturator",
           "SegmentAlgorithmType": "MANUAL",
           "SegmentedPropertyCategoryCodeSequence": {

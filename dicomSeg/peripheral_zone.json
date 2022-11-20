@@ -8,7 +8,7 @@
     "segmentAttributes": [
       [
         {
-          "labelID": 10,
+          "labelID": 1,
           "SegmentDescription": "peripheral_zone",
           "SegmentAlgorithmType": "MANUAL",
           "SegmentedPropertyCategoryCodeSequence": {

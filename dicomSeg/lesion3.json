@@ -8,7 +8,7 @@
     "segmentAttributes": [
       [
         {
-          "labelID": 7,
+          "labelID": 1,
           "SegmentDescription": "lesion3",
           "SegmentAlgorithmType": "MANUAL",
           "SegmentedPropertyCategoryCodeSequence": {

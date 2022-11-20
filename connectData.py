@@ -49,25 +49,22 @@ client_down_csv='/workspaces/konwersjaJsonData/outCsv/client_files.csv'
 rootFolder_lesion_analysis='/workspaces/konwersjaJsonData/forLesionAnalysis'
 mainFoldDirMha='/workspaces/konwersjaJsonData/AI4AR_cont'
 mainFoldDirSeg='/workspaces/konwersjaJsonData/AI4AR_dicom'
+#folder with definitions for dicom segs
+jsonFolder='/workspaces/konwersjaJsonData/dicomSeg'
 
 
 #loading data from JSON
 results = mdai.common_utils.json_to_dataframe(JSON)
 annot=results['annotations']
-
 #load data about files in directory folder
-
 #files passed from the folder where they were downloaded by mdai client
 files_df= mainFuncs.get_df_file_info(dataDir,client_down_csv)
-
 #adding data  about original folders from orig folder
 files_df_origFolds= get_df_orig_dir_info(orig_data_dir,orig_data_csv)
 #add data about original folder structure to frame based on data downloaded with mdai client
 files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
-
 files_df_origFolds= files_df_with_orig_folds
 files_df_with_orig_folds= files_df_with_orig_folds
-
 #parsing files and saving 3D data in the output folder
 out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg)
 
@@ -78,7 +75,7 @@ prostateLab = 'prostate'
 #files will be overwritten in the output folder
 labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
 ####
-# dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
 
 
 ##measurements

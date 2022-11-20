@@ -26,40 +26,50 @@ from os import path as pathOs
 import itertools
 import functools
 from itertools import groupby
+import pydicom
+import pydicom_seg
+import SimpleITK as sitk
+import pandas as pd
+from os.path import basename, dirname, exists, isdir, join, split
+import highdicom as hd
+import numpy as np
+from pydicom.sr.codedict import codes
+from pydicom.filereader import dcmread
 
 
-resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
-mainFoldDirMha='/workspaces/konwersjaJsonData/AI4AR_cont'
-mainFoldDirSeg='/workspaces/konwersjaJsonData/AI4AR_dicom'
+
+# resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
+# mainFoldDirMha='/workspaces/konwersjaJsonData/AI4AR_cont'
+# mainFoldDirSeg='/workspaces/konwersjaJsonData/AI4AR_dicom'
 
 
-mainFoldDir = mainFoldDirMha
-to_dicom_seg= False
+# mainFoldDir = mainFoldDirMha
+# to_dicom_seg= False
 
-out_files_frame=pd.read_csv(resCSVDir) 
+# out_files_frame=pd.read_csv(resCSVDir) 
 
-out_files_frame.columns
+# out_files_frame.columns
 
-series_desc= np.unique(out_files_frame['series_desc'].to_numpy())
-
-
-rowws = list(out_files_frame.iterrows())
-rowws = list(map(lambda el:el[1],rowws))
-groupedByMasterNum = [(key, list(group)) for key,group in groupby(rowws,key = lambda row : row['masterolds'] )]
+# series_desc= np.unique(out_files_frame['series_desc'].to_numpy())
 
 
-masterNum,seriesRows = groupedByMasterNum[0]
-data_path= join(mainFoldDir,"Data",str(masterNum) )
-anat_path= join(mainFoldDir,"Anatomical_Labels",str(masterNum) )
-lesion_path= join(mainFoldDir,"Lesion_Labels",str(masterNum) )
-list(map(lambda pathh: os.makedirs(pathh ,exist_ok = True)  ,[data_path, anat_path,lesion_path]))
+# rowws = list(out_files_frame.iterrows())
+# rowws = list(map(lambda el:el[1],rowws))
+# groupedByMasterNum = [(key, list(group)) for key,group in groupby(rowws,key = lambda row : row['masterolds'] )]
 
 
-len(groupedByMasterNum)
-rowws
+# masterNum,seriesRows = groupedByMasterNum[0]
+# data_path= join(mainFoldDir,"Data",str(masterNum) )
+# anat_path= join(mainFoldDir,"Anatomical_Labels",str(masterNum) )
+# lesion_path= join(mainFoldDir,"Lesion_Labels",str(masterNum) )
+# list(map(lambda pathh: os.makedirs(pathh ,exist_ok = True)  ,[data_path, anat_path,lesion_path]))
 
 
-out_files_frame.columns
+# len(groupedByMasterNum)
+# rowws
+
+
+# out_files_frame.columns
 
 
 

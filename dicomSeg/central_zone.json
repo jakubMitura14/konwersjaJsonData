@@ -8,7 +8,7 @@
     "segmentAttributes": [
       [
         {
-          "labelID": 2,
+          "labelID": 1,
           "SegmentDescription": "central_zone",
           "SegmentAlgorithmType": "MANUAL",
           "SegmentedPropertyCategoryCodeSequence": {

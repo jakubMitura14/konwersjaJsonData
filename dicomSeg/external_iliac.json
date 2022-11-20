@@ -8,7 +8,7 @@
     "segmentAttributes": [
       [
         {
-          "labelID": 3,
+          "labelID": 1,
           "SegmentDescription": "external_iliac",
           "SegmentAlgorithmType": "MANUAL",
           "SegmentedPropertyCategoryCodeSequence": {

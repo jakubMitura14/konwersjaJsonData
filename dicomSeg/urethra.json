@@ -8,7 +8,7 @@
     "segmentAttributes": [
       [
         {
-          "labelID": 15,
+          "labelID": 1,
           "SegmentDescription": "urethra",
           "SegmentAlgorithmType": "MANUAL",
           "SegmentedPropertyCategoryCodeSequence": {

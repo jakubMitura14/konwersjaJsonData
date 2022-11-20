@@ -21,27 +21,27 @@ from mainFuncs import getLabelsAbbrev
 
 
 
-def createAnatLabel(annot_for_series,lab,data,paths_dict,series_file_names,image3D,masterolds):
+def createAnatLabel(annot_for_series,lab,data,paths_dict,series_file_names,image3D,masterolds,currentStudyDesc):
     """
     create a file and necessery folders for anatomical labels
     in case of the 
     
     """
-    name = f"{str(masterolds)}_{getLabelsAbbrev(lab)}"
+    name = f"{str(masterolds)}_{getLabelsAbbrev(lab)}_{currentStudyDesc}"    
     
-    labelNiiPath = join(paths_dict['anat_path_no_seg'],  name+'.nii.gz')
+    labelNiiPath = join(paths_dict['anat_path_no_seg'],  f"{name}.nii.gz")
     # we will create a folder for the dicom seg buut we will not yet write them as labels requires some processing
     labelSegPath = join(paths_dict['anat_path_seg'],name)
     os.makedirs(labelSegPath ,exist_ok = True)
     return createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,image3D,labelSegPath)
 
-def createLesionLabel(annot_for_series,lab,data,paths_dict,series_file_names,image3D,masterolds,docId ):
+def createLesionLabel(annot_for_series,lab,data,paths_dict,series_file_names,image3D,masterolds,docId,currentStudyDesc):
     """
     create a file and necessery folders for anatomical labels
     in case of the     
     """
     labb = lab.replace(" ","")
-    name = f"{str(masterolds)}_{labb}_{docId} "
+    name = f"{str(masterolds)}_{labb}_{docId}_{currentStudyDesc}"
     lesionNiiPath = join(paths_dict['lesion_path_no_seg'],name+'.nii.gz')
     # we will create a folder for the dicom seg buut we will not yet write them as labels requires some processing
     lesionlSegPath = join(paths_dict['lesion_path_seg'],name).strip()
@@ -103,19 +103,26 @@ def translateSeriesDesc(series_desc_string,acqNumb):
     """
     acqNumb=acqNumb.replace("'","")
     manual_map_list=[
-        ("'t2_bl_tse_tra_sFOV'"                   , "t2w"  )
-        ,("'t2_bl_tse_tra_p'"                   , "t2w"  )
-        ,("'ep2d_diff_b 50 400 800 1200_TRACEW'"            , "hbv"  )
-        ,("'ep2d_diff_b 50 400 800 1200_ADC'"               ,"adc"   )    
-        ,("'t1_fl3d_tra fs_dyn CM'"                         , f"dce{acqNumb}"  ) #we can have study in 6 diffrent time points
-        ,("'t1_fl3d_tra fs_dyn CM_PEI'"                         , f"dce{acqNumb}"  ) #we can have study in 6 diffrent time points
-        ,("'t1_fl3d_tra fs_dyn CM_SUB_MOCO'"                         , f"dce{acqNumb}"  ) #we can have study in 6 diffrent time points
-        ,("'t1_fl3d_tra fs_dyn CM_SUB'"                         , f"dce{acqNumb}"  ) #we can have study in 6 diffrent time points
-        ,("'t2_bl_tse_tra_P'"                               , "t2w"  )
-        ,("'t2_bl_tse_tra'"                                 ,  "t2w" )
-        ,("'t2_bl_tse_cor'"                                 , "cor"  )
-        ,("'t2_bl_tse_sag'"                                 , "sag"  )]
-    # manual_map_list=[
+        ("'t2_bl_tse_tra_sFOV'"                             ,"t2w")
+        ,("'t2_bl_tse_tra_p'"                               ,"t2w")
+        ,("'[KOELIS] t2_bl_tse_tra_p'"                               ,"t2w")
+        ,("'t2_bl_tse_fs_tra_WIDE'"                               ,"t2w")
+        ,("'ep2d_diff_b 50 400 800 1200_TRACEW'"            ,"hbv")
+        ,("'ep2d_diff_b 50 400 800 1200_ADC'"               ,"adc")    
+        ,("'t1_fl3d_tra fs_dyn CM'"                         ,f"dce{acqNumb}") 
+        ,("'t1_fl3d_tra fs_dyn CM_PEI'"                     ,f"dce{acqNumb}") 
+        ,("'t1_fl3d_tra fs_dyn CM_SUB_MOCO'"                ,f"dce{acqNumb}") 
+        ,("'t1_fl3d_tra fs_dyn CM_SUB_MIP_COR'"             ,f"dce{acqNumb}") 
+        ,("'t1_fl3d_tra fs_dyn CM_SUB'"                     ,f"dce{acqNumb}") 
+        ,("'t2_bl_tse_tra_P'"                               ,"t2w")
+        ,("'t2_bl_tse_tra'"                                 ,"t2w")
+        ,("'t2_bl_tse_cor'"                                 ,"cor")
+        ,("'t2_bl_tse_COR_P'"                               ,"cor")
+        ,("'t2_bl_tse_sag'"                                 ,"sag")
+        ,("'t2_bl_tse_SAG_P'"                                 ,"sag")
+        
+        ]
+    #    manual_map_list=[
     #     ("'t2_bl_tse_tra_sFOV'"                   , "t2_transverse"  )
     #     ,("'t2_bl_tse_tra_p'"                   , "t2_transverse"  )
     #     ,("'ep2d_diff_b 50 400 800 1200_TRACEW'"            , "dwi_transverse"  )
@@ -138,7 +145,7 @@ def getFirstOrEmpty(arr):
 
 
 
-def getSeriesPathsAndMasterNumb(files_df,files_df_origFolds, currentSeries):
+def getSeriesPathsAndMasterNumb(files_df,files_df_origFolds, currentSeries,masterolds_in_Study):
     """
     get list of paths in original data - There may be still duplicates in output !!!
     apart from it we will get the master number associated to this series
@@ -152,8 +159,8 @@ def getSeriesPathsAndMasterNumb(files_df,files_df_origFolds, currentSeries):
     paths_in_series= np.unique(locDf['paths'].to_numpy())
     paths_in_seriesB= np.unique(locDfB['paths'].to_numpy())
     paths_in_series=[*paths_in_series,*paths_in_seriesB]
-    masterolds_in_series= np.unique(locDf['masterolds'].to_numpy())
-    masterolds=(masterolds_in_series[0]).replace('nas-lssi-dco/','')
+    # masterolds_in_series= np.unique(locDf['masterolds'].to_numpy())
+    masterolds=masterolds_in_Study#(masterolds_in_series[0]).replace('nas-lssi-dco/','')
     #additionally we will get the study description and acqisition number which are needed for study type description
     dses=list(map(pydicom.dcmread ,paths_in_series))
     studeDescs=(list(map(mainFuncs.get_SeriesDesc  ,dses)))
@@ -166,11 +173,6 @@ def getSeriesPathsAndMasterNumb(files_df,files_df_origFolds, currentSeries):
     currentStudyDesc=translateSeriesDesc(getFirstOrEmpty(studeDescs),getFirstOrEmpty(acqNumbs))
 
     return (paths_in_series,masterolds,currentStudyDesc)
-
-
-
-
-
 
 def getSliceAndSOP(filename):
     """
@@ -204,8 +206,6 @@ def findTheSameNoAnnot(slice,slices_with_sop):
     # we look for all slices holding the same data
     theSame= list(filter(lambda tupl : np.array_equal(tupl[1],slice)  ,slices_with_sop))
     return theSame[0]    
-
-
 
 def getUniqPaths(paths_in_series,annot_for_series ):
     """
@@ -257,14 +257,15 @@ def saveMainMRI(paths_in_series,paths_dict,currentStudyDesc):
 
 
 
-def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series,currentSeries,current_study_id,mainPaths_studyId):
+def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series,currentSeries,current_study_id,mainPaths_studyId,masterolds_in_Study):
     """
     main functions that gives single series of single annotator specialist
     will create files with 3d mha of this series plus 3d nii.gz files for each annotation label
     return current_study_id current_doctor_id series number, path to the main volume and list of tuples containing label name and 
     """
     #get all dicom paths associated with series including duplicates    
-    paths_in_series,masterolds,currentStudyDesc=getSeriesPathsAndMasterNumb(files_df,files_df_origFolds, currentSeries)
+    paths_in_series,masterolds,currentStudyDesc=getSeriesPathsAndMasterNumb(files_df,files_df_origFolds, currentSeries,masterolds_in_Study)
+    masterolds=masterolds_in_Study
     #prepare unique paths 
     paths_in_series=getUniqPaths(paths_in_series,annot_for_series )
 
@@ -281,14 +282,14 @@ def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_ser
     labelNameAndPaths=[]
 
     if(len(uniqLabelsAnatomy)>0):
-        labelNameAndPaths=list(map(lambda lab: createAnatLabel(annot_for_series,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds),uniqLabelsAnatomy ))
+        labelNameAndPaths=list(map(lambda lab: createAnatLabel(annot_for_series,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,currentStudyDesc),uniqLabelsAnatomy ))
 
     # saving data about lesions separately for each doctor (annotator)
     if(len(uniqLabelsLesions)>0):
         for lab in uniqLabelsLesions:
             for docId in np.unique(annot_for_series['createdById'].to_numpy()):
                 annot_for_doctor=annot_for_series.loc[annot_for_series['createdById'] == docId]
-                res = createLesionLabel(annot_for_doctor,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,docId )
+                res = createLesionLabel(annot_for_doctor,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,docId,currentStudyDesc )
                 labelNameAndPaths.append(res)
 
 
@@ -349,7 +350,7 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
     """
     res=[]
     annot_for_study_id=annot.loc[annot['StudyInstanceUID'] == current_study_id]
-    files_for_study_id=files_df.loc[files_df['StudyInstanceUID'] == current_study_id]
+    files_for_study_id=files_df_origFolds.loc[files_df_origFolds['StudyInstanceUID'] == current_study_id]
     # 
     #get annotator id 
     # for current_doctor_id in np.unique(annot_for_study_id['createdById'].to_numpy()):
@@ -358,12 +359,15 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
         # studyPath = os.path.join(outputDir, current_study_id,current_doctor_id)
         # os.makedirs(studyPath, exist_ok = True)
         #get single series
+    aa=sorted(files_df_origFolds['masterolds'].to_numpy(),key = lambda el: len(el))
 
     masterolds_in_Study= files_for_study_id['masterolds'].to_numpy()
-    # print(f"ffffffffff {masterolds_in_Study[0]}")    
+    print(f"ffffffffff {aa}")    
+    print(f"ffffffffff **{masterolds_in_Study[0]}**")    
     masterolds=(masterolds_in_Study[0]).replace('nas-lssi-dco/','')
     if(masterolds==' '):
         masterolds=f"unknownMasterNum_{current_study_id}"
+        print("unknownnn masterrr ")
     mainPaths_studyId=list(map(partial(createStudyFolder,masterolds=masterolds),mainPaths.items()))
     # print(f"mainPaths_studyId {mainPaths_studyId}")
 
@@ -372,7 +376,7 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
         files_for_series=files_for_study_id.loc[files_for_study_id['SeriesInstanceUID'] == currentSeries]
 
         res.append(mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series
-            ,currentSeries,current_study_id,mainPaths_studyId))
+            ,currentSeries,current_study_id,mainPaths_studyId,masterolds))
     return res
 
 
@@ -386,6 +390,17 @@ def getLabelPathOrEmpty(targetLab, tupl,pathIndex):
         if(labb[0]== targetLab):
             return labb[pathIndex]
     return " "    
+
+def getLabelNames(tupl):
+    """
+    return path to the label file if it exists otherwise " "
+    """
+    listLabs=tupl[5]
+    # for labb in listLabs :
+    #     labb[0]
+    return list(map(lambda entry: entry[0],listLabs ))   
+
+
 
 def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg):
     """
@@ -417,9 +432,9 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
 
     #iterate over all files
     allPaths=[]
-    with mp.Pool(processes = mp.cpu_count()) as pool: 
-        allPaths=pool.map(partial(iterate_overStudy, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df['StudyInstanceUID'].to_numpy()))
-    # allPaths=list(map(partial(iterate_overStudy, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df['StudyInstanceUID'].to_numpy())))
+    # with mp.Pool(processes = mp.cpu_count()) as pool: 
+    #     allPaths=pool.map(partial(iterate_overStudy, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy()))
+    allPaths=list(map(partial(iterate_overStudy, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df['StudyInstanceUID'].to_numpy())))
 
 
     flatten_list_paths = list(itertools.chain(*allPaths))
@@ -431,9 +446,9 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     out_files_frame['dicom_MRI_path']=list(map(lambda tupl: tupl[4],flatten_list_paths))
     out_files_frame['masterolds']=list(map(lambda tupl: tupl[6],flatten_list_paths))
 
-    all_labels_types=np.array(list(map(lambda el: el[5],flatten_list_paths))).flatten()
-    all_labels_types=np.unique(list(map(lambda el: el[0],all_labels_types))).flatten()
-    print(f"all_labels_types {all_labels_types}")
+    all_labels_types=list(map(lambda el: getLabelNames(el),flatten_list_paths))
+    # print(f"all_labels_types {all_labels_types}")
+    all_labels_types=np.unique(np.array(all_labels_types).flatten())
 
     for targetLab in all_labels_types :
         out_files_frame[f"{getLabelsAbbrev(targetLab)}_noSeg"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,1),flatten_list_paths))
