@@ -42,11 +42,14 @@ def createLesionLabel(annot_for_series,lab,data,paths_dict,series_file_names,ima
     """
     labb = lab.replace(" ","")
     name = f"{str(masterolds)}_{labb}_{docId}_{currentStudyDesc}"
-    lesionNiiPath = join(paths_dict['lesion_path_no_seg'],name+'.nii.gz')
+    os.makedirs(join(paths_dict['lesion_path_no_seg'],labb) ,exist_ok = True)
+    os.makedirs(join(paths_dict['lesion_path_seg'],labb) ,exist_ok = True)
+
+    lesionNiiPath = join(paths_dict['lesion_path_no_seg'],labb,name+'.nii.gz')
     # we will create a folder for the dicom seg buut we will not yet write them as labels requires some processing
-    lesionlSegPath = join(paths_dict['lesion_path_seg'],name).strip()
+    lesionlSegPath = join(paths_dict['lesion_path_seg'],labb,name).strip()
     os.makedirs(lesionlSegPath ,exist_ok = True)
-    return createLabelFile(annot_for_series,lab,data,lesionNiiPath,series_file_names,image3D,lesionlSegPath )
+    return createLabelFile(annot_for_series,f"{labb}_{docId}_{currentStudyDesc}",data,lesionNiiPath,series_file_names,image3D,lesionlSegPath )
 
 
 def createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,image3D,labelSegPath):
@@ -58,40 +61,43 @@ def createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,ima
     zeroArray=np.zeros(data.shape, dtype=dtype)
 
     writer = sitk.ImageFileWriter()
-    # if(not pathOs.exists(labelNiiPath)):
-    for index,loccPath in enumerate(series_file_names):
-        #open file to get sop id
-        ds = pydicom.dcmread(loccPath)
-        sop=mainFuncs.get_SOPInstanceUID(ds)
-        annot_for_sop= annot_for_label.loc[annot_for_label['SOPInstanceUID'] == sop]       
-        if(len(annot_for_sop)>0):
-            #print("overWriting")
-            rowOfIntr=list(annot_for_sop.iterrows())[0]
-            #we obtain mask as a boolean array
-            binArray= mainFuncs.load_mask_instance(rowOfIntr).astype(dtype)  
-            #time to overwrite the data
-            # ds.PixelData = binArray.tostring()
-            if((data.shape[1],data.shape[2])==binArray.shape):
-                #print("shapes ok lab {lab}")
-                zeroArray[index,:,:]=binArray
-            else:
-                print(f"dimensions do not match lab {lab}")
-                print(f"data.shape {data.shape}")
-                print(f"binArray shape {binArray.shape} ")
-                print(f"binArray    {binArray} ")
+    if(not pathOs.exists(labelNiiPath)):
+        for index,loccPath in enumerate(series_file_names):
+            #open file to get sop id
+            ds = pydicom.dcmread(loccPath)
+            sop=mainFuncs.get_SOPInstanceUID(ds)
+            annot_for_sop= annot_for_label.loc[annot_for_label['SOPInstanceUID'] == sop]       
+            if(len(annot_for_sop)>0):
+                #print("overWriting")
+                rowOfIntr=list(annot_for_sop.iterrows())[0]
+                #we obtain mask as a boolean array
+                binArray= mainFuncs.load_mask_instance(rowOfIntr).astype(dtype)  
+                #time to overwrite the data
+                # ds.PixelData = binArray.tostring()
+                if((data.shape[1],data.shape[2])==binArray.shape):
+                    #print("shapes ok lab {lab}")
+                    zeroArray[index,:,:]=binArray
+                else:
+                    print(f"dimensions do not match lab {lab}")
+                    print(f"data.shape {data.shape}")
+                    print(f"binArray shape {binArray.shape} ")
+                    print(f"binArray    {binArray} ")
 
 
-    # data is already overwritten
-    # reading series of dicom and save them as nii.gz in case of the 
-    # from https://simpleitk.readthedocs.io/en/master/link_DicomSeriesReadModifyWrite_docs.html
-    #series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(locPath)
-    image = sitk.GetImageFromArray(zeroArray)  
-    image.SetSpacing(image3D.GetSpacing())
-    image.SetOrigin(image3D.GetOrigin())
-    image.SetDirection(image3D.GetDirection())    
-
-    writer.SetFileName(labelNiiPath)
-    writer.Execute(image)   
+        # data is already overwritten
+        # reading series of dicom and save them as nii.gz in case of the 
+        # from https://simpleitk.readthedocs.io/en/master/link_DicomSeriesReadModifyWrite_docs.html
+        #series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(locPath)
+        image = sitk.GetImageFromArray(zeroArray)  
+        image.SetSpacing(image3D.GetSpacing())
+        image.SetOrigin(image3D.GetOrigin())
+        try:
+            image.SetDirection(image3D.GetDirection())    
+        except:
+            print(f"error saving direction of {labelNiiPath}")
+            
+        writer.SetFileName(labelNiiPath)
+        writer.Execute(image)   
     return (getLabelsAbbrev(lab),labelNiiPath,labelSegPath)
 
 def translateSeriesDesc(series_desc_string,acqNumb):
@@ -104,9 +110,10 @@ def translateSeriesDesc(series_desc_string,acqNumb):
     acqNumb=acqNumb.replace("'","")
     manual_map_list=[
         ("'t2_bl_tse_tra_sFOV'"                             ,"t2w")
+        ,("'t2_bl_tse_tra_sFOV'"                            ,"t2w")
         ,("'t2_bl_tse_tra_p'"                               ,"t2w")
-        ,("'[KOELIS] t2_bl_tse_tra_p'"                               ,"t2w")
-        ,("'t2_bl_tse_fs_tra_WIDE'"                               ,"t2w")
+        ,("'[KOELIS] t2_bl_tse_tra_p'"                      ,"t2w")
+        ,("'t2_bl_tse_fs_tra_WIDE'"                         ,"t2w")
         ,("'ep2d_diff_b 50 400 800 1200_TRACEW'"            ,"hbv")
         ,("'ep2d_diff_b 50 400 800 1200_ADC'"               ,"adc")    
         ,("'t1_fl3d_tra fs_dyn CM'"                         ,f"dce{acqNumb}") 
@@ -114,12 +121,16 @@ def translateSeriesDesc(series_desc_string,acqNumb):
         ,("'t1_fl3d_tra fs_dyn CM_SUB_MOCO'"                ,f"dce{acqNumb}") 
         ,("'t1_fl3d_tra fs_dyn CM_SUB_MIP_COR'"             ,f"dce{acqNumb}") 
         ,("'t1_fl3d_tra fs_dyn CM_SUB'"                     ,f"dce{acqNumb}") 
+        ,("'t1_fl3d_tra_dyn CM'"                            ,f"dce{acqNumb}") 
+        ,("'t1_fl3d_tra_dyn CM_PEI'"                        ,f"dce{acqNumb}") 
+        ,("'t1_fl3d_tra_dyn CM_PEI'"                        ,f"dce{acqNumb}")       
         ,("'t2_bl_tse_tra_P'"                               ,"t2w")
+        ,("'t2_bl_tse_fs_tra'"                              ,"t2w")
         ,("'t2_bl_tse_tra'"                                 ,"t2w")
         ,("'t2_bl_tse_cor'"                                 ,"cor")
         ,("'t2_bl_tse_COR_P'"                               ,"cor")
         ,("'t2_bl_tse_sag'"                                 ,"sag")
-        ,("'t2_bl_tse_SAG_P'"                                 ,"sag")
+        ,("'t2_bl_tse_SAG_P'"                               ,"sag")
         
         ]
     #    manual_map_list=[
@@ -134,7 +145,7 @@ def translateSeriesDesc(series_desc_string,acqNumb):
     #     ,("'t2_bl_tse_sag'"                                 , "t2_saggital"  )]
     res=list(filter(lambda tupl: tupl[0]==series_desc_string ,manual_map_list))
     if(len(res)==0):
-        print(f" series description string {series_desc_string} not known please adjust translateSeriesDesc function in getDirAndnumbFrame file")
+        print(f" series description string {series_desc_string} acq numb {acqNumb} not known please adjust translateSeriesDesc function in getDirAndnumbFrame file")
         return f"unknown{series_desc_string}".strip()
     return res[0][1]
 
@@ -179,7 +190,12 @@ def getSliceAndSOP(filename):
     finds SOP uid of the given dicom file
     """
     ds = pydicom.dcmread(filename)
-    return (mainFuncs.get_SOPInstanceUID(ds),ds.pixel_array ,filename)
+    res=(' ',' ', ' ')
+    try:
+        res= (mainFuncs.get_SOPInstanceUID(ds),ds.pixel_array ,filename)
+    except:
+        print("error reading slice")    
+    return res
 
 def findTheSame(slice,slices_with_sop,sops_in_anot):
     """
@@ -219,6 +235,7 @@ def getUniqPaths(paths_in_series,annot_for_series ):
     """
     #first we get data from each file and check the sops present in annotation data frame
     slices_with_sop = list(map(getSliceAndSOP ,paths_in_series))
+    slices_with_sop = list(filter(lambda el: el[0]!=' ' ,slices_with_sop))
     sops_in_anot= np.unique(annot_for_series['SOPInstanceUID'].to_numpy())
     # if there are any sops in the related annotation data frame - if there are annotations related to this series
     if(len(sops_in_anot)>0):
@@ -227,7 +244,7 @@ def getUniqPaths(paths_in_series,annot_for_series ):
     filtered = list(map(lambda tupl :  findTheSameNoAnnot(tupl[1],slices_with_sop) ,slices_with_sop))
     return np.unique(list(map(lambda tupl: tupl[2],filtered)))
 
-def saveMainMRI(paths_in_series,paths_dict,currentStudyDesc):
+def saveMainMRI(paths_in_series,paths_dict,currentStudyDesc,currentSeries):
     """
     given paths to  dicom files with unique slices we will copy those into separate dicom folder and 
     generate a single mha file 
@@ -235,23 +252,34 @@ def saveMainMRI(paths_in_series,paths_dict,currentStudyDesc):
     origVolPath=join(paths_dict['data_path_seg'],currentStudyDesc)
     os.makedirs(origVolPath ,exist_ok = True)
     pathMha=join(paths_dict['data_path_no_seg'],f"{currentStudyDesc}.mha")
-
-    for path_to_copy in paths_in_series:
-        shutil.copyfile(path_to_copy,join(origVolPath,Path(path_to_copy).name) )
     
-    series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
-    series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
-    series_reader = sitk.ImageSeriesReader()
-    series_reader.MetaDataDictionaryArrayUpdateOn()
-    series_reader.LoadPrivateTagsOn()
-    series_reader.SetFileNames(series_file_names)
+    image3D=[]
+    series_file_names=[]
+    if(not pathOs.exists(pathMha)):
+        try:
+            for path_to_copy in paths_in_series:
+                shutil.copyfile(path_to_copy,join(origVolPath,Path(path_to_copy).name) )
+            # print(f"origVolPath {origVolPath}")
+            series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
+            series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, currentSeries)
+            series_reader = sitk.ImageSeriesReader()
+            series_reader.MetaDataDictionaryArrayUpdateOn()
+            series_reader.LoadPrivateTagsOn()
+            series_reader.SetFileNames(series_file_names)
 
-    image3D = series_reader.Execute()
-    writer = sitk.ImageFileWriter()
-    # Use the study/series/frame of reference information given in the meta-data
-    # dictionary and not the automatically generated information from the file IO
-    writer.SetFileName(pathMha)
-    writer.Execute(image3D)   
+            image3D = series_reader.Execute()
+            writer = sitk.ImageFileWriter()
+            # Use the study/series/frame of reference information given in the meta-data
+            # dictionary and not the automatically generated information from the file IO
+            writer.SetFileName(pathMha)
+            writer.Execute(image3D)   
+        except Exception as err:
+            print(f"error in saveMainMRI {currentStudyDesc} {currentSeries} pathh {pathMha} {err}")   
+            return origVolPath,pathMha,' ',' ',' '
+    else:
+        #no point in recreating if it already exist
+        image3D=sitk.ReadImage(pathMha)
+        series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath,currentSeries)
 
     return origVolPath,pathMha,sitk.GetArrayFromImage(image3D),image3D,series_file_names
 
@@ -266,72 +294,78 @@ def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_ser
     #get all dicom paths associated with series including duplicates    
     paths_in_series,masterolds,currentStudyDesc=getSeriesPathsAndMasterNumb(files_df,files_df_origFolds, currentSeries,masterolds_in_Study)
     masterolds=masterolds_in_Study
-    #prepare unique paths 
-    paths_in_series=getUniqPaths(paths_in_series,annot_for_series )
+    if(currentStudyDesc!="PhoenixZIPReport"):
+        
+        #prepare unique paths 
+        paths_in_series=getUniqPaths(paths_in_series,annot_for_series )
 
-    #dict with paths of main folders needed here
-    paths_dict = dict((x, y) for x, y in mainPaths_studyId)
-    ## saving current series MRI both as mha file and as folder with dicoms - where we store only unique dicoms
-    origVolPath,pathMha,image3Ddata,image3D,series_file_names = saveMainMRI(paths_in_series,paths_dict,currentStudyDesc)
-    ## saving anatomical labels (if they exist)
-    #we will check how many diffrent labels are associated in case of no annotations it will be empty
-    uniq_labels= np.unique(annot_for_series['labelName'].to_numpy())
-    uniqLabelsAnatomy = list(filter(lambda lab: 'lesion' not in lab,uniq_labels))
-    uniqLabelsLesions = list(filter(lambda lab: 'lesion' in lab,uniq_labels))
+        #dict with paths of main folders needed here
+        paths_dict = dict((x, y) for x, y in mainPaths_studyId)
+        ## saving current series MRI both as mha file and as folder with dicoms - where we store only unique dicoms
+        origVolPath,pathMha,image3Ddata,image3D,series_file_names = saveMainMRI(paths_in_series,paths_dict,currentStudyDesc,currentSeries)
+        # in case of error in the main image reading we will not return anything
+        if(image3Ddata==' '):
+            return (' ',' ',' ',' ',' ',' ' ,' ' )    
+        
+        ## saving anatomical labels (if they exist)
+        #we will check how many diffrent labels are associated in case of no annotations it will be empty
+        uniq_labels= np.unique(annot_for_series['labelName'].to_numpy())
+        uniqLabelsAnatomy = list(filter(lambda lab: 'lesion' not in lab,uniq_labels))
+        uniqLabelsLesions = list(filter(lambda lab: 'lesion' in lab,uniq_labels))
 
-    labelNameAndPaths=[]
+        labelNameAndPaths=[]
 
-    if(len(uniqLabelsAnatomy)>0):
-        labelNameAndPaths=list(map(lambda lab: createAnatLabel(annot_for_series,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,currentStudyDesc),uniqLabelsAnatomy ))
+        if(len(uniqLabelsAnatomy)>0):
+            labelNameAndPaths=list(map(lambda lab: createAnatLabel(annot_for_series,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,currentStudyDesc),uniqLabelsAnatomy ))
 
-    # saving data about lesions separately for each doctor (annotator)
-    if(len(uniqLabelsLesions)>0):
-        for lab in uniqLabelsLesions:
-            for docId in np.unique(annot_for_series['createdById'].to_numpy()):
-                annot_for_doctor=annot_for_series.loc[annot_for_series['createdById'] == docId]
-                res = createLesionLabel(annot_for_doctor,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,docId,currentStudyDesc )
-                labelNameAndPaths.append(res)
-
-
-    # newPath= os.path.join(copiedPath,'volume.mha')
-    # series_file_names=None
-    # image3D=None
-    # #avoiding creating file if one is present
-    # if(not pathOs.exists(newPath)): 
-
-    #     os.makedirs(origVolPath ,exist_ok = True)
-    #     # into each subfolder we will copy the full  set of files related to main image at hand
-    #     for path_to_copy in paths_in_series:
-    #         os.system(f'cp {path_to_copy} {origVolPath}') 
+        # saving data about lesions separately for each doctor (annotator)
+        if(len(uniqLabelsLesions)>0):
+            for lab in uniqLabelsLesions:
+                for docId in np.unique(annot_for_series['createdById'].to_numpy()):
+                    annot_for_doctor=annot_for_series.loc[annot_for_series['createdById'] == docId]
+                    res = createLesionLabel(annot_for_doctor,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,docId,currentStudyDesc )
+                    labelNameAndPaths.append(res)
 
 
-    #     series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
-    #     series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
+        # newPath= os.path.join(copiedPath,'volume.mha')
+        # series_file_names=None
+        # image3D=None
+        # #avoiding creating file if one is present
+        # if(not pathOs.exists(newPath)): 
 
-    #     #getseries file names in correct order
-    #     #series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(copiedPath, currentSeries)
-    #     series_reader = sitk.ImageSeriesReader()
-    #     series_reader.MetaDataDictionaryArrayUpdateOn()
-    #     series_reader.LoadPrivateTagsOn()
-    #     series_reader.SetFileNames(series_file_names)
-
-    #     image3D = series_reader.Execute()
-    #     writer = sitk.ImageFileWriter()
-    #     # Use the study/series/frame of reference information given in the meta-data
-    #     # dictionary and not the automatically generated information from the file IO
-    #     writer.SetFileName(newPath)
-    #     writer.Execute(image3D)   
-    #     print(f"newPath image3D {newPath}")
-    # else:
-    #     image3D=sitk.ReadImage(newPath)
-    #     series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
-    #     series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
-
-    # data=sitk.GetArrayFromImage(image3D)
+        #     os.makedirs(origVolPath ,exist_ok = True)
+        #     # into each subfolder we will copy the full  set of files related to main image at hand
+        #     for path_to_copy in paths_in_series:
+        #         os.system(f'cp {path_to_copy} {origVolPath}') 
 
 
-    return (current_study_id,currentSeries,currentStudyDesc,pathMha,origVolPath,labelNameAndPaths ,masterolds )
+        #     series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
+        #     series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
 
+        #     #getseries file names in correct order
+        #     #series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(copiedPath, currentSeries)
+        #     series_reader = sitk.ImageSeriesReader()
+        #     series_reader.MetaDataDictionaryArrayUpdateOn()
+        #     series_reader.LoadPrivateTagsOn()
+        #     series_reader.SetFileNames(series_file_names)
+
+        #     image3D = series_reader.Execute()
+        #     writer = sitk.ImageFileWriter()
+        #     # Use the study/series/frame of reference information given in the meta-data
+        #     # dictionary and not the automatically generated information from the file IO
+        #     writer.SetFileName(newPath)
+        #     writer.Execute(image3D)   
+        #     print(f"newPath image3D {newPath}")
+        # else:
+        #     image3D=sitk.ReadImage(newPath)
+        #     series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
+        #     series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
+
+        # data=sitk.GetArrayFromImage(image3D)
+
+
+        return (current_study_id,currentSeries,currentStudyDesc,pathMha,origVolPath,labelNameAndPaths ,masterolds )
+    return (' ',' ',' ',' ',' ',' ' ,' ' )
         
 def createStudyFolder(item,masterolds ): 
     key,value=item
@@ -359,11 +393,11 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
         # studyPath = os.path.join(outputDir, current_study_id,current_doctor_id)
         # os.makedirs(studyPath, exist_ok = True)
         #get single series
-    aa=sorted(files_df_origFolds['masterolds'].to_numpy(),key = lambda el: len(el))
+    aa=sorted(files_df_origFolds['masterolds'].to_numpy(),key = lambda el: len(el))[0]
 
-    masterolds_in_Study= files_for_study_id['masterolds'].to_numpy()
-    print(f"ffffffffff {aa}")    
-    print(f"ffffffffff **{masterolds_in_Study[0]}**")    
+    masterolds_in_Study=files_for_study_id['masterolds'].to_numpy()
+    # print(f"ffffffffff {aa}")    
+    # print(f"ffffffffff **{masterolds_in_Study[0]}**")    
     masterolds=(masterolds_in_Study[0]).replace('nas-lssi-dco/','')
     if(masterolds==' '):
         masterolds=f"unknownMasterNum_{current_study_id}"
@@ -377,8 +411,20 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
 
         res.append(mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series
             ,currentSeries,current_study_id,mainPaths_studyId,masterolds))
+    res= np.array(res)
+    print(f"iterate_overStudy res {res.shape}  {res[0]}")
+    res=list(filter( lambda el: el[0]!=' ' ,res))        
     return res
 
+
+def iterate_overStudySafe(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths):
+    """
+    just gives one restart of iterate_overStudy function in case of failure
+    """
+    try:
+        return iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths)
+    except:
+        return iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths)
 
 
 def getLabelPathOrEmpty(targetLab, tupl,pathIndex):
@@ -398,7 +444,9 @@ def getLabelNames(tupl):
     listLabs=tupl[5]
     # for labb in listLabs :
     #     labb[0]
-    return list(map(lambda entry: entry[0],listLabs ))   
+    res= list(map(lambda entry: entry[0],listLabs ))   
+    print(f"getLabelNames {res}")
+    return res
 
 
 
@@ -432,9 +480,9 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
 
     #iterate over all files
     allPaths=[]
-    # with mp.Pool(processes = mp.cpu_count()) as pool: 
-    #     allPaths=pool.map(partial(iterate_overStudy, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy()))
-    allPaths=list(map(partial(iterate_overStudy, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df['StudyInstanceUID'].to_numpy())))
+    with mp.Pool(processes = mp.cpu_count()) as pool: 
+         allPaths=pool.map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy()))
+    #allPaths=list(map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy())))
 
 
     flatten_list_paths = list(itertools.chain(*allPaths))
@@ -447,12 +495,14 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     out_files_frame['masterolds']=list(map(lambda tupl: tupl[6],flatten_list_paths))
 
     all_labels_types=list(map(lambda el: getLabelNames(el),flatten_list_paths))
-    # print(f"all_labels_types {all_labels_types}")
-    all_labels_types=np.unique(np.array(all_labels_types).flatten())
+    all_labels_types=list(itertools.chain(*all_labels_types))
+    print(f"all_labels_types {all_labels_types}")
+    all_labels_types=np.unique(all_labels_types)
+    print(f"bbb all_labels_types {all_labels_types}")
 
     for targetLab in all_labels_types :
-        out_files_frame[f"{getLabelsAbbrev(targetLab)}_noSeg"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,1),flatten_list_paths))
-        out_files_frame[f"{getLabelsAbbrev(targetLab)}_Seg"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,2),flatten_list_paths))
+        out_files_frame[f"{targetLab}_noSeg"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,1),flatten_list_paths))
+        out_files_frame[f"{targetLab}_Seg"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,2),flatten_list_paths))
 
 
 

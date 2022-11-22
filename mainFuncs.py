@@ -174,5 +174,6 @@ def getLabelsAbbrev(lab):
                     ,'lesion 5' : 'lesion5'                    
                     
                     }
-
+    if('lesion' in lab):
+        return lab
     return transloateDict[lab]

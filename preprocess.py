@@ -16,8 +16,8 @@ import itertools
 import torch
 from os import path as pathOs
 import more_itertools
-import mainFuncs
 from mainFuncs import getLabelsAbbrev
+
 
 def save_from_arr(zeroArray,image3D,newPathLab):
     """
@@ -159,62 +159,63 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
 
 
 
-            #indicies to set To zero
-            #itertools.accumulate(cart_prod, lambda x, y: x+y))
-            print(f"cart_prod {cart_prod} ")
-            boolArrs = list(map( lambda colName :get_bool_arr_from_path(colName,current_row ) ,labelsOfIntrest_inner))
-            
-            
-            if(len(cart_prod)>0):
-                toSetToZeroBoolArrs= list(map( lambda tupl :  get_indicies_to_zeroLoc(tupl[0],tupl[1]) ,cart_prod ))
-                toSetToZero=functools.reduce(np.logical_or, toSetToZeroBoolArrs)     
-                negated_toSetToZero = np.logical_not(toSetToZero)
-                boolArrs= list(map(lambda arr : np.logical_and(arr,negated_toSetToZero )  ,boolArrs))
+        #indicies to set To zero
+        #itertools.accumulate(cart_prod, lambda x, y: x+y))
+        print(f"cart_prod {cart_prod} ")
+        boolArrs = list(map( lambda colName :get_bool_arr_from_path(colName,current_row ) ,labelsOfIntrest_inner))
         
-            #now we get what is True in at least one of arrays
-            # print(" labelsOfIntrest_innerrrrrrrrrr bbbb ")
-            # print(labelsOfIntrest_inner)
-            common = functools.reduce(np.logical_or, boolArrs)
-            #negate
-            common_not = np.logical_not(common)
-            #below we will have all indicies in prostate but not in other labels, or those that was overlapping in two labels
-            voxels_to_mod = np.logical_and(common_not, prostateBool)        
-            #time to get indicies of the voxels to modify
-            indicies_to_mod =  np.argwhere(voxels_to_mod)
-            #getting indicies of current positions of labels
-            boolArrs_indicies=list(map(np.argwhere,boolArrs ))
-            #getting the labels to indicies_to_mod 
-            augmentedIndicies2D = augment_indicies2D(indicies_to_mod,boolArrs_indicies)
-            # print(f"indicies_to_mod {indicies_to_mod} \n")
+        
+        if(len(cart_prod)>0):
+            toSetToZeroBoolArrs= list(map( lambda tupl :  get_indicies_to_zeroLoc(tupl[0],tupl[1]) ,cart_prod ))
+            toSetToZero=functools.reduce(np.logical_or, toSetToZeroBoolArrs)     
+            negated_toSetToZero = np.logical_not(toSetToZero)
+            boolArrs= list(map(lambda arr : np.logical_and(arr,negated_toSetToZero )  ,boolArrs))
+      
+        #now we get what is True in at least one of arrays
+        # print(" labelsOfIntrest_innerrrrrrrrrr bbbb ")
+        # print(labelsOfIntrest_inner)
+        common = functools.reduce(np.logical_or, boolArrs)
+        #negate
+        common_not = np.logical_not(common)
+        #below we will have all indicies in prostate but not in other labels, or those that was overlapping in two labels
+        voxels_to_mod = np.logical_and(common_not, prostateBool)        
+        #time to get indicies of the voxels to modify
+        indicies_to_mod =  np.argwhere(voxels_to_mod)
+        #getting indicies of current positions of labels
+        boolArrs_indicies=list(map(np.argwhere,boolArrs ))
+        #getting the labels to indicies_to_mod 
+        augmentedIndicies2D = augment_indicies2D(indicies_to_mod,boolArrs_indicies)
+        # print(f"indicies_to_mod {indicies_to_mod} \n")
 
-            #modifying bool arrs according to augmented indicies
-            # print(augmentedIndicies)
-
-
-            for aug_index in augmentedIndicies2D:
-                boolArrs[aug_index[3]][aug_index[0],aug_index[1],aug_index[2]]=True
-
-            #now we have modified the arrays we need to overwrite it 
-            for index, label in enumerate(labelsOfIntrest_inner):
-                #print(label)
-                pathA= current_row[label]
-                image3D=sitk.ReadImage(pathA)
-                pathB=  pathA#pathA.replace(".nii.gz", "_b_.nii.gz")
-                #print(pathB)
-                save_from_arr(boolArrs[index].astype(np.int16),image3D,pathB)
+        #modifying bool arrs according to augmented indicies
+        # print(augmentedIndicies)
 
 
+        for aug_index in augmentedIndicies2D:
+            boolArrs[aug_index[3]][aug_index[0],aug_index[1],aug_index[2]]=True
 
-def dilatate_erode_conditionally(files_df,labelsOfIntrestA,prostateLab ,annot):
+        #now we have modified the arrays we need to overwrite it 
+        for index, label in enumerate(labelsOfIntrest_inner):
+            #print(label)
+            pathA= current_row[label]
+            image3D=sitk.ReadImage(pathA)
+            pathB=  pathA#pathA.replace(".nii.gz", "_b_.nii.gz")
+            #print(pathB)
+            save_from_arr(boolArrs[index].astype(np.int16),image3D,pathB)
+
+
+
+def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot):
     """
     main function that in parallel applies grow_labels
     """
     #usefull to iterate around not including iteration in z direction
     indicies_around=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([0])))
     indicies_around_full=list(itertools.product(set([-1,0,1]),set([-1,0,1]),set([-1,0,1])))
-    labelsOfIntrest= list(map(getLabelsAbbrev,labelsOfIntrestA))    
+
     # using only those rows where we have prostate
-    frame_of_intr=files_df.loc[files_df[prostateLab]!=" "]
+    frame_of_intr=files_df.loc[files_df[getLabelsAbbrev(prostateLab)]!=" "]
+    labelsOfIntrest=list(map( getLabelsAbbrev,labelsOfIntrest ))
 
     list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows())))
 
@@ -225,3 +226,4 @@ def dilatate_erode_conditionally(files_df,labelsOfIntrestA,prostateLab ,annot):
 
 
 
+# one can get the prostate without missing by getting all coordinates - group by key that x and y are equal set all coordinates to true if z is between z min and z max

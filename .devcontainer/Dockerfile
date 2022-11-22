@@ -28,17 +28,6 @@ RUN apt-get update && apt-get install -y \
     #nvidia-cuda-toolkit-11-3\
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-   curl \
-   build-essential \
-   coreutils \
-   gcc \
-   gettext \
-   zlib1g-dev \
-   openssl \
-   perl \
-   wget \
-   zlib1g
 
 
 ## installing github CLI - https://github.com/cli/cli/blob/trunk/docs/install_linux.md
@@ -101,27 +90,6 @@ RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
     rm get-pip.py
 
-RUN apt update
-RUN echo 'deb https://download.opensuse.org/repositories/home:/npreining:/debian-ubuntu-onedrive/xUbuntu_20.04/ ./' | sudo tee /etc/apt/sources.list.d/onedrive.list
-RUN wget -qO - https://download.opensuse.org/repositories/home:/npreining:/debian-ubuntu-onedrive/xUbuntu_20.04/Release.key | sudo apt-key add -
-RUN apt-get update
-RUN apt install -y onedrive
-
-
-
-
-ENV NB_USER sliceruser
-ENV NB_UID 1000
-ENV HOME /home/${NB_USER}
-
-RUN adduser --disabled-password \
-    --gecos "Default user" \
-    --uid ${NB_UID} \
-    ${NB_USER}
-
-WORKDIR ${HOME}
-USER ${NB_USER}
-
 RUN pip3 --no-cache-dir install \
     future>=0.17.1 \
     grpcio \
@@ -154,17 +122,13 @@ RUN git config -l
 
 
 
-RUN mkdir ${HOME}/data
-RUN mkdir ${HOME}/data/scripts
-
+RUN mkdir ${HOME}/scripts
 RUN mkdir ${HOME}/externalRepos
 RUN mkdir ${HOME}/forLesionAnalysis
 
 RUN mkdir ${HOME}/externalRepos/elastix
 RUN git clone https://github.com/SuperElastix/SimpleElastix ${HOME}/externalRepos/elastix
 
-
-RUN git clone https://github.com/jakubMitura14/konwersjaJsonData.git ${HOME}/data/scripts
 
 
 # RUN cd ${HOME}/externalRepos/elastix && \
@@ -214,19 +178,3 @@ RUN pip install highdicom==0.19.0
 #     # make -j6
 
 CMD ["/bin/bash"]
-
-# RUN wget http://people.centos.org/tru/devtools-2/devtools-2.repo
-# ENV CC /opt/rh/devtoolset-2/root/usr/bin/gcc
-# ENV CXX /opt/rh/devtoolset-2/root/usr/bin/g++
-# ENV FC /opt/rh/devtoolset-2/root/usr/bin/gfortran
-
-# RUN mkdir ${HOME}/externalRepos/qiicr
-# RUN git clone https://github.com/QIICR/dcmqi.git ${HOME}/externalRepos/qiicr
-
-# # RUN export PATH=$PATH:/usr/lib/gcc
-# # RUN export CC=gcc
-# RUN cd ${HOME}/externalRepos/qiicr && \
-#     mkdir buildd && \
-#     cd buildd && \
-#     cmake -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER=/usr/bin/gcc ${HOME}/externalRepos/qiicr && \
-#     make -j6
