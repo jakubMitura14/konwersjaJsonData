@@ -454,8 +454,8 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     """
     in parallel iterates over all studies and series and save the paths of created files in the csv file
     """
-    # if(pathOs.exists(resCSVDir)):
-    #     return pd.read_csv(resCSVDir) 
+    if(pathOs.exists(resCSVDir)):
+        return pd.read_csv(resCSVDir) 
 
 
     out_files_frame= pd.DataFrame()
