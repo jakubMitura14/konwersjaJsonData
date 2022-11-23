@@ -17,7 +17,7 @@ import torch
 from os import path as pathOs
 import more_itertools
 from mainFuncs import getLabelsAbbrev
-
+from dicomSeg.dicomSeg import save_dicom_seg_label
 
 def save_from_arr(zeroArray,image3D,newPathLab):
     """
@@ -33,9 +33,7 @@ def save_from_arr(zeroArray,image3D,newPathLab):
     writer.Execute(image)
 
 def get_indicies_to_zero(current_row,negatedProstate,colOfIntrA,colOfIntrB):
-    """
-    compares two volumes in case of overlap set the found entries to 0 and ovewrite the files
-    """
+
     # print(f" colOfIntrA {colOfIntrA} colOfIntrB {colOfIntrB} ")
     pathA = current_row[colOfIntrA]
     pathB = current_row[colOfIntrB]
@@ -66,8 +64,9 @@ def get_common_indicies(current_row,negatedProstate,colOfIntrA,colOfIntrB):
     common = np.logical_and(dataA,dataB)
     common_neg=np.logical_not(common)
     res= np.logical_and(common_neg, dataA )
-
-    save_from_arr(res.astype(np.int16),imageA,pathA)
+    if(colOfIntrA!="ur_noSeg"):
+        print(f"ignore urethra as planned {pathA}")
+        save_from_arr(res.astype(np.int16),imageA,pathA)
 
 
 
@@ -122,7 +121,7 @@ def augment_indicies2D(indicies_to_mod,boolArrs_indicies):
     return res
 
 
-def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,indicies_around_full):
+def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,indicies_around_full,jsonFolder):
     """
     iterate over data - looks for any overlap between labels in labelsOfIntrest aand set such voxel to 0
     additionally it also take into account voxels that were not marked as any part of the prostate but are present in some subsection of 
@@ -136,7 +135,8 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
     labelsOfIntrest_inner= list(filter(lambda labell: current_row[labell]!=" ",labelsOfIntrest )  )
     if(len(labelsOfIntrest_inner)>1):
         # getting powerset in order to simplify futher iterations
-        print(f"labelsOfIntrest_inner {labelsOfIntrest_inner}")
+        masterOlds=current_row["masterolds"]
+        print(f"labelsOfIntrest_inner {labelsOfIntrest_inner} case {masterOlds}  ")
         cart_prod=list(more_itertools.powerset(labelsOfIntrest_inner))
         cart_prod=list(filter(lambda tupl:len(tupl)==2  ,cart_prod))
         prostateBool = get_bool_arr_from_path(prostateLab,current_row )
@@ -152,7 +152,7 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
 
 
         def get_indicies_to_zeroLoc(colOfIntrA,colOfIntrB):
-            if(colOfIntrA==' ' or colOfIntrB==' '):
+            if(colOfIntrA==' ' or colOfIntrB==' 'or colOfIntrA=="ur_noSeg"):
                 return np.zeros(np.shape(prostateBool), dtype=bool  )    
             return get_indicies_to_zero(current_row,negatedProstate,colOfIntrA,colOfIntrB)
 
@@ -200,11 +200,14 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
             image3D=sitk.ReadImage(pathA)
             pathB=  pathA#pathA.replace(".nii.gz", "_b_.nii.gz")
             #print(pathB)
-            save_from_arr(boolArrs[index].astype(np.int16),image3D,pathB)
+            save_from_arr(boolArrs[index].astype(np.uint8),image3D,pathB)
+            print(f"in label {label} sum {np.sum(boolArrs[index])}")
+            #additionally we want to save dicom seg files
+            save_dicom_seg_label(current_row,jsonFolder,label)
 
 
 
-def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot):
+def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot,jsonFolder):
     """
     main function that in parallel applies grow_labels
     """
@@ -218,10 +221,13 @@ def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot):
     labelsOfIntrest=list(map( getLabelsAbbrev,labelsOfIntrest ))
     labelsOfIntrest=list(map( lambda el: f"{el}_noSeg",labelsOfIntrest ))
 
+
+
     # list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows())))
 
     with mp.Pool(processes = mp.cpu_count()) as pool:
-        pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows()))
+        pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows()))
+    #list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows())))
 
 
 

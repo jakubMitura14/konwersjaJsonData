@@ -65,16 +65,16 @@ files_df_origFolds= get_df_orig_dir_info(orig_data_dir,orig_data_csv)
 files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
 
 #parsing files and saving 3D data in the output folder
-out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg)
+out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder)
 
 ### preprocessing
 #we first define the labels that should as a sum be included in a prostate gland 
 # so we get rid of overlaps and inconsistencies with main prostate mask
 prostateLab = 'prostate'
 #files will be overwritten in the output folder
-labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']
-####
-dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot)  #TODO(unhash)
+labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']#
+####additionally dilatate_erode_conditionally after processing saves dicom seg's into previosly created folders
+dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
 
 
 ##measurements
