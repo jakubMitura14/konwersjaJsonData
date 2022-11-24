@@ -29,6 +29,8 @@ from os.path import basename, dirname, exists, isdir, join, split
 import measurements
 import re
 import shutil
+import getVolume
+from getVolume import get_volumes_frames
 #JSON filr from mdai summarizing data about annotations etc. 
 JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_2022-11-16-094015.json'
 
@@ -36,9 +38,9 @@ JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_2
 outputDir='/workspaces/konwersjaJsonData/output'
 #directory of the csv storing most relevant data per each series
 resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
-#directory of the csv to save data about dice scores of compared lesions
-dice_csv_dir='/workspaces/konwersjaJsonData/outCsv/diceFrame.csv'
-volumes_csv_dir='/workspaces/konwersjaJsonData/outCsv/volumesFrame.csv'
+#directory of the csv to save data about volumes
+prost_volumes_csv_dir='/workspaces/konwersjaJsonData/outCsv/prost_volumes.csv'
+lesion_volumes_csv_dir='/workspaces/konwersjaJsonData/outCsv/lesion_volumes.csv'
 #downloaded manually
 orig_data_dir='/workspaces/konwersjaJsonData/nas-lssi-dco'
 orig_data_csv='/workspaces/konwersjaJsonData/outCsv/orig_files.csv'
@@ -72,19 +74,23 @@ out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFol
 # so we get rid of overlaps and inconsistencies with main prostate mask
 prostateLab = 'prostate'
 #files will be overwritten in the output folder
-labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra']#
+labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone']#, 'urethra'
 ####additionally dilatate_erode_conditionally after processing saves dicom seg's into previosly created folders
-dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
-
+# dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
 
 ##measurements
 #after data is preprocessed we will perform measurements like volumes of labels
-#names of labels in which we will measure volumes
-col_names_to_volume = ['anterior fibromuscular stroma', 'central zone', 
-       'external iliac', 'internal iliac', 'lesion 1', 'lesion 2', 'lesion 3',
-       'lesion 4', 'lymph node regional', 'lymph node regional group',
-       'obturator', 'peripheral zone', 'prostate', 'seminal vesicles L',
-       'seminal vesicles R', 'transition zone', 'urethra']
+get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLab)
+
+
+# ##measurements
+# #after data is preprocessed we will perform measurements like volumes of labels
+# #names of labels in which we will measure volumes
+# col_names_to_volume = ['anterior fibromuscular stroma', 'central zone', 
+#        'external iliac', 'internal iliac', 'lesion 1', 'lesion 2', 'lesion 3',
+#        'lesion 4','lesion 5', 'lymph node regional', 'lymph node regional group',
+#        'obturator', 'peripheral zone', 'prostate', 'seminal vesicles L',
+#        'seminal vesicles R', 'transition zone', 'urethra']
 
 # #names of labels that will be compare between themselves between diffrent annotators and DICE score will be saved
 # col_names_for_dice=['lesion 1', 'lesion 2', 'lesion 3','lesion 4']

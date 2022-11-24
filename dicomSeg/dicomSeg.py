@@ -9,6 +9,7 @@ import highdicom as hd
 import numpy as np
 from pydicom.sr.codedict import codes
 from pydicom.filereader import dcmread
+from mainFuncs import getLabelsAbbrev
 
 
 # #directory of the csv storing most relevant data per each series
@@ -48,9 +49,10 @@ def save_dicom_seg_label(roww,jsonFolder,colName,outPath=' ',dicomSPath=' ',seri
     index - points to which label from supplied innerLabel_json_names and col_names_to_analyze entry to refer
     """
     #name to retrieve json
-    if(curr_no_space_name!=' '):
+    if(curr_no_space_name==' '):
         curr_no_space_name=colName.replace('_noSeg','')
-    
+    else:
+        curr_no_space_name=getLabelsAbbrev(curr_no_space_name)
     colNameSeg=f"{curr_no_space_name}_Seg"
     #getting path to json in order to get template specification and instantiate dicom seg writer
     currentJson_path=join(jsonFolder,curr_no_space_name+".json") 
@@ -86,7 +88,7 @@ def save_dicom_seg_label(roww,jsonFolder,colName,outPath=' ',dicomSPath=' ',seri
     if(outPath==' '):
         outPath=roww[colNameSeg]
     
-    dcm.save_as()
+    dcm.save_as(outPath)
     # dcm.save_as(join(roww[colNameSeg], curr_no_space_name+".dcm"))
 
 # out_files_frame=pd.read_csv(resCSVDir) 

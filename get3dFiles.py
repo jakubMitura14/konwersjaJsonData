@@ -34,7 +34,7 @@ def createAnatLabel(annot_for_series,lab,data,paths_dict,series_file_names,image
         # we will create a folder for the dicom seg buut we will not yet write them as labels requires some processing
         labelSegPath = join(paths_dict['anat_path_seg'],name+'.dcm')
         # os.makedirs(labelSegPath ,exist_ok = True)
-        return createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,image3D,labelSegPath,jsonFolder,dicomSPath,seriesId,lab)
+        return createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,image3D,labelSegPath,jsonFolder,dicomSPath,seriesId,lab,lab)
     return (' ',' ',' ',' ',' ',' ',' ')
 def createLesionLabel(annot_for_series,lab,data,paths_dict,series_file_names,image3D,masterolds,docId,currentStudyDesc,jsonFolder,dicomSPath,seriesId):
     """
@@ -42,27 +42,32 @@ def createLesionLabel(annot_for_series,lab,data,paths_dict,series_file_names,ima
     in case of the     
     """
     labb = lab.replace(" ","")
+    origLab=lab
     name = f"{str(masterolds)}_{labb}_{docId}_{currentStudyDesc}"
     os.makedirs(join(paths_dict['lesion_path_no_seg'],labb) ,exist_ok = True)
-    # os.makedirs(join(paths_dict['lesion_path_seg'],labb) ,exist_ok = True)
+    os.makedirs(join(paths_dict['lesion_path_seg'],labb) ,exist_ok = True)
 
     lesionNiiPath = join(paths_dict['lesion_path_no_seg'],labb,name+'.nii.gz')
     # we will create a folder for the dicom seg buut we will not yet write them as labels requires some processing
     lesionlSegPath = join(paths_dict['lesion_path_seg'],labb,name+'.dcm').strip()
     # os.makedirs(lesionlSegPath ,exist_ok = True)
-    return createLabelFile(annot_for_series,f"{labb}_{docId}_{currentStudyDesc}",data,lesionNiiPath,series_file_names,image3D,lesionlSegPath,jsonFolder,dicomSPath,seriesId ,labb)
+    return createLabelFile(annot_for_series,f"{labb}_{docId}_{currentStudyDesc}",data,lesionNiiPath,series_file_names,image3D,lesionlSegPath,jsonFolder,dicomSPath,seriesId ,labb,origLab)
 
 
-def createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,image3D,labelSegPath,jsonFolder,dicomSPath,seriesId,labb):
+def createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,image3D,labelSegPath,jsonFolder,dicomSPath,seriesId,labb,origLab):
     """
     takes label dataframe and original MRI image and recreates label volume from it 
     """
     dtype=np.uint16
-    annot_for_label=annot_for_series.loc[annot_for_series['labelName'] == lab]
+    annot_for_label=annot_for_series.loc[annot_for_series['labelName'] == origLab]
+    # print(f"oooo {labb}   {annot_for_series['labelName'].to_numpy()}")
+    # print(f"oooo {origLab}  ")
+
     zeroArray=np.zeros(data.shape, dtype=dtype)
 
     writer = sitk.ImageFileWriter()
-    if(not pathOs.exists(labelNiiPath)):
+    # if(not pathOs.exists(labelNiiPath)):
+    if(True):
         for index,loccPath in enumerate(series_file_names):
             #open file to get sop id
             ds = pydicom.dcmread(loccPath)
@@ -99,10 +104,12 @@ def createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,ima
             
         writer.SetFileName(labelNiiPath)
         writer.Execute(image)
-        save_dicom_seg_label([],jsonFolder,' ',  labelSegPath,dicomSPath,seriesId,image,labb)
-
+        labelSum=np.sum(zeroArray)
+        print(f"ccccreateLabelFile {labb} sum  {labelSum} annot_for_label len {len(annot_for_label)}")
+        if(labelSum>0):
+            save_dicom_seg_label([],jsonFolder,' ',outPath=labelSegPath,dicomSPath=dicomSPath,seriesId=seriesId,segmentation=image,curr_no_space_name=labb)
         
-    return (getLabelsAbbrev(lab),labelNiiPath,labelSegPath)
+    return (getLabelsAbbrev(lab),labelNiiPath,labelSegPath,labelSum)
 
 def translateSeriesDesc(series_desc_string,acqNumb):
     """
@@ -279,7 +286,7 @@ def saveMainMRI(paths_in_series,paths_dict,currentStudyDesc,currentSeries):
             writer.Execute(image3D)   
         except Exception as err:
             print(f"error in saveMainMRI {currentStudyDesc} {currentSeries} pathh {pathMha} {err}")   
-            return origVolPath,pathMha,' ',' ',' '
+            return origVolPath,pathMha,' ',' ',[]
     else:
         #no point in recreating if it already exist
         image3D=sitk.ReadImage(pathMha)
@@ -308,14 +315,17 @@ def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_ser
         ## saving current series MRI both as mha file and as folder with dicoms - where we store only unique dicoms
         origVolPath,pathMha,image3Ddata,image3D,series_file_names = saveMainMRI(paths_in_series,paths_dict,currentStudyDesc,currentSeries)
         # in case of error in the main image reading we will not return anything
-        if(image3Ddata==' '):
+        if(len(series_file_names)==0):
             return (' ',' ',' ',' ',' ',' ' ,' ' )    
         
         ## saving anatomical labels (if they exist)
         #we will check how many diffrent labels are associated in case of no annotations it will be empty
         uniq_labels= np.unique(annot_for_series['labelName'].to_numpy())
+        uniq_labels= list(filter(lambda labb: labb!='lymph node regional group',uniq_labels  ))
+        uniq_labels= list(filter(lambda labb: labb!='curvilinear contact',uniq_labels  ))
+        uniq_labels= list(filter(lambda labb: labb!='lymph node regional',uniq_labels  ))
         uniqLabelsAnatomy = list(filter(lambda lab: 'lesion' not in lab,uniq_labels))
-        uniqLabelsLesions = list(filter(lambda lab: 'lesion' in lab,uniq_labels))
+
 
         labelNameAndPaths=[]
 
@@ -323,12 +333,16 @@ def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_ser
             labelNameAndPaths=list(map(lambda lab: createAnatLabel(annot_for_series,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,currentStudyDesc,jsonFolder,origVolPath,currentSeries),uniqLabelsAnatomy ))
         labelNameAndPaths=list(filter(lambda el: el[0]!=' ',labelNameAndPaths))
         # saving data about lesions separately for each doctor (annotator)
-        if(len(uniqLabelsLesions)>0):
-            for lab in uniqLabelsLesions:
-                for docId in np.unique(annot_for_series['createdById'].to_numpy()):
-                    annot_for_doctor=annot_for_series.loc[annot_for_series['createdById'] == docId]
-                    res = createLesionLabel(annot_for_doctor,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,docId,currentStudyDesc,jsonFolder,origVolPath,currentSeries )
-                    labelNameAndPaths.append(res)
+        for docId in np.unique(annot_for_series['createdById'].to_numpy()):
+            annot_for_doctor=annot_for_series.loc[annot_for_series['createdById'] == docId]    
+            # getting all the labels pesent for this series and this annotator                
+            uniq_labels= np.unique(annot_for_doctor['labelName'].to_numpy())
+            uniqLabelsLesions = list(filter(lambda lab: 'lesion' in lab,uniq_labels))
+
+            for lab in uniqLabelsLesions:                    
+                
+                res = createLesionLabel(annot_for_doctor,lab,image3Ddata,paths_dict,series_file_names,image3D,masterolds,docId,currentStudyDesc,jsonFolder,origVolPath,currentSeries )
+                labelNameAndPaths.append(res)
 
 
         # newPath= os.path.join(copiedPath,'volume.mha')
@@ -397,17 +411,15 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
         # studyPath = os.path.join(outputDir, current_study_id,current_doctor_id)
         # os.makedirs(studyPath, exist_ok = True)
         #get single series
-    aa=sorted(files_df_origFolds['masterolds'].to_numpy(),key = lambda el: len(el))[0]
+    # aa=sorted(files_df_origFolds['masterolds'].to_numpy(),key = lambda el: len(el))[0]
 
     masterolds_in_Study=files_for_study_id['masterolds'].to_numpy()
-    # print(f"ffffffffff {aa}")    
-    # print(f"ffffffffff **{masterolds_in_Study[0]}**")    
+
     masterolds=(masterolds_in_Study[0]).replace('nas-lssi-dco/','')
     if(masterolds==' '):
         masterolds=f"unknownMasterNum_{current_study_id}"
         print("unknownnn masterrr ")
     mainPaths_studyId=list(map(partial(createStudyFolder,masterolds=masterolds),mainPaths.items()))
-    # print(f"mainPaths_studyId {mainPaths_studyId}")
 
     for currentSeries in np.unique(files_for_study_id['SeriesInstanceUID'].to_numpy()):
         annot_for_series=annot_for_study_id.loc[annot_for_study_id['SeriesInstanceUID'] == currentSeries]
@@ -416,7 +428,6 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
         res.append(mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series
             ,currentSeries,current_study_id,mainPaths_studyId,masterolds,jsonFolder))
     res= np.array(res)
-    print(f"iterate_overStudy res {res.shape}  {res[0]}")
     res=list(filter( lambda el: el[0]!=' ' ,res))        
     return res
 
@@ -449,7 +460,7 @@ def getLabelNames(tupl):
     # for labb in listLabs :
     #     labb[0]
     res= list(map(lambda entry: entry[0],listLabs ))   
-    print(f"getLabelNames {res}")
+    # print(f"getLabelNames {res}")
     return res
 
 
@@ -486,7 +497,8 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     allPaths=[]
     with mp.Pool(processes = mp.cpu_count()) as pool: 
          allPaths=pool.map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy()))
-    #allPaths=list(map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy())))
+    
+    # allPaths=list(map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy())))
 
 
     flatten_list_paths = list(itertools.chain(*allPaths))
@@ -502,11 +514,11 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     all_labels_types=list(itertools.chain(*all_labels_types))
     print(f"all_labels_types {all_labels_types}")
     all_labels_types=np.unique(all_labels_types)
-    print(f"bbb all_labels_types {all_labels_types}")
 
     for targetLab in all_labels_types :
         out_files_frame[f"{targetLab}_noSeg"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,1),flatten_list_paths))
         out_files_frame[f"{targetLab}_Seg"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,2),flatten_list_paths))
+        out_files_frame[f"{targetLab}_num"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,3),flatten_list_paths))
 
 
 

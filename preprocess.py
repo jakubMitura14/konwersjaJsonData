@@ -65,8 +65,9 @@ def get_common_indicies(current_row,negatedProstate,colOfIntrA,colOfIntrB):
     common_neg=np.logical_not(common)
     res= np.logical_and(common_neg, dataA )
     if(colOfIntrA!="ur_noSeg"):
-        print(f"ignore urethra as planned {pathA}")
         save_from_arr(res.astype(np.int16),imageA,pathA)
+    else:
+        print(f"ignore urethra as planned {pathA}")
 
 
 
@@ -136,7 +137,7 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
     if(len(labelsOfIntrest_inner)>1):
         # getting powerset in order to simplify futher iterations
         masterOlds=current_row["masterolds"]
-        print(f"labelsOfIntrest_inner {labelsOfIntrest_inner} case {masterOlds}  ")
+        # print(f"labelsOfIntrest_inner {labelsOfIntrest_inner} case {masterOlds}  ")
         cart_prod=list(more_itertools.powerset(labelsOfIntrest_inner))
         cart_prod=list(filter(lambda tupl:len(tupl)==2  ,cart_prod))
         prostateBool = get_bool_arr_from_path(prostateLab,current_row )
