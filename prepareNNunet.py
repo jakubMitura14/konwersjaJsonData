@@ -91,19 +91,20 @@ def getPathsFromRow(row,list_columns):
     """
     extracting all paths of intrest from row
     """
-    return map( lambda colName :row[1][colName] ,list_columns )
+    res=  map( lambda colName :row[1][colName] ,list_columns )
+    return res
 
 def getListModality(modalityName,pathhs):
     """
     getting patsh related to single modality and extracting main MRI image
     """
-
     mod_paths = list(filter(lambda pathh :modalityName in  pathh,pathhs))
     mri = list(filter(lambda el: '.mha' in el ,mod_paths))
     if(len(mri)==0):
         return ' ',[]
     mri=mri[0]   
     mod_paths= list(filter(lambda pathh: pathh!=mri , mod_paths))
+
     return (modalityName,(mri,mod_paths))
 
 def myFlatten(liist):
@@ -118,8 +119,9 @@ def iterGroupModalities(groupTuple,modalities_of_intrest ):
     masterOlds, listRows= groupTuple
     pathhs=toolz.pipe(listRows
                 ,map(partial(getPathsFromRow,list_columns=lesion_cols+['series_MRI_path']))
+                ,list
                 ,myFlatten
-                ,filter(lambda el : el!=' ')
+                #,filter(lambda el : el!=' ')
                 ,partial(map_modalities,modalities=modalities_of_intrest)
                 ,dict
                 )   
@@ -129,17 +131,19 @@ def iterGroupModalities(groupTuple,modalities_of_intrest ):
 modalitiesOfIntrest = ['t2w','adc','hbv' ]
 
 grouped_rows= toolz.pipe(sourceFrame.iterrows()
-                        ,filter(lambda row: row[1]['series_desc'] in modalitiesOfIntrest)
+                        # ,filter(lambda row: row[1]['series_desc'] in modalitiesOfIntrest)
                         ,groupByMaster
                         ,map(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest))
+                        # ,map(lambda el: el[1].keys() )
+                        #  ,filter(lambda group: ' ' not in group[1].keys() )
                         ,list
-                        # ,filter(lambda group: ' ' not in group[1].keys() )
+
   )
 
 
 
 
-group = grouped_rows[2]
+group = grouped_rows[1]
 print(group)
 
 
