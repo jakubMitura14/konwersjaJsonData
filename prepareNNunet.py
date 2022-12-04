@@ -111,6 +111,7 @@ def myFlatten(liist):
     return  list(itertools.chain(*liist))
 def map_modalities(pathhs,modalities):
     return map(partial(getListModality,pathhs=pathhs),modalities)
+
 def iterGroupModalities(groupTuple,modalities_of_intrest ):
     """
     grouping the paths into dictionary relative to modalities they represent and lesions on thise 
@@ -119,9 +120,9 @@ def iterGroupModalities(groupTuple,modalities_of_intrest ):
     masterOlds, listRows= groupTuple
     pathhs=toolz.pipe(listRows
                 ,map(partial(getPathsFromRow,list_columns=lesion_cols+['series_MRI_path']))
-                ,list
                 ,myFlatten
-                #,filter(lambda el : el!=' ')
+                ,filter(lambda el : len(el)>2)
+                ,list
                 ,partial(map_modalities,modalities=modalities_of_intrest)
                 ,dict
                 )   
@@ -131,7 +132,7 @@ def iterGroupModalities(groupTuple,modalities_of_intrest ):
 modalitiesOfIntrest = ['t2w','adc','hbv' ]
 
 grouped_rows= toolz.pipe(sourceFrame.iterrows()
-                        # ,filter(lambda row: row[1]['series_desc'] in modalitiesOfIntrest)
+                        ,filter(lambda row: row[1]['series_desc'] in modalitiesOfIntrest)
                         ,groupByMaster
                         ,map(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest))
                         # ,map(lambda el: el[1].keys() )
