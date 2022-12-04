@@ -64,15 +64,11 @@ def get_common_indicies(current_row,negatedProstate,colOfIntrA,colOfIntrB):
     common = np.logical_and(dataA,dataB)
     common_neg=np.logical_not(common)
     res= np.logical_and(common_neg, dataA )
-    if(colOfIntrA!="ur_noSeg"):
-        save_from_arr(res.astype(np.int16),imageA,pathA)
-    else:
-        print(f"ignore urethra as planned {pathA}")
-
-
-
+    # if(colOfIntrA!="ur_noSeg"):
+    save_from_arr(res.astype(np.int16),imageA,pathA)
+    # else:
+    #     print(f"ignore urethra as planned {pathA}")
     return common
-
 
 
 def get_bool_arr_from_path(colName,current_row):
@@ -83,7 +79,6 @@ def get_bool_arr_from_path(colName,current_row):
     path= current_row[colName]
     imageA=sitk.ReadImage(path)
     return sitk.GetArrayFromImage(imageA).astype(bool)
-
 
 def getModDistance(indexTop,indexIn):
     res=((abs(indexTop[0]-indexIn[0]))
@@ -153,7 +148,7 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
 
 
         def get_indicies_to_zeroLoc(colOfIntrA,colOfIntrB):
-            if(colOfIntrA==' ' or colOfIntrB==' 'or colOfIntrA=="ur_noSeg"):
+            if(colOfIntrA==' ' or colOfIntrB==' '):
                 return np.zeros(np.shape(prostateBool), dtype=bool  )    
             return get_indicies_to_zero(current_row,negatedProstate,colOfIntrA,colOfIntrB)
 
@@ -164,6 +159,17 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
         # print(f"cart_prod {cart_prod} ")
         boolArrs = list(map( lambda colName :get_bool_arr_from_path(colName,current_row ) ,labelsOfIntrest_inner))
         
+        #we check weather urethra is in the labels if so we get not modified version for futher processing needs
+        urrr=[]
+        sv_l=[]
+        sv_r=[]
+
+        if('ur_noSeg' in labelsOfIntrest_inner):
+            urrr= get_bool_arr_from_path('ur_noSeg',current_row)
+        if('sv_l_noSeg' in labelsOfIntrest_inner):
+            sv_l= get_bool_arr_from_path('sv_l_noSeg',current_row)
+        if('sv_r_noSeg' in labelsOfIntrest_inner):
+            sv_r= get_bool_arr_from_path('sv_r_noSeg',current_row)                        
         
         if(len(cart_prod)>0):
             toSetToZeroBoolArrs= list(map( lambda tupl :  get_indicies_to_zeroLoc(tupl[0],tupl[1]) ,cart_prod ))
@@ -201,7 +207,30 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
             image3D=sitk.ReadImage(pathA)
             pathB=  pathA#pathA.replace(".nii.gz", "_b_.nii.gz")
             #print(pathB)
-            save_from_arr(boolArrs[index].astype(np.uint8),image3D,pathB)
+            if(label=='ur_noSeg'):
+                mainArr=boolArrs[index]
+                arrB= np.logical_and(urrr,negatedProstate)
+                mainArr=np.logical_or(mainArr,arrB).astype(np.uint8)
+                save_from_arr(mainArr,image3D,pathB)
+            elif(label=='sv_l_noSeg'):
+                mainArr=boolArrs[index]
+                arrB= np.logical_and(sv_l,negatedProstate)
+                mainArr=np.logical_or(mainArr,arrB).astype(np.uint8)
+                save_from_arr(mainArr,image3D,pathB)
+            elif(label=='sv_r_noSeg'):
+                mainArr=boolArrs[index]
+                arrB= np.logical_and(sv_r,negatedProstate)
+                mainArr=np.logical_or(mainArr,arrB).astype(np.uint8)
+                save_from_arr(mainArr,image3D,pathB)
+
+            else:
+                save_from_arr(boolArrs[index].astype(np.uint8),image3D,pathB)
+
+
+                # .astype(np.uint8)
+                # krowa
+                # urrr
+
             print(f"in label {label} sum {np.sum(boolArrs[index])}")
             #additionally we want to save dicom seg files
             save_dicom_seg_label(current_row,jsonFolder,label)

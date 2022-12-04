@@ -32,7 +32,7 @@ import shutil
 import getVolume
 from getVolume import get_volumes_frames
 #JSON filr from mdai summarizing data about annotations etc. 
-JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_2022-11-16-094015.json'
+JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-11-29-084110.json'
 
 #directory where the output will be stored
 outputDir='/workspaces/konwersjaJsonData/output'
@@ -42,7 +42,8 @@ resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 prost_volumes_csv_dir='/workspaces/konwersjaJsonData/outCsv/prost_volumes.csv'
 lesion_volumes_csv_dir='/workspaces/konwersjaJsonData/outCsv/lesion_volumes.csv'
 #downloaded manually
-orig_data_dir='/workspaces/konwersjaJsonData/nas-lssi-dco'
+# orig_data_dir='/workspaces/konwersjaJsonData/nas-lssi-dco'
+testXnatPath= '/workspaces/konwersjaJsonData/TEST'
 orig_data_csv='/workspaces/konwersjaJsonData/outCsv/orig_files.csv'
 #path to folder with all required data downloaded with mdai client
 dataDir='/workspaces/konwersjaJsonData/data'
@@ -53,7 +54,8 @@ mainFoldDirMha='/workspaces/konwersjaJsonData/AI4AR_cont'
 mainFoldDirSeg='/workspaces/konwersjaJsonData/AI4AR_dicom'
 #folder with definitions for dicom segs
 jsonFolder='/workspaces/konwersjaJsonData/dicomSeg'
-
+#csv witch indicates what lesions should not be included and what should be the lesions numbering
+correctionsCSVDir= '/workspaces/konwersjaJsonData/parsedd.csv'
 
 #loading data from JSON
 results = mdai.common_utils.json_to_dataframe(JSON)
@@ -62,26 +64,45 @@ annot=results['annotations']
 #files passed from the folder where they were downloaded by mdai client
 files_df= mainFuncs.get_df_file_info(dataDir,client_down_csv)
 #adding data  about original folders from orig folder
-files_df_origFolds= get_df_orig_dir_info(orig_data_dir,orig_data_csv)
+files_df_origFolds= get_df_orig_dir_info(testXnatPath,orig_data_csv)
 #add data about original folder structure to frame based on data downloaded with mdai client
 files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
 
+
+
+################
+#just for debuging
+# files_df_with_orig_folds=files_df_origFolds.loc[files_df_origFolds['masterolds'] == 930]
+# files_df_origFolds=files_df_origFolds.loc[files_df_origFolds['masterolds'] == 930]
+
+###############
+
+
 #parsing files and saving 3D data in the output folder
-out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder)
+out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir)
 
 ### preprocessing
 #we first define the labels that should as a sum be included in a prostate gland 
 # so we get rid of overlaps and inconsistencies with main prostate mask
 prostateLab = 'prostate'
 #files will be overwritten in the output folder
-labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone']#, 'urethra'
+labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra','seminal vesicles L',
+       'seminal vesicles R']#
 ####additionally dilatate_erode_conditionally after processing saves dicom seg's into previosly created folders
-# dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
+dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
 
 ##measurements
 #after data is preprocessed we will perform measurements like volumes of labels
 get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLab)
 
+
+
+## error 140,930 - can not find it in correction df although is in source df's
+
+
+
+
+# "name":"Dataset Test"
 
 # ##measurements
 # #after data is preprocessed we will perform measurements like volumes of labels
@@ -89,8 +110,8 @@ get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,
 # col_names_to_volume = ['anterior fibromuscular stroma', 'central zone', 
 #        'external iliac', 'internal iliac', 'lesion 1', 'lesion 2', 'lesion 3',
 #        'lesion 4','lesion 5', 'lymph node regional', 'lymph node regional group',
-#        'obturator', 'peripheral zone', 'prostate', 'seminal vesicles L',
-#        'seminal vesicles R', 'transition zone', 'urethra']
+    #    'obturator', 'peripheral zone', 'prostate', 'seminal vesicles L',
+    #    'seminal vesicles R', 'transition zone', 'urethra']
 
 # #names of labels that will be compare between themselves between diffrent annotators and DICE score will be saved
 # col_names_for_dice=['lesion 1', 'lesion 2', 'lesion 3','lesion 4']

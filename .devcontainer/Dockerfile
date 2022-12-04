@@ -84,6 +84,16 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/opt/cmake/bin:${PATH}"
+ENV NB_USER sliceruser
+ENV NB_UID 1000
+ENV HOME /home/${NB_USER}
+
+RUN adduser --disabled-password \
+    --gecos "Default user" \
+    --uid ${NB_UID} \
+    ${NB_USER}
+
+
 
 
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
@@ -126,24 +136,7 @@ RUN mkdir ${HOME}/scripts
 RUN mkdir ${HOME}/externalRepos
 RUN mkdir ${HOME}/forLesionAnalysis
 
-RUN mkdir ${HOME}/externalRepos/elastix
-RUN git clone https://github.com/SuperElastix/SimpleElastix ${HOME}/externalRepos/elastix
 
-
-
-# RUN cd ${HOME}/externalRepos/elastix && \
-#     mkdir buildd && \
-#     cd buildd && \
-#     cmake ${HOME}/externalRepos/elastix/SuperBuild && \
-#     make -j6 && \
-#     cd ${HOME}/externalRepos/elastix/buildd/SimpleITK-build/Wrapping/Python && \
-#     python Packaging/setup.py install
-
-
-
-# For backward compatibility we need this line. After 1.13 we can safely remove
-# it.
-ENV TF_NCCL_VERSION=
 
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
@@ -160,10 +153,45 @@ RUN pip install more-itertools
 RUN pip install SimpleITK
 RUN pip install toolz
 RUN pip install highdicom==0.19.0
+RUN pip install nnunet==1.7.0
 # RUN pip install SimpleITK-SimpleElastix==2.0.0rc2.dev910
 # RUN mkdir ${HOME}/elastixx
 # RUN git clone https://github.com/SuperElastix/elastix.git ${HOME}/elastixx
 
+
+
+RUN git clone https://github.com/SuperElastix/SimpleElastix ${HOME}/externalRepos/elastix
+
+RUN chmod +x ${HOME}/externalRepos/elastix
+#from https://installati.one/ubuntu/22.04/libpangoxft-1.0-0/
+RUN apt update
+RUN apt -y install libtbb-dev
+#from https://askubuntu.com/questions/409310/error-while-loading-shared-libraries-cannot-open-shared-object-file-no-such-fi
+RUN apt -y install libgtk-3-dev
+RUN apt update
+
+RUN apt-get -y install libidn11-dev
+RUN apt-get -y install libglu1-mesa-dev
+RUN apt-get -y install libpangox-1.0-dev
+RUN apt-get -y install libpangoxft-1.0-0
+
+RUN mkdir ${HOME}/elastixBase && \
+cd ${HOME}/elastixBase && \
+wget https://github.com/SuperElastix/elastix/releases/download/5.0.1/elastix-5.0.1-linux.tar.bz2&& \
+tar -xf elastix-5.0.1-linux.tar.bz2
+
+RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so ${HOME}/elastixBase/elastix-5.0.1-linux/bin/libANNlib-5.0.so
+RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so.1 ${HOME}/elastixBase/elastix-5.0.1-linux/bin/libANNlib-5.0.so.1
+RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so ${HOME}/elastixBase/elastix-5.0.1-linux/libANNlib-5.0.so
+RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so.1 ${HOME}/elastixBase/elastix-5.0.1-linux/libANNlib-5.0.so.1
+RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so /usr/local/lib/libANNlib-5.0.so
+RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so.1 /usr/local/lib/libANNlib-5.0.so.1
+
+RUN ldconfig
+RUN apt-get install -q -y vim nano 
+RUN mkdir ${HOME}/registration
+COPY registration/parameters.txt ${HOME}/registration/parameters.txt
+COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
 
 ### DCMQI from https://hub.docker.com/r/qiicr/dcmqi/dockerfile
 

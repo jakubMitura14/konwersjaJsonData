@@ -22,48 +22,61 @@ import shutil
 import toolz
 from toolz.curried import pipe, map, filter, get
 from toolz import curry
+import glob
 
-def getListMeta(currentDicomDirPath):
-    """
-    iterates ove files associated with single dicom dir
-    and returns the metadata related to them
-    """
-    pathhh = Path(currentDicomDirPath)
-    currentFold=str(os.path.relpath(pathhh.parent))
-    ds = pydicom.dcmread(currentDicomDirPath)
-    fs = FileSet(ds)
-    fileMataDatas=list(map(partial(getFileData,currentFold=currentFold),list(fs)))
-    return fileMataDatas
 
-def getFileData(current_file_ref,currentFold):
+
+# def getListMeta(currentDicomDirPath):
+#     """
+#     iterates ove files associated with single dicom dir
+#     and returns the metadata related to them
+#     """
+#     pathhh = Path(currentDicomDirPath)
+#     currentFold=str(os.path.relpath(pathhh.parent))
+#     ds = pydicom.dcmread(currentDicomDirPath)
+#     fs = FileSet(ds)
+#     fileMataDatas=list(map(partial(getFileData,currentFold=currentFold),list(fs)))
+#     return fileMataDatas
+
+def getFileData(current_file_path):
     """
     given file return its series, sop and study UID
     """
-    filePath=current_file_ref.path
-    current_file = current_file_ref.load()
+    # filePath=current_file_ref.path
+    current_file = pydicom.dcmread(current_file_path)
+    # current_file_ref = FileSet(ds)    
+    # current_file = current_file_ref.load()
     sop=mainFuncs.get_SOPInstanceUID(current_file)
     SeriesInstanceUID= mainFuncs.get_SeriesInstanceUID(current_file)
     stidy_instanceUID=mainFuncs.get_StudyInstanceUID(current_file)
-    return (currentFold,filePath,stidy_instanceUID,SeriesInstanceUID,sop  )
-
+    masterOlds=str(current_file_path.parent.parent.parent.parent.parent.parent.name)
+    res= ( masterOlds,str(current_file_path.as_posix()) ,stidy_instanceUID,SeriesInstanceUID,sop  )
+    # print(f"resss {res}")
+    return res
 
 def get_df_orig_dir_info(orig_data_dir,csvDir):
     """
     iterates over files and saves ther paths and matadata to dataframe and subsequently to csv
     """
+    data = Path(orig_data_dir)
+    pathsDICOMDIR = list(data.rglob('*.dcm'))
+    
+
+
     if(pathOs.exists(csvDir)):
         return pd.read_csv(csvDir)    
-    #get all paths of DICOMDIR files
-    listOfPatsh=mainFuncs.get_all_file_paths(orig_data_dir)
-    pathsDICOMDIR= list(filter(lambda pathh:  'DICOMDIR' in pathh,listOfPatsh ))
+    # #get all paths of DICOMDIR files
+    # listOfPatsh=mainFuncs.get_all_file_paths(orig_data_dir)
+    # pathsDICOMDIR= list(filter(lambda pathh:  'DICOMDIR' in pathh,listOfPatsh ))
     df = pd.DataFrame()
-    resList=[]
+    # resList=[]
     with mp.Pool(processes = mp.cpu_count()) as pool:
-        resList=pool.map(getListMeta ,pathsDICOMDIR)
+        resList=pool.map(getFileData ,pathsDICOMDIR)
     #flatten array
-    resList=list(itertools.chain(*resList))
+    # resList=list(itertools.chain(*resList))
 
     masterolds=list(map(lambda tupl: tupl[0], resList))
+    print(f"masterolds {masterolds}")
     currentFilePath=list(map(lambda tupl: tupl[1], resList))
     StudyInstanceUID = list(map(lambda tupl: tupl[2], resList))
     SeriesInstanceUIDs = list(map(lambda tupl: tupl[3], resList))
@@ -197,50 +210,50 @@ def mapTagwithPath(rowws,tag):
 # uniqangioFlagTag= mapTag(rowws,angioFlagTag)
 # uniqPlaneTag= mapTag(rowws,planeTag)
 
-# uniqseriesDesc
-# uniqModalityTag
-# uniqscanningSeqTag
-# uniqSequenceNameTag
-# uniqangioFlagTag
-# uniqPlaneTag
-"""
-https://www.mr-tip.com/serv1.php?type=cam
-Siemens dicom conformance statement
-https://marketing.webassets.siemens-healthineers.com/1800000001958391/135cf501a2b8/conformance_dc_ve11-01958391_1800000001958391.pdf
+# # uniqseriesDesc
+# # uniqModalityTag
+# # uniqscanningSeqTag
+# # uniqSequenceNameTag
+# # uniqangioFlagTag
+# # uniqPlaneTag
+# """
+# https://www.mr-tip.com/serv1.php?type=cam
+# Siemens dicom conformance statement
+# https://marketing.webassets.siemens-healthineers.com/1800000001958391/135cf501a2b8/conformance_dc_ve11-01958391_1800000001958391.pdf
 
 
-adc - "'ep2d_diff_b 50 400 800 1200_ADC'"
-t2 transverse - "'t2_bl_tse_fs_tra'", "'t2_bl_tse_tra_P'"
-    ,"'t2_bl_tse_tra_p'","'t2_bl_tse_fs_tra'","'t2_bl_tse_tra'",t2_bl_tse_tra_p'"
+# adc - "'ep2d_diff_b 50 400 800 1200_ADC'"
+# t2 transverse - "'t2_bl_tse_fs_tra'", "'t2_bl_tse_tra_P'"
+#     ,"'t2_bl_tse_tra_p'","'t2_bl_tse_fs_tra'","'t2_bl_tse_tra'",t2_bl_tse_tra_p'"
 
->>> uniqseriesDesc
-["'t2_bl_tse_sag'", "'t2_bl_tse_tra_P'"
-, "'t2_bl_tse_cor'", "'ep2d_diff_b 50 400 800 1200_TRACEW'"
-, "'ep2d_diff_b 50 400 800 1200_ADC'", "'t1_fl3d_tra fs_dyn CM'"
-, "'t1_fl3d_tra fs_dyn CM_PEI'", "'t2_bl_tse_tra_p'", ' '
-, "'t2_trufi_cor_loc multi'", "'t1_fl3d_tra fs_dyn CM_SUB_MOCO'"
-, "'WASH-IN'", "'WASH-OUT'", "'TTP'", "'iAUC'", "'AT'", "'PEI'"
-, "'t1_fl3d_tra fs_dyn CM_SUB'", "'t1_tse_sag_fs_CM'"
-, "'t1_tse_tra_CM'", "'t1_vibe_dix_cor_bh_opp'"
-, "'t1_vibe_dix_cor_bh_in'", "'t1_vibe_dix_cor_bh_W'"
-, "'t1_fl2d_tra_mbh_CM'", "'t1_tse_tra'"
-, "'t2_bl_tse_fs_tra'", "'t1_fl3d_tra fs_dyn CM_SUB_MIP_COR'"
-, "'t2_bl_tse_tra'", "'t2_bl_tse_COR_P'", "'t2_bl_SAG_tra_P'"
-, "'t1_tse_sag'", "'t1_tse_tra_fs_CM'", "'t1_fl3d_cor_Dix_CM_opp'"
-, "'t1_fl3d_cor_Dix_CM_in'", "'t1_fl3d_cor_Dix_CM_W'"
-, "'t1_tse_cor limf nodes CM'", "'[KOELIS] t2_bl_tse_tra_p'"
-, "'t2_bl_tse_tra_sFOV'", "'t1_fl3d_tra_dyn CM'"
-, "'t1_fl3d_tra_dyn CM_PEI'"]
->>> uniqModalityTag
-["'MR'"]
->>> uniqscanningSeqTag
-["'SE'", "'EP'", "'GR'", ' ']
->>> uniqSequenceNameTag
-["'*tseBR2d1_43'", "'*tseBR2d1_32'", "'*ep_b1200t'", "'*ep_b50_1200'", "'*fl3d1'", "'*tseB2d1_29'", "'*ep_b50t'", "'*ep_b400t'", "'*ep_b800t'", "'*tfi2d1_134'", ' ', "'*tse2d1_4'", "'*fl3d2'", "'*fl2d1'", "'*tseB2d1_35'", "'*tseBRW2d1_43'", "'*tseBW2d1_29'", "'*tse2d1_3'", "'*ep_b450t'"]
->>> uniqangioFlagTag
-["'N'", ' ']
->>> 
-"""
+# >>> uniqseriesDesc
+# ["'t2_bl_tse_sag'", "'t2_bl_tse_tra_P'"
+# , "'t2_bl_tse_cor'", "'ep2d_diff_b 50 400 800 1200_TRACEW'"
+# , "'ep2d_diff_b 50 400 800 1200_ADC'", "'t1_fl3d_tra fs_dyn CM'"
+# , "'t1_fl3d_tra fs_dyn CM_PEI'", "'t2_bl_tse_tra_p'", ' '
+# , "'t2_trufi_cor_loc multi'", "'t1_fl3d_tra fs_dyn CM_SUB_MOCO'"
+# , "'WASH-IN'", "'WASH-OUT'", "'TTP'", "'iAUC'", "'AT'", "'PEI'"
+# , "'t1_fl3d_tra fs_dyn CM_SUB'", "'t1_tse_sag_fs_CM'"
+# , "'t1_tse_tra_CM'", "'t1_vibe_dix_cor_bh_opp'"
+# , "'t1_vibe_dix_cor_bh_in'", "'t1_vibe_dix_cor_bh_W'"
+# , "'t1_fl2d_tra_mbh_CM'", "'t1_tse_tra'"
+# , "'t2_bl_tse_fs_tra'", "'t1_fl3d_tra fs_dyn CM_SUB_MIP_COR'"
+# , "'t2_bl_tse_tra'", "'t2_bl_tse_COR_P'", "'t2_bl_SAG_tra_P'"
+# , "'t1_tse_sag'", "'t1_tse_tra_fs_CM'", "'t1_fl3d_cor_Dix_CM_opp'"
+# , "'t1_fl3d_cor_Dix_CM_in'", "'t1_fl3d_cor_Dix_CM_W'"
+# , "'t1_tse_cor limf nodes CM'", "'[KOELIS] t2_bl_tse_tra_p'"
+# , "'t2_bl_tse_tra_sFOV'", "'t1_fl3d_tra_dyn CM'"
+# , "'t1_fl3d_tra_dyn CM_PEI'"]
+# >>> uniqModalityTag
+# ["'MR'"]
+# >>> uniqscanningSeqTag
+# ["'SE'", "'EP'", "'GR'", ' ']
+# >>> uniqSequenceNameTag
+# ["'*tseBR2d1_43'", "'*tseBR2d1_32'", "'*ep_b1200t'", "'*ep_b50_1200'", "'*fl3d1'", "'*tseB2d1_29'", "'*ep_b50t'", "'*ep_b400t'", "'*ep_b800t'", "'*tfi2d1_134'", ' ', "'*tse2d1_4'", "'*fl3d2'", "'*fl2d1'", "'*tseB2d1_35'", "'*tseBRW2d1_43'", "'*tseBW2d1_29'", "'*tse2d1_3'", "'*ep_b450t'"]
+# >>> uniqangioFlagTag
+# ["'N'", ' ']
+# >>> 
+# """
 
 
 # row=rowws[10][1]
