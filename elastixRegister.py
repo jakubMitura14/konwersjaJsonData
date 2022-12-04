@@ -27,7 +27,7 @@ def transform_label(path_label,out_folder,transformix_path ,transformixParameter
     return join(outPath_label,'result.mha')
 
 
-def reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPath,transformix_path,reIndex=0):
+def reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPath,transformix_path,modality,reIndex=0):
     """
     register image in path_a to image in path_b
     then using the same registration procedure will move all of the labels associated with path_b to the same space
@@ -55,7 +55,7 @@ def reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPat
         if(reIndex==4): #in case it do not work we will try diffrent parametrization
             reg_prop=reg_prop.replace("parameters","parametersB")              
         #recursively invoke function multiple times in order to maximize the probability of success    
-        reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPath,transformix_path,reIndexNew)
+        reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPath,transformix_path,modality,reIndexNew)
     if(not pathOs.exists(result)):
         print("registration unsuccessfull")
         return " "
@@ -80,5 +80,5 @@ def reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPat
     lab_regs=list(map(partial(transform_label,out_folder=out_folder, transformix_path=transformix_path,transformixParameters=transformixParameters),labels_b_list))
 
 
-    return (result,lab_regs) #        
+    return (modality,result,lab_regs) #        
  

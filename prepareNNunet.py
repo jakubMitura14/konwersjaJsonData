@@ -36,6 +36,10 @@ import shutil
 import re
 from toolz.itertoolz import groupby
 from toolz import curry
+# import multiprocess
+# p = multiprocess.Pool(os.cpu_count())
+import multiprocessing as mp
+
 
 resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 
@@ -103,14 +107,19 @@ def getListModality(modalityName,pathhs):
     if(len(mri)==0):
         return ' ',[]
     mri=mri[0]   
-    mod_paths= list(filter(lambda pathh: pathh!=mri , mod_paths))
+    mod_paths= list(filter(lambda pathh: '.mha' not in pathh , mod_paths))
 
     return (modalityName,(mri,mod_paths))
 
 def myFlatten(liist):
-    return  list(itertools.chain(*liist))
+    return  itertools.chain(*liist)
 def map_modalities(pathhs,modalities):
-    return map(partial(getListModality,pathhs=pathhs),modalities)
+    return toolz.pipe(modalities
+                ,map(partial(getListModality,pathhs=pathhs))
+                ,list
+            )
+
+
 
 def iterGroupModalities(groupTuple,modalities_of_intrest ):
     """
@@ -131,51 +140,75 @@ def iterGroupModalities(groupTuple,modalities_of_intrest ):
 #currently we will filter out just adc hbv and t2w
 modalitiesOfIntrest = ['t2w','adc','hbv' ]
 
-grouped_rows= toolz.pipe(sourceFrame.iterrows()
-                        ,filter(lambda row: row[1]['series_desc'] in modalitiesOfIntrest)
-                        ,groupByMaster
-                        ,map(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest))
-                        # ,map(lambda el: el[1].keys() )
-                        #  ,filter(lambda group: ' ' not in group[1].keys() )
-                        ,list
 
-  )
+grouped_rows=[]
+with mp.Pool(processes = mp.cpu_count()) as pool:
+    @curry  
+    def pmap(fun,iterable):
+        return pool.map(fun,iterable)
+
+    grouped_rows= toolz.pipe(sourceFrame.iterrows()
+                            ,filter(lambda row: row[1]['series_desc'] in modalitiesOfIntrest)
+                            ,groupByMaster
+                            ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest))
+                            ,filter(lambda group: ' ' not in group[1].keys() )
+                            ,list
 
 
-
+    )
 
 group = grouped_rows[1]
+
+# aa=group[1]['hbv']
+# aa
+# list(aa[0])
+
 print(group)
-
-
-
-#     if(pathhs_t2w[0]==' ' or pathhs_adc[0]==' ' or pathhs_hbv[0]==' ' ):
-#         return (' ', {' ': []})
 
 
 
 
 # temp_dir = tempfile.mkdtemp() #
-# temp_dir = '/workspaces/konwersjaJsonData/explorationn'
+# # temp_dir = '/workspaces/konwersjaJsonData/explorationn'
+# modalitiesOfIntrest_without_main= list(filter( lambda el: el!=main_modality , modalitiesOfIntrest))
+# #register all modalities and associated labels to main_modality
+# registered_modalities= list(map(lambda mod: reg_a_to_b(temp_dir,group[0],group[1][main_modality][0],group[1][mod][0],group[1][mod][1],reg_prop
+#                                                         ,elacticPath,transformix_path,mod)
+#                 ,modalitiesOfIntrest_without_main   ))
+# # now we unzip to get 0) list of modalities 1) list of paths to main mris 2) list of lists of labels paths
+# modalities,mris,labels=list(toolz.sandbox.core.unzip(registered_modalities))
+# labels=list(toolz.concat(labels))
+# #adding to the list the labels from main modality
+# labels=labels+group[1][main_modality][1]
+
+
+
 
 # reg_adc,adc_labs=reg_a_to_b(temp_dir,group[0],group[1]['t2w'][0],group[1]['adc'][0],group[1]['adc'][1],reg_prop ,elacticPath,transformix_path)
 
 
 
-# # modalities_of_intrest=['t2w','adc','hbv']
-# # # main modality that will be set as a reference and others will be registered to it 
-# # main_modality = 't2w'
+# # # modalities_of_intrest=['t2w','adc','hbv']
+# # # # main modality that will be set as a reference and others will be registered to it 
+# # # main_modality = 't2w'
 
+# boolArrs= list(map(get_bool_arr_from_path,adc_labs))
+# reduced = np.array(toolz.sandbox.parallel.fold(np.logical_or, boolArrs,map=map))
+# reduced
+# functools.reduce
+# len(reduced)
+# reduced.shape
+# boolArrs[1].shape
 
-
-# toolz.pipe(adc_labs, 
+# sumLabels = toolz.pipe(adc_labs, 
 #     map(get_bool_arr_from_path)
-#     ,functools.reduce(np.logical_or)
+#     ,partial(functools.reduce,np.logical_or)
 #     ,list
 # )
+# len(sumLabels)
 
-# # ... do stuff with dirpath
-# shutil.rmtree(temp_dir)
+# # # ... do stuff with dirpath
+# # shutil.rmtree(temp_dir)
 
 
 
