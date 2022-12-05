@@ -42,20 +42,27 @@ def reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPat
        
     path=path_b
     outPath = out_folder
+    os.makedirs(out_folder ,exist_ok = True)    
     result=pathOs.join(outPath,"result.0.mha")
 
 
     cmd=f"{elacticPath} -f {path_a} -m {path} -out {outPath} -p {reg_prop} -threads 1"
-    print(cmd)
     p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
     p.wait()
     #we will repeat operation multiple max 9 times if the result would not be written
-    if((not pathOs.exists(result)) and reIndex<8):
-        reIndexNew=reIndex+1
-        if(reIndex==4): #in case it do not work we will try diffrent parametrization
-            reg_prop=reg_prop.replace("parameters","parametersB")              
-        #recursively invoke function multiple times in order to maximize the probability of success    
-        reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPath,transformix_path,modality,reIndexNew)
+    if((not pathOs.exists(result)) and reIndex<3):
+       
+        reg_prop=reg_prop.replace("parameters","parametersB")
+
+        cmd=f"{elacticPath} -f {path_a} -m {path} -out {outPath} -p {reg_prop} -threads 1"
+        p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
+        p.wait()
+
+        # reIndexNew=reIndex+1
+        # if(reIndex==1): #in case it do not work we will try diffrent parametrization
+        #     reg_prop=reg_prop.replace("parameters","parametersB")              
+        # #recursively invoke function multiple times in order to maximize the probability of success    
+        # reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPath,transformix_path,modality,reIndexNew)
     if(not pathOs.exists(result)):
         print("registration unsuccessfull")
         return " "

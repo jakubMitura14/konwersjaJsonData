@@ -99,7 +99,7 @@
 // 200-500 works usually fine for rigid registration.
 // For more robustness, you may increase this to 1000-2000.
 //(MaximumNumberOfIterations 4000 4000 5500 5500)
-(MaximumNumberOfIterations 1 1 1 1)
+(MaximumNumberOfIterations 0 0 0 0)
 
 
 

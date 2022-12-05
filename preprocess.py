@@ -251,8 +251,6 @@ def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot,jso
     labelsOfIntrest=list(map( getLabelsAbbrev,labelsOfIntrest ))
     labelsOfIntrest=list(map( lambda el: f"{el}_noSeg",labelsOfIntrest ))
 
-
-
     # list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows())))
 
     with mp.Pool(processes = mp.cpu_count()) as pool:
@@ -261,6 +259,6 @@ def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot,jso
 
 
 
-
-
+#case 80 no anatomical annotations at all
+# prostate_col
 # one can get the prostate without missing by getting all coordinates - group by key that x and y are equal set all coordinates to true if z is between z min and z max

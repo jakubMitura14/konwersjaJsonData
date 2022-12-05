@@ -56,6 +56,8 @@ mainFoldDirSeg='/workspaces/konwersjaJsonData/AI4AR_dicom'
 jsonFolder='/workspaces/konwersjaJsonData/dicomSeg'
 #csv witch indicates what lesions should not be included and what should be the lesions numbering
 correctionsCSVDir= '/workspaces/konwersjaJsonData/parsedd.csv'
+neededNumbersCSVDir= 'AI4AR_PCa_radiological.csv' #frame where we will get those ids that we are intrested in
+
 
 #loading data from JSON
 results = mdai.common_utils.json_to_dataframe(JSON)
@@ -79,7 +81,7 @@ files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df
 
 
 #parsing files and saving 3D data in the output folder
-out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir)
+out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir,neededNumbersCSVDir)
 
 ### preprocessing
 #we first define the labels that should as a sum be included in a prostate gland 

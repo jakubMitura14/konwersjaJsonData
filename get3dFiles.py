@@ -420,7 +420,7 @@ def createStudyFolder(item,masterolds ):
     os.makedirs(newPath ,exist_ok = True)
     return (key,newPath)
 
-def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths,jsonFolder,correctionsFrame):
+def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths,jsonFolder,correctionsFrame,neededIds):
     """
     iterate ove all series with the same study UID
     """
@@ -440,34 +440,38 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
     masterolds_in_Study=files_for_study_id['masterolds'].to_numpy()
 
     masterolds=str(masterolds_in_Study[0])#.replace('nas-lssi-dco/','')
-    pureMasterNum=str(int(masterolds))
-    patIdsCorrs=correctionsFrame['patient_id'].to_numpy()
+    #checking weather we are intrested in a file at all
+    if(int(masterolds) in neededIds):
+        pureMasterNum=str(int(masterolds))
+        patIdsCorrs=correctionsFrame['patient_id'].to_numpy()
 
-    corrections_for_study_id=correctionsFrame.loc[correctionsFrame['patient_id'] ==int(pureMasterNum) ]
-    if(masterolds==' '):
-        masterolds=f"unknownMasterNum_{current_study_id}"
-        print("unknownnn masterrr ")
-    mainPaths_studyId=list(map(partial(createStudyFolder,masterolds=masterolds),mainPaths.items()))
+        corrections_for_study_id=correctionsFrame.loc[correctionsFrame['patient_id'] ==int(pureMasterNum) ]
+        if(masterolds==' '):
+            masterolds=f"unknownMasterNum_{current_study_id}"
+            print("unknownnn masterrr ")
+        mainPaths_studyId=list(map(partial(createStudyFolder,masterolds=masterolds),mainPaths.items()))
 
-    for currentSeries in np.unique(files_for_study_id['SeriesInstanceUID'].to_numpy()):
-        annot_for_series=annot_for_study_id.loc[annot_for_study_id['SeriesInstanceUID'] == currentSeries]
-        files_for_series=files_for_study_id.loc[files_for_study_id['SeriesInstanceUID'] == currentSeries]
+        for currentSeries in np.unique(files_for_study_id['SeriesInstanceUID'].to_numpy()):
+            annot_for_series=annot_for_study_id.loc[annot_for_study_id['SeriesInstanceUID'] == currentSeries]
+            files_for_series=files_for_study_id.loc[files_for_study_id['SeriesInstanceUID'] == currentSeries]
 
-        res.append(mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series
-            ,currentSeries,current_study_id,mainPaths_studyId,masterolds,jsonFolder,corrections_for_study_id,pureMasterNum))
-    res= np.array(res)
-    res=list(filter( lambda el: el[0]!=' ' ,res))        
-    return res
+            res.append(mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series
+                ,currentSeries,current_study_id,mainPaths_studyId,masterolds,jsonFolder,corrections_for_study_id,pureMasterNum))
+        res= np.array(res)
+        res=list(filter( lambda el: el[0]!=' ' ,res))     
 
+        return res
+    #if we are not intrested in the file return dummy
+    return []
 
-def iterate_overStudySafe(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths,jsonFolder,correctionsFrame):
+def iterate_overStudySafe(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths,jsonFolder,correctionsFrame,neededIds):
     """
     just gives one restart of iterate_overStudy function in case of failure
     """
     try:
-        return iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths,jsonFolder,correctionsFrame)
+        return iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths,jsonFolder,correctionsFrame,neededIds)
     except:
-        return iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths,jsonFolder,correctionsFrame)
+        return iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths,jsonFolder,correctionsFrame,neededIds)
 
 
 def getLabelPathOrEmpty(targetLab, tupl,pathIndex):
@@ -493,7 +497,7 @@ def getLabelNames(tupl):
 
 
 
-def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir):
+def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir,neededNumbersCSVDir):
     """
     in parallel iterates over all studies and series and save the paths of created files in the csv file
     """
@@ -503,7 +507,9 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
 
     out_files_frame= pd.DataFrame()
     correctionsFrame=pd.read_csv(correctionsCSVDir)
-
+    neededNumbersCSV=pd.read_csv(neededNumbersCSVDir)
+    neededIds= np.unique(neededNumbersCSV['patient_id'].to_numpy())
+    neededIds = list(map( lambda el: int(el),neededIds))
     # dicomSeg main folders
     data_path_seg= join(mainFoldDirSeg,"Data")
     anat_path_seg= join(mainFoldDirSeg,"Anatomical_Labels")
@@ -522,12 +528,16 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     #iterate over all files
     allPaths=[]
     with mp.Pool(processes = mp.cpu_count()) as pool: 
-        allPaths=pool.map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy()))
+        allPaths=pool.map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame,neededIds=neededIds), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy()))
     
     #allPaths=list(map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy())))
-
+    #filtering out all cases where we returned a dummy
+    allPaths= list(filter(lambda el: len(el)>0,allPaths))
 
     flatten_list_paths = list(itertools.chain(*allPaths))
+    #we filter out all of the cases that were excluded becouse for example they were incomplete ...
+    # flatten_list_paths= list(filter(lambda tupl: int(tupl[6]) in  neededIds ,flatten_list_paths))
+
     out_files_frame['study_id']=list(map(lambda tupl: tupl[0],flatten_list_paths))
     # out_files_frame['doctor_id']=list(map(lambda tupl: tupl[1],flatten_list_paths))
     out_files_frame['series_id']=list(map(lambda tupl: tupl[1],flatten_list_paths))
