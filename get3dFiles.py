@@ -126,7 +126,7 @@ def createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,ima
     return (getLabelsAbbrev(lab),labelNiiPath,labelSegPath,labelSum)
 
 def translateSeriesDesc(series_desc_string,acqNumb):
-    """
+    """ 14*36
     changes unintuitive series description tag into more human readable format 
     using manually set list of tuples where first entry is the original series tag
     and second entry human readable version
@@ -441,28 +441,29 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
 
     masterolds=str(masterolds_in_Study[0])#.replace('nas-lssi-dco/','')
     #checking weather we are intrested in a file at all
-    if(int(masterolds) in neededIds):
-        pureMasterNum=str(int(masterolds))
-        patIdsCorrs=correctionsFrame['patient_id'].to_numpy()
+    # if(int(masterolds) in neededIds):
+    pureMasterNum=str(int(masterolds))
+    patIdsCorrs=correctionsFrame['patient_id'].to_numpy()
 
-        corrections_for_study_id=correctionsFrame.loc[correctionsFrame['patient_id'] ==int(pureMasterNum) ]
-        if(masterolds==' '):
-            masterolds=f"unknownMasterNum_{current_study_id}"
-            print("unknownnn masterrr ")
-        mainPaths_studyId=list(map(partial(createStudyFolder,masterolds=masterolds),mainPaths.items()))
+    corrections_for_study_id=correctionsFrame.loc[correctionsFrame['patient_id'] ==int(pureMasterNum) ]
+    if(masterolds==' '):
+        masterolds=f"unknownMasterNum_{current_study_id}"
+        print("unknownnn masterrr ")
+    mainPaths_studyId=list(map(partial(createStudyFolder,masterolds=masterolds),mainPaths.items()))
 
-        for currentSeries in np.unique(files_for_study_id['SeriesInstanceUID'].to_numpy()):
-            annot_for_series=annot_for_study_id.loc[annot_for_study_id['SeriesInstanceUID'] == currentSeries]
-            files_for_series=files_for_study_id.loc[files_for_study_id['SeriesInstanceUID'] == currentSeries]
+    for currentSeries in np.unique(files_for_study_id['SeriesInstanceUID'].to_numpy()):
+        annot_for_series=annot_for_study_id.loc[annot_for_study_id['SeriesInstanceUID'] == currentSeries]
+        files_for_series=files_for_study_id.loc[files_for_study_id['SeriesInstanceUID'] == currentSeries]
 
-            res.append(mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series
-                ,currentSeries,current_study_id,mainPaths_studyId,masterolds,jsonFolder,corrections_for_study_id,pureMasterNum))
-        res= np.array(res)
-        res=list(filter( lambda el: el[0]!=' ' ,res))     
+        res.append(mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_series
+            ,currentSeries,current_study_id,mainPaths_studyId,masterolds,jsonFolder,corrections_for_study_id,pureMasterNum))
+    res= np.array(res)
+    res=list(filter( lambda el: el[0]!=' ' ,res))     
 
-        return res
-    #if we are not intrested in the file return dummy
-    return []
+    return res
+    # #if we are not intrested in the file return dummy
+    # print(f"aaa filtered out {masterolds}")
+    # return []
 
 def iterate_overStudySafe(current_study_id,files_df,files_df_origFolds,annot,outputDir,mainPaths,jsonFolder,correctionsFrame,neededIds):
     """
@@ -510,6 +511,13 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     neededNumbersCSV=pd.read_csv(neededNumbersCSVDir)
     neededIds= np.unique(neededNumbersCSV['patient_id'].to_numpy())
     neededIds = list(map( lambda el: int(el),neededIds))
+
+    #filtering only rows that we are intrested in 
+    yy = list(files_df_origFolds['masterolds'].to_numpy())
+    yy= list(map(lambda el: int(el) in neededIds,yy))
+
+    files_df_origFolds=files_df_origFolds.loc[yy]
+
     # dicomSeg main folders
     data_path_seg= join(mainFoldDirSeg,"Data")
     anat_path_seg= join(mainFoldDirSeg,"Anatomical_Labels")
@@ -532,7 +540,7 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     
     #allPaths=list(map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy())))
     #filtering out all cases where we returned a dummy
-    allPaths= list(filter(lambda el: len(el)>0,allPaths))
+    # allPaths= list(filter(lambda el: len(el)>0,allPaths))
 
     flatten_list_paths = list(itertools.chain(*allPaths))
     #we filter out all of the cases that were excluded becouse for example they were incomplete ...

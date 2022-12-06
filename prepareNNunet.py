@@ -98,7 +98,6 @@ def getPathsFromRow(row,list_columns):
     """
     extracting all paths of intrest from row
     """
-    print(f"aaa {row[prostate_col]}")
     res=  map( lambda colName :row[1][colName] ,list_columns )
     return res
 
@@ -192,9 +191,10 @@ def prepare_out_paths(group,modalities_of_intrest ):
     #preparing names
     for_id=get_4_id(group[0])
     label_new_path= join(labelsTr_dir,f"9{for_id}_9{for_id}00.nii.gz" )
+    prostate_path=join(imagesTr_dir,f"9{for_id}_9{for_id}00_000{3}.nii.gz" )
     out_pathsDict= list(map( lambda mod:(mod,join(imagesTr_dir,f"9{for_id}_9{for_id}00_000{modalities_of_intrest.index(mod)}.nii.gz" )) ,modalities_of_intrest))
     out_pathsDict=dict(out_pathsDict)
-    return label_new_path,out_pathsDict
+    return label_new_path,prostate_path,out_pathsDict
 
 
 
@@ -204,11 +204,11 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     then reduces all labels into their sum
     then saves mri and reduced labels into nnunet workdir to get structure the same as in baseline picai nnunet algorithm
     """
-    label_new_path,out_pathsDict=prepare_out_paths(group,modalities_of_intrest )
+    label_new_path,out_prostate_path,out_pathsDict=prepare_out_paths(group,modalities_of_intrest )
     #In case file already exist
-    # if(exists(out_pathsDict[main_modality])):
-    if(False):
+    if(exists(out_pathsDict[main_modality])):
         out_pathsDict['label']=label_new_path 
+        out_pathsDict['prostate']=out_prostate_path 
         return (group[0],out_pathsDict)
 
 
@@ -228,7 +228,6 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
 
     #adding to the list the labels from main modality
     labels=labels+group[1][main_modality][1]
-    label_new_path=" "
     if(len(labels)>0):
         # we get the sum of all labels 
         # reduced = np.array(toolz.sandbox.parallel.fold(get_bool_or, labels,map=map))
@@ -254,6 +253,11 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     new_mri_paths=list(new_mri_paths)
     newPaths= list(zip(modalities,new_mri_paths))
     newPaths.append(('label',label_new_path ))
+    #copying label holding segmentation of full prostate gland
+    currProstPath= group[1]["prostate"]
+    shutil.copyfile(currProstPath,out_prostate_path )
+    newPaths.append(('prostate',out_prostate_path))
+
     #clearing temporary directory
     shutil.rmtree(temp_dir, ignore_errors=True)
 
@@ -270,10 +274,12 @@ with mp.Pool(processes = mp.cpu_count()) as pool:
     grouped_rows= toolz.pipe(sourceFrame.iterrows()
                             ,filter(lambda row: row[1]['series_desc'] in modalities_of_intrest)
                             ,groupByMaster
-                            ,map(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest))
+                            ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest))
                             ,filter(lambda group: ' ' not in group[1].keys() )
                             ,list
-                            ,map(partial(add_files,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,reg_prop=reg_prop,elacticPath=elacticPath,transformix_path=transformix_path )))
+                            ,pmap(partial(add_files,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,reg_prop=reg_prop,elacticPath=elacticPath,transformix_path=transformix_path ))
+                            ,list
+                            )
 
 
     

@@ -31,9 +31,9 @@ import re
 import shutil
 import getVolume
 from getVolume import get_volumes_frames
+
 #JSON filr from mdai summarizing data about annotations etc. 
 JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-11-29-084110.json'
-
 #directory where the output will be stored
 outputDir='/workspaces/konwersjaJsonData/output'
 #directory of the csv storing most relevant data per each series
@@ -56,9 +56,7 @@ mainFoldDirSeg='/workspaces/konwersjaJsonData/AI4AR_dicom'
 jsonFolder='/workspaces/konwersjaJsonData/dicomSeg'
 #csv witch indicates what lesions should not be included and what should be the lesions numbering
 correctionsCSVDir= '/workspaces/konwersjaJsonData/parsedd.csv'
-neededNumbersCSVDir= 'AI4AR_PCa_radiological.csv' #frame where we will get those ids that we are intrested in
-
-
+neededNumbersCSVDir= 'AI4A4_PCa_clinical.csv' #frame where we will get those ids that we are intrested in
 #loading data from JSON
 results = mdai.common_utils.json_to_dataframe(JSON)
 annot=results['annotations']
@@ -98,6 +96,53 @@ dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,j
 get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLab)
 
 
+
+# df[df.A == 'foo']
+
+# neededNumbersCSV=pd.read_csv(neededNumbersCSVDir)
+# neededIds= np.unique(neededNumbersCSV['patient_id'].to_numpy())
+# neededIds = list(map( lambda el: int(el),neededIds))
+# len(neededIds)
+
+# bb=pd.read_csv(resCSVDir)
+# neededIdsB= np.unique(bb['masterolds'].to_numpy())
+# len(neededIdsB)
+# resCSVDir
+
+# neededIdsC= np.unique(files_df_origFolds['masterolds'].to_numpy())
+# len(neededIdsC)
+
+# neededIdsC= list(map(lambda el: int(el),neededIdsC))
+
+# yy = list(files_df_origFolds['masterolds'].to_numpy())
+# yy= list(map(lambda el: int(el) in neededIds,yy))
+# yy
+
+# dd=files_df_origFolds.loc[yy]
+# dd
+
+
+# ff = list(dd['masterolds'].to_numpy())
+# ff= np.unique(ff)
+# len(ff)
+
+
+
+
+# ee= list(filter(lambda el: el in neededIds ,neededIdsC))
+# len(ee)
+
+# files_df_origFolds
+
+# import os
+# path = "/workspaces/konwersjaJsonData/AI4AR_cont/Data"
+
+
+# for dir, sub_dirs, files in os.walk(path):
+#     print(len(sub_dirs))
+
+# files = [x[0] + "/" + y for x in os.walk(path) if len(x[-1]) > 0 for y in x[-1]]
+# len(files)
 
 ## error 140,930 - can not find it in correction df although is in source df's
 
