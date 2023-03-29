@@ -33,29 +33,29 @@ import getVolume
 from getVolume import get_volumes_frames
 
 #JSON filr from mdai summarizing data about annotations etc. 
-JSON = '/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2022-11-29-084110.json'
+JSON = '/home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_annotations_2023-03-28-155602.json'
 #directory where the output will be stored
-outputDir='/workspaces/konwersjaJsonData/output'
+outputDir='/home/sliceruser/workspaces/konwersjaJsonData/output'
 #directory of the csv storing most relevant data per each series
-resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
+resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory of the csv to save data about volumes
-prost_volumes_csv_dir='/workspaces/konwersjaJsonData/outCsv/prost_volumes.csv'
-lesion_volumes_csv_dir='/workspaces/konwersjaJsonData/outCsv/lesion_volumes.csv'
+prost_volumes_csv_dir='//home/sliceruser/workspaces/konwersjaJsonData/outCsv/prost_volumes.csv'
+lesion_volumes_csv_dir='//home/sliceruser/workspaces/konwersjaJsonData/outCsv/lesion_volumes.csv'
 #downloaded manually
-# orig_data_dir='/workspaces/konwersjaJsonData/nas-lssi-dco'
-testXnatPath= '/workspaces/konwersjaJsonData/TEST'
-orig_data_csv='/workspaces/konwersjaJsonData/outCsv/orig_files.csv'
+# orig_data_dir='//home/sliceruser/workspaces/konwersjaJsonData/nas-lssi-dco'
+testXnatPath= '/home/sliceruser/workspaces/konwersjaJsonData/TEST'
+orig_data_csv='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/orig_files.csv'
 #path to folder with all required data downloaded with mdai client
-dataDir='/workspaces/konwersjaJsonData/data'
-client_down_csv='/workspaces/konwersjaJsonData/outCsv/client_files.csv'
+dataDir='/home/sliceruser/workspaces/konwersjaJsonData/data'
+client_down_csv='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/client_files.csv'
 #name of the folder where files with comparisons of lesions will be stored
-rootFolder_lesion_analysis='/workspaces/konwersjaJsonData/forLesionAnalysis'
-mainFoldDirMha='/workspaces/konwersjaJsonData/AI4AR_cont'
-mainFoldDirSeg='/workspaces/konwersjaJsonData/AI4AR_dicom'
+rootFolder_lesion_analysis='/home/sliceruser/workspaces/konwersjaJsonData/forLesionAnalysis'
+mainFoldDirMha='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont'
+mainFoldDirSeg='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_dicom'
 #folder with definitions for dicom segs
-jsonFolder='/workspaces/konwersjaJsonData/dicomSeg'
+jsonFolder='/home/sliceruser/workspaces/konwersjaJsonData/dicomSeg'
 #csv witch indicates what lesions should not be included and what should be the lesions numbering
-correctionsCSVDir= '/workspaces/konwersjaJsonData/parsedd.csv'
+correctionsCSVDir= '/home/sliceruser/workspaces/konwersjaJsonData/parsedd.csv'
 neededNumbersCSVDir= 'AI4A4_PCa_clinical.csv' #frame where we will get those ids that we are intrested in
 #loading data from JSON
 results = mdai.common_utils.json_to_dataframe(JSON)
@@ -135,7 +135,7 @@ get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,
 # files_df_origFolds
 
 # import os
-# path = "/workspaces/konwersjaJsonData/AI4AR_cont/Data"
+# path = "//home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data"
 
 
 # for dir, sub_dirs, files in os.walk(path):
@@ -179,13 +179,13 @@ get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,
 # adcDf =out_files_frame.loc[out_files_frame['series_desc'] == 'adc_transverse']
 # hbvDf =out_files_frame.loc[out_files_frame['series_desc'] == 'dwi_transverse']
 
-# list(map( partial(copyTo, nameBeg='t2w',targetDir='/workspaces/konwersjaJsonData/forTestPicai/t2w' ),list(t2wDf.iterrows())))
-# list(map( partial(copyTo, nameBeg='adc',targetDir='/workspaces/konwersjaJsonData/forTestPicai/adc' ),list(adcDf.iterrows())))
-# list(map( partial(copyTo, nameBeg='hbv',targetDir='/workspaces/konwersjaJsonData/forTestPicai/hbv' ),list(hbvDf.iterrows())))
+# list(map( partial(copyTo, nameBeg='t2w',targetDir='//home/sliceruser/workspaces/konwersjaJsonData/forTestPicai/t2w' ),list(t2wDf.iterrows())))
+# list(map( partial(copyTo, nameBeg='adc',targetDir='//home/sliceruser/workspaces/konwersjaJsonData/forTestPicai/adc' ),list(adcDf.iterrows())))
+# list(map( partial(copyTo, nameBeg='hbv',targetDir='//home/sliceruser/workspaces/konwersjaJsonData/forTestPicai/hbv' ),list(hbvDf.iterrows())))
 
 # t2wPaths= np.unique(t2wDf['series_MRI_path'].to_numpy())
 # prostateDf = out_files_frame.loc[out_files_frame['prostate'] != ' ']
-# list(map( partial(copyTo, nameBeg='t2w',targetDir='/workspaces/konwersjaJsonData/forTestPicai/prostatefull/prostateIm' ),list(prostateDf.iterrows())))
+# list(map( partial(copyTo, nameBeg='t2w',targetDir='//home/sliceruser/workspaces/konwersjaJsonData/forTestPicai/prostatefull/prostateIm' ),list(prostateDf.iterrows())))
 
 
 
@@ -228,4 +228,4 @@ get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,
 
 # current_row[1]['prostate']
 
-# # '/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714463775000004282/U_8ZmM76/1.3.12.2.1107.5.8.15.100960.30000022021714463775000004504/prostate.nii.gz'
+# # '//home/sliceruser/workspaces/konwersjaJsonData/output/1.3.12.2.1107.5.8.15.100960.30000022021714463775000004282/U_8ZmM76/1.3.12.2.1107.5.8.15.100960.30000022021714463775000004504/prostate.nii.gz'
