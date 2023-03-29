@@ -167,7 +167,7 @@ def mapTagwithPath(rowws,tag):
 # strr=row['series_desc'].replace("'","")+'.mha'
 # join(uniqseriesDesc_with_path, +'.mha')
 
-# pathExploreFolder='/workspaces/konwersjaJsonData/exploration'
+# pathExploreFolder='//home/sliceruser/workspaces/konwersjaJsonData/exploration'
 # list(map(lambda row :
 #     shutil.copyfile(row['series_MRI_path'], join(pathExploreFolder, row['series_desc'].replace("'","")+'.mha')) 
 #      ,uniqseriesDesc_with_path))
@@ -192,7 +192,7 @@ def mapTagwithPath(rowws,tag):
 # len(uniqseriesDesc)
 # uniqseriesDesc_with_path[2]
 
-# pathExploreFolder='/workspaces/konwersjaJsonData/exploration'
+# pathExploreFolder='//home/sliceruser/workspaces/konwersjaJsonData/exploration'
 # list(map(lambda tupl :
 #     shutil.copyfile(tupl[0], join(pathExploreFolder, tupl[1]+'.mha')) 
 #      ,uniqseriesDesc_with_path))

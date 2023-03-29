@@ -198,6 +198,9 @@ COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
 ### DCMQI from https://hub.docker.com/r/qiicr/dcmqi/dockerfile
 
 
+# sudo docker run --init  -e --gpus all --ipc host --privileged --net host -p 8888:8888 -p49053:49053  -v /mnt/disks/sdb:/home/sliceruser/data -it  ai4ar_prep:latest bash
+
+# sudo docker run -it --init --gpus all --ipc host --privileged --net host -p 8888:8888 -p49053:49053  -v /mnt/disks/sdb:/home/sliceruser/data ai4ar:latest  bash
 
 
 # RUN cd ${HOME}/elastixx && \

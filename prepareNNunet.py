@@ -41,7 +41,7 @@ from toolz import curry
 import multiprocessing as mp
 
 
-resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
+resCSVDir='//home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
 reg_prop='/home/sliceruser/registration/parameters.txt'  
@@ -50,7 +50,7 @@ imagesTr_dir= join(nnunet_raw_data,"imagesTr" )
 labelsTr_dir= join(nnunet_raw_data,"labelsTr" )
 
 
-nNunetBaseFolder='/workspaces/konwersjaJsonData/nnunetMainFolder'
+nNunetBaseFolder='//home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
 taskName= 'Task505_opiProstate'
 taskFolder = join(nNunetBaseFolder,'nnUNet_raw_data_base','nnUNet_raw_data',taskName)
 imagesTrFolder= join(taskFolder,'imagesTr')

@@ -31,13 +31,13 @@ import shutil
 import zipfile
 import glob
 
-resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
-mainFoldDirMha='/workspaces/konwersjaJsonData/AI4AR_cont'
-mainFoldDirSeg='/workspaces/konwersjaJsonData/AI4AR_dicom'
+resCSVDir='//home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
+mainFoldDirMha='//home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont'
+mainFoldDirSeg='//home/sliceruser/workspaces/konwersjaJsonData/AI4AR_dicom'
 
 
-mainFoldDirSegChunked='/workspaces/konwersjaJsonData/AI4AR_dicom_chunked'
-mainFoldDirMhaChunked='/workspaces/konwersjaJsonData/AI4AR_cont_chunked'
+mainFoldDirSegChunked='//home/sliceruser/workspaces/konwersjaJsonData/AI4AR_dicom_chunked'
+mainFoldDirMhaChunked='//home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont_chunked'
 
 
 sourceFrame = pd.read_csv(resCSVDir) 

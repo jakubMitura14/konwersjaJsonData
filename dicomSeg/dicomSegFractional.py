@@ -21,11 +21,11 @@
 # import pydicom
 
 # #directory of the csv storing most relevant data per each series
-# resCSVDir='/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
+# resCSVDir='//home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 # #directory for json with dicom seg definitions of prostate regions
-# dseg_anatomy_json='/workspaces/konwersjaJsonData/dicomSeg/anatomy_seg.json'
+# dseg_anatomy_json='//home/sliceruser/workspaces/konwersjaJsonData/dicomSeg/anatomy_seg.json'
 # #directory for json with dicom seg definitions of lesion regions
-# dseg_lesion_json='/workspaces/konwersjaJsonData/dicomSeg/lesion_seg.json'
+# dseg_lesion_json='//home/sliceruser/workspaces/konwersjaJsonData/dicomSeg/lesion_seg.json'
 # #names of columns used to create dicom seg
 # innerLabel_json_names=['anterior_fibromuscular_stroma','central_zone','external_iliac','internal_iliac','lesion1','lesion2','lesion3','lesion4','obturator','peripheral_zone','prostate',
 # 'seminal_vesiclesL','seminal_vesiclesR','transition_zone','urethra']
@@ -33,7 +33,7 @@
 # col_names_to_analyze = ['anterior fibromuscular stroma', 'central zone', 'external iliac', 'internal iliac', 'obturator', 'peripheral zone', 'prostate', 'seminal vesicles L', 'seminal vesicles R', 'transition zone', 'urethra']
 # lesionColumns=['lesion 1', 'lesion 2', 'lesion 3', 'lesion 4']
 # #folder with jsopns for specifications with dicom seg
-# jsonFolder='/workspaces/konwersjaJsonData/dicomSeg'
+# jsonFolder='//home/sliceruser/workspaces/konwersjaJsonData/dicomSeg'
 
 # prostateLab='prostate'
 # out_files_frame=pd.read_csv(resCSVDir) 
@@ -50,7 +50,7 @@
 # roww=roww[1]
 # folderWithDicoms=roww['series_MRI_path'].replace('volume.mha','origVol')
 # origDicoms = list(pathlib.Path(folderWithDicoms).glob('*.dcm'))
-# basePath="/workspaces/konwersjaJsonData/exploration"
+# basePath="//home/sliceruser/workspaces/konwersjaJsonData/exploration"
 # colName="prostate"
 # colName=colName.replace(" ","_")
 # colFolder= join(basePath,colName)
@@ -125,7 +125,7 @@
 
 
 # colname= "prostate"
-# outputPath="/workspaces/konwersjaJsonData/exploration"
+# outputPath="//home/sliceruser/workspaces/konwersjaJsonData/exploration"
 # saveMonoDicomSeg(roww,outputPath,colname)
 # saveMonoDicomSeg(roww,outputPath,"anterior fibromuscular stroma")
 # saveMonoDicomSeg(roww,outputPath,"central zone")
@@ -173,7 +173,7 @@
 # #     seg_dataset.save_as(join(outputPath,f"{colnameNew}.dcm"))
 
 # # colname= "prostate"
-# # outputPath="/workspaces/konwersjaJsonData/exploration"
+# # outputPath="//home/sliceruser/workspaces/konwersjaJsonData/exploration"
 # # saveMonoDicomSeg(roww,outputPath,colname)
 # # saveMonoDicomSeg(roww,outputPath,"anterior fibromuscular stroma")
 # # saveMonoDicomSeg(roww,outputPath,"central zone")
@@ -210,7 +210,7 @@
 
 # # print(seg_dataset)
 
-# # seg_dataset.save_as("/workspaces/konwersjaJsonData/exploration/seg.dcm")
+# # seg_dataset.save_as("//home/sliceruser/workspaces/konwersjaJsonData/exploration/seg.dcm")
 
 
 

@@ -44,7 +44,8 @@
 		// "ms-python.vscode-pylance"
 	],
 	"mounts": [
-		"source=/media/jm/NewVolume/slicerData,target=/home/sliceruser/slicerData,type=bind,consistency=cached"
+		"source=/mnt/disks/sdb/raw/out,target=/data,type=bind,consistency=cached"
+
 	  ],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
