@@ -185,3 +185,11 @@ list(map(download,subjects))
 
 session.disconnect()
 
+"""
+download csvs ...
+"""
+# git clone https://token name you picked:the personal access token@gitlab.umich.edu/user or project/repo name. /home/sliceruser/workspaces/konwersjaJsonData/metaDataProject
+
+
+
+

@@ -358,7 +358,7 @@ def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_ser
         # saving data about lesions separately for each doctor (annotator)
         for docId in np.unique(annot_for_series['createdById'].to_numpy()):
             annot_for_doctor=annot_for_series.loc[annot_for_series['createdById'] == docId]  
-            corrections_for_doc= corrections_for_study_id.loc[corrections_for_study_id['radiologist_id'] == docId]    
+            corrections_for_doc= corrections_for_study_id.loc[corrections_for_study_id['rad_hash'] == docId]    
             # getting all the labels pesent for this series and this annotator                
             uniq_labels= np.unique(annot_for_doctor['labelName'].to_numpy())
             uniqLabelsLesions = list(filter(lambda lab: 'lesion' in lab,uniq_labels))
