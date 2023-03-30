@@ -158,12 +158,30 @@ labels_dict = {
 """
 downloading data from mdai client
 """
-mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
-p = mdai_client.project('gaq3y0Rl', path='/home/sliceruser/workspaces/konwersjaJsonData/out')
-p.set_labels_dict(labels_dict)
-datasetId='D_gQm1nQ'
-dataset = p.get_dataset_by_id(datasetId)
-dataset.prepare()
+# mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
+# p = mdai_client.project('gaq3y0Rl', path='/home/sliceruser/workspaces/konwersjaJsonData/out')
+# p.set_labels_dict(labels_dict)
+# datasetId='D_gQm1nQ'
+# dataset = p.get_dataset_by_id(datasetId)
+# dataset.prepare()
 # /mnt/disks/sdb/raw/out
 
-# sudo docker run --init --gpus all --ipc host --privileged --net host -p 8888:8888 -p49053:49053  -v /mnt/disks/sdb:/home/sliceruser//home/sliceruser/workspaces -v /home/jakubmitura/konwersjaJsonData:/home/sliceruser/code -it  ai4ar_prep:latest bash
+"""
+downloading xnat
+"""
+
+import xnat
+import os
+session = xnat.connect('https://lssi-xnat-test.opi.org.pl', user="jmitura", password="@bx}%IRlT/Yb,ytfriMh")
+subjects=session.projects['TEST'].subjects
+testXnatPath= '/home/sliceruser/workspaces/konwersjaJsonData/TEST'
+
+def download(subb):
+    print(f"subb {subb}")
+    dirr=os.makedirs(f"{testXnatPath}/{subb.label}",exist_ok=True)
+    sub.download_dir(f"{testXnatPath}/{subb.label}")
+
+list(map(download,subjects))
+
+session.disconnect()
+

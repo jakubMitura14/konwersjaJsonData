@@ -155,7 +155,8 @@ RUN pip install toolz
 RUN pip install highdicom==0.19.0
 RUN pip install nnunet==1.7.0
 RUN pip install multiprocess
-RUN pip install dill
+RUN pip install dill xnat pyxnat
+
 # RUN pip install SimpleITK-SimpleElastix==2.0.0rc2.dev910
 # RUN mkdir ${HOME}/elastixx
 # RUN git clone https://github.com/SuperElastix/elastix.git ${HOME}/elastixx
@@ -211,3 +212,5 @@ COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
 #     # make -j6
 
 CMD ["/bin/bash"]
+
+
