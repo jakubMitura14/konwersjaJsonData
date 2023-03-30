@@ -39,8 +39,8 @@ outputDir='/home/sliceruser/workspaces/konwersjaJsonData/output'
 #directory of the csv storing most relevant data per each series
 resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory of the csv to save data about volumes
-prost_volumes_csv_dir='//home/sliceruser/workspaces/konwersjaJsonData/outCsv/prost_volumes.csv'
-lesion_volumes_csv_dir='//home/sliceruser/workspaces/konwersjaJsonData/outCsv/lesion_volumes.csv'
+prost_volumes_csv_dir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/prost_volumes.csv'
+lesion_volumes_csv_dir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/lesion_volumes.csv'
 #downloaded manually
 # orig_data_dir='//home/sliceruser/workspaces/konwersjaJsonData/nas-lssi-dco'
 testXnatPath= '/home/sliceruser/workspaces/konwersjaJsonData/TEST'
@@ -68,15 +68,11 @@ files_df_origFolds= get_df_orig_dir_info(testXnatPath,orig_data_csv)
 #add data about original folder structure to frame based on data downloaded with mdai client
 files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
 
-
-
 ################
 #just for debuging
 # files_df_with_orig_folds=files_df_origFolds.loc[files_df_origFolds['masterolds'] == 930]
 # files_df_origFolds=files_df_origFolds.loc[files_df_origFolds['masterolds'] == 930]
-
 ###############
-
 
 #parsing files and saving 3D data in the output folder
 out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir,neededNumbersCSVDir)
