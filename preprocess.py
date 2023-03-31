@@ -178,8 +178,6 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
             boolArrs= list(map(lambda arr : np.logical_and(arr,negated_toSetToZero )  ,boolArrs))
       
         #now we get what is True in at least one of arrays
-        # print(" labelsOfIntrest_innerrrrrrrrrr bbbb ")
-        # print(labelsOfIntrest_inner)
         common = functools.reduce(np.logical_or, boolArrs)
         #negate
         common_not = np.logical_not(common)
@@ -194,9 +192,6 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
         # print(f"indicies_to_mod {indicies_to_mod} \n")
 
         #modifying bool arrs according to augmented indicies
-        # print(augmentedIndicies)
-
-
         for aug_index in augmentedIndicies2D:
             boolArrs[aug_index[3]][aug_index[0],aug_index[1],aug_index[2]]=True
 
@@ -206,7 +201,6 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
             pathA= current_row[label]
             image3D=sitk.ReadImage(pathA)
             pathB=  pathA#pathA.replace(".nii.gz", "_b_.nii.gz")
-            #print(pathB)
             if(label=='ur_noSeg'):
                 mainArr=boolArrs[index]
                 arrB= np.logical_and(urrr,negatedProstate)
@@ -227,11 +221,7 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
                 save_from_arr(boolArrs[index].astype(np.uint8),image3D,pathB)
 
 
-                # .astype(np.uint8)
-                # krowa
-                # urrr
 
-            print(f"in label {label} sum {np.sum(boolArrs[index])}")
             #additionally we want to save dicom seg files
             save_dicom_seg_label(current_row,jsonFolder,label)
 

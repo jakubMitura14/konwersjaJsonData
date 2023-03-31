@@ -72,7 +72,7 @@ def load_mask_instance(row):
             print("Not a local instance")
 
 
-        return mask.astype(np.bool)
+        return mask.astype(bool)
     return np.full((2, 2,2), False)
 
 
