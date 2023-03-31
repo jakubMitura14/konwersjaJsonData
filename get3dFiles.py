@@ -71,6 +71,25 @@ def createLesionLabel(annot_for_series,lab,data,paths_dict,series_file_names,ima
 #krowa najpierw sekwencja potem radiolog i w modalnosciach najpierw numer potem adc  i podfoldery w lesionach jako modalnosci
 
 
+def add_layer_to_be_consistent(binArray):
+    """
+    we will here check weather in z direction we have consistent shapes -
+        given a layer when there is True both above and below it should be True also in case of this layer
+    binArray - analyzed boolean array
+    """
+    shapee=binArray.shape
+    print(f"ffffffffffff  {shapee} ")
+    z= 2/0
+    print(z)
+
+    up=binArray[0:shapee[0]-2,:,:]
+    # mid=binArray[1:shapee[0]-1,:,:]
+    down=binArray[2:shapee[0],:,:]
+    consistent_part=np.logical_or(up,down)
+    consistent_part=np.pad(consistent_part,((1,1),(0,0),(0,0)))
+    return np.logical_or(binArray,consistent_part)
+    
+
 
 def createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,image3D,labelSegPath,jsonFolder,dicomSPath,seriesId,labb,origLab):
     """
@@ -93,7 +112,9 @@ def createLabelFile(annot_for_series,lab,data,labelNiiPath,series_file_names,ima
             if(len(annot_for_sop)>0):
                 rowOfIntr=list(annot_for_sop.iterrows())[0]
                 #we obtain mask as a boolean array
-                binArray= mainFuncs.load_mask_instance(rowOfIntr).astype(dtype)  
+                binArray= mainFuncs.load_mask_instance(rowOfIntr).astype(dtype)
+                binArray= add_layer_to_be_consistent(binArray)
+
                 #time to overwrite the data
                 # ds.PixelData = binArray.tostring()
                 if((data.shape[1],data.shape[2])==binArray.shape):
@@ -160,16 +181,7 @@ def translateSeriesDesc(series_desc_string,acqNumb):
         ,("'t2_bl_SAG_tra_P'"                               ,"sag")
         
         ]
-    #    manual_map_list=[
-    #     ("'t2_bl_tse_tra_sFOV'"                   , "t2_transverse"  )
-    #     ,("'t2_bl_tse_tra_p'"                   , "t2_transverse"  )
-    #     ,("'ep2d_diff_b 50 400 800 1200_TRACEW'"            , "dwi_transverse"  )
-    #     ,("'ep2d_diff_b 50 400 800 1200_ADC'"               ,"adc_transverse"   )    
-    #     ,("'t1_fl3d_tra fs_dyn CM'"                         , "t1_dce_transverse"  ) 
-    #     ,("'t2_bl_tse_tra_P'"                               , "t2_transverse"  )
-    #     ,("'t2_bl_tse_tra'"                                 ,  "t2_transverse" )
-    #     ,("'t2_bl_tse_cor'"                                 , "t2_coronal"  )
-    #     ,("'t2_bl_tse_sag'"                                 , "t2_saggital"  )]
+
     res=list(filter(lambda tupl: tupl[0]==series_desc_string ,manual_map_list))
     if(len(res)==0):
         print(f" series description string {series_desc_string} acq numb {acqNumb} not known please adjust translateSeriesDesc function in getDirAndnumbFrame file")
@@ -369,43 +381,6 @@ def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_ser
         #filter out all errors and labels that should be removed        
         labelNameAndPaths=list(filter(lambda el: el[0]!=' ',labelNameAndPaths))
 
-        # newPath= os.path.join(copiedPath,'volume.mha')
-        # series_file_names=None
-        # image3D=None
-        # #avoiding creating file if one is present
-        # if(not pathOs.exists(newPath)): 
-
-        #     os.makedirs(origVolPath ,exist_ok = True)
-        #     # into each subfolder we will copy the full  set of files related to main image at hand
-        #     for path_to_copy in paths_in_series:
-        #         os.system(f'cp {path_to_copy} {origVolPath}') 
-
-
-        #     series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
-        #     series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
-
-        #     #getseries file names in correct order
-        #     #series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(copiedPath, currentSeries)
-        #     series_reader = sitk.ImageSeriesReader()
-        #     series_reader.MetaDataDictionaryArrayUpdateOn()
-        #     series_reader.LoadPrivateTagsOn()
-        #     series_reader.SetFileNames(series_file_names)
-
-        #     image3D = series_reader.Execute()
-        #     writer = sitk.ImageFileWriter()
-        #     # Use the study/series/frame of reference information given in the meta-data
-        #     # dictionary and not the automatically generated information from the file IO
-        #     writer.SetFileName(newPath)
-        #     writer.Execute(image3D)   
-        #     print(f"newPath image3D {newPath}")
-        # else:
-        #     image3D=sitk.ReadImage(newPath)
-        #     series_IDs = sitk.ImageSeriesReader.GetGDCMSeriesIDs(origVolPath)
-        #     series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(origVolPath, series_IDs[0])
-
-        # data=sitk.GetArrayFromImage(image3D)
-
-
         return (current_study_id,currentSeries,currentStudyDesc,pathMha,origVolPath,labelNameAndPaths ,masterolds )
     return (' ',' ',' ',' ',' ',' ' ,' ' )
         
@@ -427,21 +402,12 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
     res=[]
     annot_for_study_id=annot.loc[annot['StudyInstanceUID'] == current_study_id]
     files_for_study_id=files_df_origFolds.loc[files_df_origFolds['StudyInstanceUID'] == current_study_id]
-    # 
-    #get annotator id 
-    # for current_doctor_id in np.unique(annot_for_study_id['createdById'].to_numpy()):
-    #     annot_for_doctor=annot_for_study_id.loc[annot_for_study_id['createdById'] == current_doctor_id]
-        # #create directory for this study
-        # studyPath = os.path.join(outputDir, current_study_id,current_doctor_id)
-        # os.makedirs(studyPath, exist_ok = True)
-        #get single series
-    # aa=sorted(files_df_origFolds['masterolds'].to_numpy(),key = lambda el: len(el))[0]
+
 
     masterolds_in_Study=files_for_study_id['masterolds'].to_numpy()
 
     masterolds=str(masterolds_in_Study[0])#.replace('nas-lssi-dco/','')
     #checking weather we are intrested in a file at all
-    # if(int(masterolds) in neededIds):
     pureMasterNum=str(int(masterolds))
     patIdsCorrs=correctionsFrame['patient_id'].to_numpy()
 
