@@ -32,6 +32,8 @@ import shutil
 import getVolume
 from getVolume import get_volumes_frames
 
+print("veeeer 11")
+
 #JSON filr from mdai summarizing data about annotations etc. 
 JSON = '/home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_annotations_2023-03-28-155602.json'
 #directory where the output will be stored
