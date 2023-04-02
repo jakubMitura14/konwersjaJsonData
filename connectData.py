@@ -32,7 +32,7 @@ import shutil
 import getVolume
 from getVolume import get_volumes_frames
 
-print("veeeer 11")
+print("veeeeeeer 11")
 
 #JSON filr from mdai summarizing data about annotations etc. 
 JSON = '/home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_annotations_2023-03-28-155602.json'
@@ -55,7 +55,7 @@ rootFolder_lesion_analysis='/home/sliceruser/workspaces/konwersjaJsonData/forLes
 mainFoldDirMha='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont'
 mainFoldDirSeg='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_dicom'
 #folder with definitions for dicom segs
-jsonFolder='/workspaces/konwersjaJsonData/dicomSeg'
+jsonFolder='/home/sliceruser/code/dicomSeg'
 #csv witch indicates what lesions should not be included and what should be the lesions numbering
 correctionsCSVDir= '/home/sliceruser/workspaces/konwersjaJsonData/metaDataProject/valid_lesion_mapping.csv'
 neededNumbersCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/metaDataProject/AI4AR_PCa_radiological.csv'# 'AI4A4_PCa_clinical.csv' #frame where we will get those ids that we are intrested in

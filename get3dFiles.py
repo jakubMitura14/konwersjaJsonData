@@ -42,17 +42,21 @@ def createLesionLabel(annot_for_series,lab,data,paths_dict,series_file_names,ima
     in case of the     
     """
     labb = lab.replace(" ","")
+    print(f"labb {int(labb.replace('lesion',''))} corrections_for_doc {corrections_for_doc['lesion_id']}    ")
+
     # now we need to use corrections_for_doc to check weater the lesion should be saved at all and whether its number is correct beware that lesion names in corrections_for_doc is just number for example 1 not lesion1
     locDfCorr = corrections_for_doc.loc[corrections_for_doc['lesion_id'] == int(labb.replace('lesion','')) ]
     # print(f" labb.replace('lesion','') { labb.replace('lesion','')}   corrections_for_doc {corrections_for_doc}  ")
     if(len(locDfCorr)==0):
-        print(f"NNnno Label in correction df  masterolds {masterolds} docId {docId}  labb {labb}")
+        print(f"NNnno Label in correction df masterolds {masterolds} docId {docId}  labb {labb}")
         return (' ', ' ', ' ', 0)
     newLabNum=locDfCorr['lesion_label'].to_numpy()[0]
     # to_remove=locDfCorr['Do_usun'].to_numpy()[0]
 
     # to_remove= ((to_remove=='True' or to_remove))
     labb= f"lesion{newLabNum}"
+
+
     # to_remove= ((to_remove=='True' or to_remove))
     # if(not to_remove):
     origLab=lab
@@ -379,7 +383,7 @@ def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_ser
         #filter out all errors and labels that should be removed        
         labelNameAndPaths=tuple(list(filter(lambda el: el[0]!=' ',labelNameAndPaths)))
         # print(f"current_study_id {type(current_study_id)} \n currentSeries {type(currentSeries)} \n  currentStudyDesc \n {type(currentStudyDesc)} \n pathMha {type(pathMha)} origVolPath {type(origVolPath)} labelNameAndPaths {type(labelNameAndPaths)} masterolds {type(masterolds)}")
-        return (current_study_id,currentSeries,currentStudyDesc,pathMha,origVolPath,labelNameAndPaths ,tuple(masterolds) )
+        return (current_study_id,currentSeries,currentStudyDesc,pathMha,origVolPath,labelNameAndPaths ,pureMasterNum )
     return (' ',' ',' ',' ',' ',' ' ,' ' )
         
 def createStudyFolder(item,masterolds ): 
@@ -398,6 +402,7 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
     iterate ove all series with the same study UID
     """
     res=[]
+    print(f"current_study_id {current_study_id}")
     annot_for_study_id=annot.loc[annot['StudyInstanceUID'] == current_study_id]
     files_for_study_id=files_df_origFolds.loc[files_df_origFolds['StudyInstanceUID'] == current_study_id]
 
@@ -410,6 +415,7 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
     patIdsCorrs=correctionsFrame['PatientID'].to_numpy()
 
     corrections_for_study_id=correctionsFrame.loc[correctionsFrame['PatientID'] ==int(pureMasterNum) ]
+    print(f"pureMasterNum {pureMasterNum}  corrections_for_study_id {corrections_for_study_id}")
     if(masterolds==' '):
         masterolds=f"unknownMasterNum_{current_study_id}"
         print("unknownnn masterrr ")
@@ -505,10 +511,10 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
 
     #iterate over all files
     allPaths=[]
-    with mp.Pool(processes = mp.cpu_count()) as pool: 
-        allPaths=pool.map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame,neededIds=neededIds), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy()))
+    # with mp.Pool(processes = mp.cpu_count()) as pool: 
+    #     allPaths=pool.map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame,neededIds=neededIds), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy()))
     
-    # allPaths=list(map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame,neededIds=neededIds), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy())))    #filtering out all cases where we returned a dummy
+    allPaths=list(map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame,neededIds=neededIds), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy())))    #filtering out all cases where we returned a dummy
     # allPaths= list(filter(lambda el: len(el)>0,allPaths))
 
     flatten_list_paths = list(itertools.chain(*allPaths))
@@ -522,18 +528,19 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     out_files_frame['series_MRI_path']=list(map(lambda tupl: tupl[3],flatten_list_paths))
     out_files_frame['dicom_MRI_path']=list(map(lambda tupl: tupl[4],flatten_list_paths))
     out_files_frame['masterolds']=list(map(lambda tupl: tupl[6],flatten_list_paths))
-
+    out_files_frame=out_files_frame.copy()
     all_labels_types=list(map(lambda el: getLabelNames(el),flatten_list_paths))
     all_labels_types=list(itertools.chain(*all_labels_types))
     all_labels_types=np.unique(all_labels_types)
 
     for targetLab in all_labels_types :
+        out_files_frame=out_files_frame.copy()
         out_files_frame[f"{targetLab}_noSeg"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,1),flatten_list_paths))
         out_files_frame[f"{targetLab}_Seg"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,2),flatten_list_paths))
         out_files_frame[f"{targetLab}_num"]=list(map(lambda tupl: getLabelPathOrEmpty(targetLab,tupl,3),flatten_list_paths))
 
     out_files_frame.to_csv(resCSVDir) 
-    
+    print(f"out files frame ready")
     return out_files_frame
 
 
