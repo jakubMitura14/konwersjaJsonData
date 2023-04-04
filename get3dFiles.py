@@ -42,15 +42,12 @@ def createLesionLabel(annot_for_series,lab,data,paths_dict,series_file_names,ima
     in case of the     
     """
     labb = lab.replace(" ","")
-    print(f"labb {int(labb.replace('lesion',''))} corrections_for_doc {corrections_for_doc['lesion_id']}    ")
-
     # now we need to use corrections_for_doc to check weater the lesion should be saved at all and whether its number is correct beware that lesion names in corrections_for_doc is just number for example 1 not lesion1
-    locDfCorr = corrections_for_doc.loc[corrections_for_doc['lesion_id'] == int(labb.replace('lesion','')) ]
-    # print(f" labb.replace('lesion','') { labb.replace('lesion','')}   corrections_for_doc {corrections_for_doc}  ")
+    locDfCorr = corrections_for_doc.loc[corrections_for_doc['lesion_label'] == int(labb.replace('lesion','')) ]
     if(len(locDfCorr)==0):
         print(f"NNnno Label in correction df masterolds {masterolds} docId {docId}  labb {labb}")
         return (' ', ' ', ' ', 0)
-    newLabNum=locDfCorr['lesion_label'].to_numpy()[0]
+    newLabNum=locDfCorr['lesion_id'].to_numpy()[0]
     # to_remove=locDfCorr['Do_usun'].to_numpy()[0]
 
     # to_remove= ((to_remove=='True' or to_remove))
@@ -382,7 +379,6 @@ def mainGenereteFiles(files_df,files_df_origFolds,annot_for_series,files_for_ser
                 labelNameAndPaths.append(res)
         #filter out all errors and labels that should be removed        
         labelNameAndPaths=tuple(list(filter(lambda el: el[0]!=' ',labelNameAndPaths)))
-        # print(f"current_study_id {type(current_study_id)} \n currentSeries {type(currentSeries)} \n  currentStudyDesc \n {type(currentStudyDesc)} \n pathMha {type(pathMha)} origVolPath {type(origVolPath)} labelNameAndPaths {type(labelNameAndPaths)} masterolds {type(masterolds)}")
         return (current_study_id,currentSeries,currentStudyDesc,pathMha,origVolPath,labelNameAndPaths ,pureMasterNum )
     return (' ',' ',' ',' ',' ',' ' ,' ' )
         
@@ -415,7 +411,10 @@ def iterate_overStudy(current_study_id,files_df,files_df_origFolds,annot,outputD
     patIdsCorrs=correctionsFrame['PatientID'].to_numpy()
 
     corrections_for_study_id=correctionsFrame.loc[correctionsFrame['PatientID'] ==int(pureMasterNum) ]
-    print(f"pureMasterNum {pureMasterNum}  corrections_for_study_id {corrections_for_study_id}")
+
+    annot_for_study_id_print = annot_for_study_id[annot_for_study_id['labelName'].str.contains('lesion')]
+
+    print(f"pureMasterNum {pureMasterNum} \n corrections_for_study_id \n {corrections_for_study_id} \n annot_for_study_id \n {annot_for_study_id_print[['createdById', 'labelName']]}")
     if(masterolds==' '):
         masterolds=f"unknownMasterNum_{current_study_id}"
         print("unknownnn masterrr ")

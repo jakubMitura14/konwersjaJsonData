@@ -132,6 +132,7 @@ def grow_labels(current_row,labelsOfIntrest,indicies_around,annot,prostateLab,in
     if(len(labelsOfIntrest_inner)>1):
         # getting powerset in order to simplify futher iterations
         masterOlds=current_row["masterolds"]
+        print(f"in erode {masterOlds[0]} ")
         # print(f"labelsOfIntrest_inner {labelsOfIntrest_inner} case {masterOlds}  ")
         cart_prod=list(more_itertools.powerset(labelsOfIntrest_inner))
         cart_prod=list(filter(lambda tupl:len(tupl)==2  ,cart_prod))
@@ -243,9 +244,9 @@ def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot,jso
 
     # list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows())))
 
-    with mp.Pool(processes = mp.cpu_count()) as pool:
-        pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows()))
-    #list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows())))
+    # with mp.Pool(processes = mp.cpu_count()) as pool:
+    #     pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows()))
+    list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows())))
 
 
 
