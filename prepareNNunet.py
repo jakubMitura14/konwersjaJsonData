@@ -41,10 +41,10 @@ from toolz import curry
 import multiprocessing as mp
 
 
-resCSVDir='//home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
+resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
-reg_prop='/home/sliceruser/registration/parameters.txt'  
+reg_prop='/workspaces/konwersjaJsonData/registration/parameters.txt'  
 nnunet_raw_data= '/home/sliceruser/slicerData/workDir/nnUNet_raw_data/Task2201_picai_baseline'
 imagesTr_dir= join(nnunet_raw_data,"imagesTr" )
 labelsTr_dir= join(nnunet_raw_data,"labelsTr" )
@@ -266,7 +266,9 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
 
 
 grouped_rows=[]
-with mp.Pool(processes = mp.cpu_count()) as pool:
+# with mp.Pool(processes = mp.cpu_count()) as pool:
+with mp.Pool(processes = 1) as pool:
+
     @curry  
     def pmap(fun,iterable):
         return pool.map(fun,iterable)
