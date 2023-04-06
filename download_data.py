@@ -176,13 +176,17 @@ session = xnat.connect('https://lssi-xnat-test.opi.org.pl', user="jmitura", pass
 subjects=session.projects['TEST'].subjects
 testXnatPath= '/home/sliceruser/workspaces/konwersjaJsonData/TEST'
 
-def download(subb):
-    print(f"subb {subb}")
+# def download(subb):
+#     print(f"subb {subb}")
+#     dirr=os.makedirs(f"{testXnatPath}/{subb.label}",exist_ok=True)
+#     sub.download_dir(f"{testXnatPath}/{subb.label}")
+
+# list(map(download,subjects))
+for index in range(len(subjects)):
+    subb= subjects[index]
+    print(f"subb {type(subb)}")
     dirr=os.makedirs(f"{testXnatPath}/{subb.label}",exist_ok=True)
-    sub.download_dir(f"{testXnatPath}/{subb.label}")
-
-list(map(download,subjects))
-
+    subb.download_dir(f"{testXnatPath}/{subb.label}")
 session.disconnect()
 
 """

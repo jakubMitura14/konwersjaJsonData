@@ -45,12 +45,12 @@ resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
 reg_prop='/workspaces/konwersjaJsonData/registration/parameters.txt'  
-nnunet_raw_data= '/home/sliceruser/slicerData/workDir/nnUNet_raw_data/Task2201_picai_baseline'
+nnunet_raw_data= '/home/sliceruser/workspaces/workDir/nnUNet_raw_data/Task2201_picai_baseline'
 imagesTr_dir= join(nnunet_raw_data,"imagesTr" )
 labelsTr_dir= join(nnunet_raw_data,"labelsTr" )
 
 
-nNunetBaseFolder='//home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
+nNunetBaseFolder='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
 taskName= 'Task505_opiProstate'
 taskFolder = join(nNunetBaseFolder,'nnUNet_raw_data_base','nnUNet_raw_data',taskName)
 imagesTrFolder= join(taskFolder,'imagesTr')
@@ -68,12 +68,17 @@ def groupByMaster(rowws):
     # grouped_by_master=[(key,list(group)) for key, group in grouped_by_master]
     return dict(grouped_by_master).items()
 
+
+os.makedirs(nnunet_raw_data ,exist_ok = True)
+
 os.makedirs(join(nNunetBaseFolder,'nnUNet_raw_data_base') ,exist_ok = True)
 os.makedirs(join(nNunetBaseFolder,'nnUNet_raw_data_base','nnUNet_raw_data') ,exist_ok = True)
 os.makedirs(taskFolder ,exist_ok = True)
 os.makedirs(imagesTrFolder ,exist_ok = True)
 os.makedirs(labelsTrFolder ,exist_ok = True)
-os.makedirs(imagesTsFolder ,exist_ok = True)
+os.makedirs(imagesTr_dir ,exist_ok = True)
+os.makedirs(labelsTr_dir ,exist_ok = True)
+
 
 
 

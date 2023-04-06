@@ -38,6 +38,8 @@ print("veeeeeeer 11")
 JSON = '/home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_annotations_2023-03-28-155602.json'
 #directory where the output will be stored
 outputDir='/home/sliceruser/workspaces/konwersjaJsonData/output'
+
+
 #directory of the csv storing most relevant data per each series
 resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory of the csv to save data about volumes
@@ -69,6 +71,12 @@ files_df= mainFuncs.get_df_file_info(dataDir,client_down_csv)
 files_df_origFolds= get_df_orig_dir_info(testXnatPath,orig_data_csv)
 #add data about original folder structure to frame based on data downloaded with mdai client
 files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
+
+
+
+os.makedirs('/home/sliceruser/workspaces/konwersjaJsonData/outCsv' ,exist_ok = True)
+os.makedirs(outputDir ,exist_ok = True)
+
 
 ################
 #just for debuging
