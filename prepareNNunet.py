@@ -271,8 +271,8 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
 
 
 grouped_rows=[]
-# with mp.Pool(processes = mp.cpu_count()) as pool:
-with mp.Pool(processes = 1) as pool:
+with mp.Pool(processes = mp.cpu_count()) as pool:
+# with mp.Pool(processes = 1) as pool:
 
     @curry  
     def pmap(fun,iterable):
