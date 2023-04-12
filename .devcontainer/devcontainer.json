@@ -45,6 +45,7 @@
 	],
 	"mounts": [
 		"source=/mnt/disks/sdb,target=/home/sliceruser/workspaces,type=bind,consistency=cached",
+		"source=/home/jakubmitura/explore,target=/home/sliceruser/explore,type=bind,consistency=cached",
 		"source=/home/jakubmitura/konwersjaJsonData,target=/home/sliceruser/code,type=bind,consistency=cached"
 
 	  ],
