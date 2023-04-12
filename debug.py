@@ -44,9 +44,10 @@ import SimpleITK as sitk
 
 
 
-file_path='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset279_Prostate/imagesTr/9004900_0000.nii.gz'
+file_path='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset279_Prostate/imagesTr/9002600_0000.nii.gz'
 file_path_b='/workspaces/konwersjaJsonData/explore/9004900_0000.nii.gz'
+file_path_orig= '/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data/001/1_t2w.mha'
 image = sitk.ReadImage(file_path)
 print(image)
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset279_Prostate/imagesTr/9004900_0000.nii.gz /home/sliceruser/workspaces/konwersjaJsonData/explore/9004900_0000.nii.gz
+# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset279_Prostate/imagesTr/9004900_0000.nii.gz /home/sliceruser/explore/9004900_0000.nii.gz
 

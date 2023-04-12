@@ -100,12 +100,14 @@ data = {
  "channel_names": {  # formerly modalities
    "0": "T2", 
    "1": "ADC",
-   "2": "HBV"
+   "2": "HBV",
+   "3": "prostate"
+
 
  }, 
  "labels": {  # THIS IS DIFFERENT NOW!
    "background": 0,
-   "prostate": 1,
+   "lesion": 1,
  }, 
  "numTraining": 322, 
  "file_ending": ".nii.gz",
@@ -231,7 +233,12 @@ def save_from_arr(zeroArray,image3D,newPathLab):
     writer.SetFileName(newPathLab)
     writer.Execute(image)
 
-
+def copy_changing_type(source, dest):
+    image= sitk.ReadImage(source)
+    writer = sitk.ImageFileWriter() 
+    writer.SetFileName(dest)
+    writer.Execute(image)
+    return dest
 
 def prepare_out_paths(group,modalities_of_intrest ):
     #preparing names
@@ -293,7 +300,8 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
     
     #as we already have prepared the destination paths and sources for images we need now to copy files
-    list(itertools.starmap(shutil.copyfile ,zipped_modalit_path ))
+    # we need to remember that we are  getting from mha to nii gz
+    list(itertools.starmap(copy_changing_type ,zipped_modalit_path ))
 
     _,new_mri_paths= list(toolz.sandbox.core.unzip(zipped_modalit_path))
     new_mri_paths=list(new_mri_paths)
@@ -332,22 +340,11 @@ with mp.Pool(processes = mp.cpu_count()) as pool:
 
     
 
-group = grouped_rows[1]
+group = grouped_rows[5]
 
 
 print(group)
 
-# cd /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw_data_base/nnUNet_raw_data
-# nnUNetv2_plan_and_preprocess -d Dataset279_Prostate --verify_dataset_integrity
 # nnUNetv2_plan_and_preprocess -d 279 --verify_dataset_integrity
-
-#  All images (including labels) must be 3D nifti files (.nii.gz)!
-
-#  example image Name
-
-# t2w opiProstate_{master with zeros}_0000.nii.gz
-# adc opiProstate_{master with zeros}_0001.nii.gz
-
-# label
-# adc opiProstate_{master with zeros}.nii.gz
+# CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 279 3d_fullres 0
 
