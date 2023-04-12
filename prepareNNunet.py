@@ -46,8 +46,7 @@ elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
 reg_prop='/workspaces/konwersjaJsonData/registration/parameters.txt'  
 
-# cd /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw_data_base/nnUNet_raw_data
-# nnUNetv2_plan_and_preprocess -d Dataset279_Prostate --verify_dataset_integrity
+
 
 nNunetBaseFolder='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
 taskName= 'Dataset279_Prostate'
@@ -336,7 +335,9 @@ group = grouped_rows[1]
 
 print(group)
 
-
+# cd /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw_data_base/nnUNet_raw_data
+# nnUNetv2_plan_and_preprocess -d Dataset279_Prostate --verify_dataset_integrity
+# nnUNetv2_plan_and_preprocess -d 279 --verify_dataset_integrity
 
 #  All images (including labels) must be 3D nifti files (.nii.gz)!
 
