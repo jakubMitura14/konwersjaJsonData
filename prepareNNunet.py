@@ -90,8 +90,8 @@ os.makedirs(nNunetBaseFolder ,exist_ok = True)
 os.makedirs(taskFolder ,exist_ok = True)
 os.makedirs(imagesTrFolder ,exist_ok = True)
 os.makedirs(labelsTrFolder ,exist_ok = True)
-os.makedirs(preprocesss_folder)
-os.makedirs(results_folder)
+os.makedirs(preprocesss_folder ,exist_ok = True)
+os.makedirs(results_folder ,exist_ok = True)
 
 
 
@@ -107,8 +107,10 @@ data = {
    "background": 0,
    "prostate": 1,
  }, 
- "numTraining": 32, 
- "file_ending": ".nii.gz"
+ "numTraining": 322, 
+ "file_ending": ".nii.gz",
+ "overwrite_image_reader_writer": "SimpleITKIO"  # optional! If not provided nnU-Net will automatically determine the ReaderWriter
+
  }
 # .dumps() as a string
 json_string = json.dumps(data)
