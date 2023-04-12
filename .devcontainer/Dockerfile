@@ -228,6 +228,13 @@ COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
 #     # cmake ${HOME}/elastixx && \
 #     # make -j6
 
+# ENV nnUNet_raw="/media/fabian/nnUNet_raw"
+# ENV nnUNet_preprocessed="/media/fabian/nnUNet_preprocessed"
+# ENV nnUNet_results="/media/fabian/nnUNet_results"
+ENV nnUNet_raw="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw"
+ENV nnUNet_raw="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed"
+ENV nnUNet_raw="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_results"
+
 CMD ["/bin/bash"]
 
 

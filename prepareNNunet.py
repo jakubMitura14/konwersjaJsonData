@@ -26,9 +26,8 @@ from get3dFiles import get_frame_with_output
 import preprocess
 from preprocess import dilatate_erode_conditionally
 from os.path import basename, dirname, exists, isdir, join, split
-import nnunet
-import nnunet.dataset_conversion
-from nnunet.dataset_conversion.utils import generate_dataset_json
+import nnunetv2
+
 import elastixRegister
 from elastixRegister import reg_a_to_b
 import tempfile
@@ -39,23 +38,35 @@ from toolz import curry
 # import multiprocess
 # p = multiprocess.Pool(os.cpu_count())
 import multiprocessing as mp
+import json
 
 
 resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
 reg_prop='/workspaces/konwersjaJsonData/registration/parameters.txt'  
-nnunet_raw_data= '/home/sliceruser/workspaces/workDir/nnUNet_raw_data/Task2201_picai_baseline'
-imagesTr_dir= join(nnunet_raw_data,"imagesTr" )
-labelsTr_dir= join(nnunet_raw_data,"labelsTr" )
 
+# cd /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw_data_base/nnUNet_raw_data
+# nnUNetv2_plan_and_preprocess -d Dataset279_Prostate --verify_dataset_integrity
 
 nNunetBaseFolder='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
-taskName= 'Task505_opiProstate'
-taskFolder = join(nNunetBaseFolder,'nnUNet_raw_data_base','nnUNet_raw_data',taskName)
+taskName= 'Dataset279_Prostate'
+taskFolder = join(nNunetBaseFolder,'nnUNet_raw',taskName)
+preprocesss_folder= join(nNunetBaseFolder,'nnUNet_preprocessed')
+results_folder= join(nNunetBaseFolder,'nnUNet_results')
+
+
+
+
+# ENV nnUNet_preprocessed="/media/fabian/nnUNet_preprocessed"
+# ENV nnUNet_results="/media/fabian/nnUNet_results"
+
+
 imagesTrFolder= join(taskFolder,'imagesTr')
 labelsTrFolder= join(taskFolder,'labelsTr')
 imagesTsFolder= join(taskFolder,'imagesTs')
+json_path= join(taskFolder,'dataset.json')
+
 # modalities that we want to include in the model
 modalities_of_intrest=['t2w','adc','hbv']
 
@@ -63,21 +74,48 @@ modalities_of_intrest=['t2w','adc','hbv']
 main_modality = 't2w'
 prostate_col= 'pg_noSeg' # name of the column with 
 
+
+
+
+
 def groupByMaster(rowws):
     grouped_by_master= groupby(lambda row : row[1]['masterolds'],rowws)
     # grouped_by_master=[(key,list(group)) for key, group in grouped_by_master]
     return dict(grouped_by_master).items()
 
 
-os.makedirs(nnunet_raw_data ,exist_ok = True)
+os.makedirs(nNunetBaseFolder ,exist_ok = True)
 
-os.makedirs(join(nNunetBaseFolder,'nnUNet_raw_data_base') ,exist_ok = True)
-os.makedirs(join(nNunetBaseFolder,'nnUNet_raw_data_base','nnUNet_raw_data') ,exist_ok = True)
+# os.makedirs(join(nNunetBaseFolder,'nnUNet_raw_data_base') ,exist_ok = True)
+# os.makedirs(join(nNunetBaseFolder,'nnUNet_raw_data_base','nnUNet_raw_data') ,exist_ok = True)
 os.makedirs(taskFolder ,exist_ok = True)
 os.makedirs(imagesTrFolder ,exist_ok = True)
 os.makedirs(labelsTrFolder ,exist_ok = True)
-os.makedirs(imagesTr_dir ,exist_ok = True)
-os.makedirs(labelsTr_dir ,exist_ok = True)
+os.makedirs(preprocesss_folder)
+os.makedirs(results_folder)
+
+
+
+
+data = { 
+ "channel_names": {  # formerly modalities
+   "0": "T2", 
+   "1": "ADC",
+   "2": "HBV"
+
+ }, 
+ "labels": {  # THIS IS DIFFERENT NOW!
+   "background": 0,
+   "prostate": 1,
+ }, 
+ "numTraining": 32, 
+ "file_ending": ".nii.gz"
+ }
+# .dumps() as a string
+json_string = json.dumps(data)
+with open(json_path, 'w') as outfile:
+    outfile.write(json_string)
+
 
 
 
@@ -192,12 +230,14 @@ def save_from_arr(zeroArray,image3D,newPathLab):
     writer.SetFileName(newPathLab)
     writer.Execute(image)
 
+
+
 def prepare_out_paths(group,modalities_of_intrest ):
     #preparing names
     for_id=get_4_id(group[0])
-    label_new_path= join(labelsTr_dir,f"9{for_id}_9{for_id}00.nii.gz" )
-    prostate_path=join(imagesTr_dir,f"9{for_id}_9{for_id}00_000{3}.nii.gz" )
-    out_pathsDict= list(map( lambda mod:(mod,join(imagesTr_dir,f"9{for_id}_9{for_id}00_000{modalities_of_intrest.index(mod)}.nii.gz" )) ,modalities_of_intrest))
+    label_new_path= join(labelsTrFolder,f"9{for_id}00.nii.gz" )
+    prostate_path=join(imagesTrFolder,f"9{for_id}00_000{3}.nii.gz" )
+    out_pathsDict= list(map( lambda mod:(mod,join(imagesTrFolder,f"9{for_id}00_000{modalities_of_intrest.index(mod)}.nii.gz" )) ,modalities_of_intrest))
     out_pathsDict=dict(out_pathsDict)
     return label_new_path,prostate_path,out_pathsDict
 
