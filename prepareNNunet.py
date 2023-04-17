@@ -70,7 +70,6 @@ lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 
 
 main_modality = 't2w'
-prostate_col= 'pg_noSeg' # name of the column with 
 
 def get_bool_arr_from_path(pathh):
     """
@@ -88,9 +87,10 @@ def getPathsFromRow(row,list_columns):
     res=  map( lambda colName :row[1][colName] ,list_columns )
     return res
 
-def getListModality(modalityName,pathhs):
+def getListModality(modalityName,pathhs,non_mri_inputs):
     """
     getting paths related to single modality and extracting main MRI image
+    non_mri_inputs - some inputs that are designed to be put into input channels 
     """
     if(modalityName!="prostate"):
         # we are intrested only in paths that has the prostate segmentation
@@ -103,7 +103,7 @@ def getListModality(modalityName,pathhs):
         mod_paths= list(filter(lambda pathh: '.mha' not in pathh , mod_paths))
 
         return (modalityName,(mri,mod_paths))
-    elif(modalityName=="prostate"):
+    elif(modalityName=='prostate'):
         pathhs= list(filter(lambda el :"pg_t2w.nii.gz" in el , pathhs))
         return (modalityName,(pathhs[0]))
 
@@ -124,7 +124,7 @@ def iterGroupModalities(groupTuple,modalities_of_intrest,label_cols ):
     """
     masterOlds, listRows= groupTuple
     pathhs=toolz.pipe(listRows
-                ,map(partial(getPathsFromRow,list_columns=label_cols+['series_MRI_path',prostate_col]))
+                ,map(partial(getPathsFromRow,list_columns=label_cols+['series_MRI_path']))
                 ,myFlatten
                 ,filter(lambda el : len(el)>2)
                 ,list
@@ -249,7 +249,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     newPaths= list(zip(modalities,new_mri_paths))
     newPaths.append(('label',label_new_path ))
     #copying label holding segmentation of full prostate gland
-    currProstPath= group[1]["prostate"]
+    currProstPath= group[1]['prostate']
     shutil.copyfile(currProstPath,out_prostate_path )
     newPaths.append(('prostate',out_prostate_path))
 
@@ -341,7 +341,10 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
 
 # modalities that we want to include in the model
 modalities_of_intrest=['t2w','adc','hbv']
+prostate_col= 'pg_noSeg' # name of the column with segmentaton of whole prostate gland
+
 label_cols=lesion_cols
+label_cols=lesion_cols+[prostate_col]
 channel_names={  
     "0": "T2", 
     "1": "ADC",
