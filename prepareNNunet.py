@@ -62,7 +62,6 @@ def groupByMaster(rowws):
 
 
 
-
 sourceFrame = pd.read_csv(resCSVDir) 
 cols=sourceFrame.columns
 noSegCols=list(filter(lambda el: '_noSeg' in el , cols))+['series_MRI_path']
@@ -84,7 +83,7 @@ def getPathsFromRow(row,list_columns):
     """
     extracting all paths of intrest from row
     """
-    res=  map( lambda colName :row[1][colName] ,list_columns )
+    res=  map( lambda colName : (colName,row[1][colName] ),list_columns )
     return res
 
 def getListModality(modalityName,pathhs,non_mri_inputs):
@@ -92,9 +91,10 @@ def getListModality(modalityName,pathhs,non_mri_inputs):
     getting paths related to single modality and extracting main MRI image
     non_mri_inputs - some inputs that are designed to be put into input channels 
     """
-    if(modalityName!="prostate"):
+    if(modalityName not in non_mri_inputs):
         # we are intrested only in paths that has the prostate segmentation
-        pathhs= list(filter(lambda el :"pg_t2w.nii.gz" not in el , pathhs))
+        pathhs=list(map(lambda el: el[1],pathhs))
+        # pathhs= list(filter(lambda el :"pg_t2w.nii.gz" not in el , pathhs))
         mod_paths = list(filter(lambda pathh :modalityName in  pathh,pathhs))
         mri = list(filter(lambda el: '.mha' in el ,mod_paths))
         if(len(mri)==0):
@@ -103,32 +103,37 @@ def getListModality(modalityName,pathhs,non_mri_inputs):
         mod_paths= list(filter(lambda pathh: '.mha' not in pathh , mod_paths))
 
         return (modalityName,(mri,mod_paths))
-    elif(modalityName=='prostate'):
-        pathhs= list(filter(lambda el :"pg_t2w.nii.gz" in el , pathhs))
-        return (modalityName,(pathhs[0]))
+    elif(modalityName in non_mri_inputs):
+        colNames=list(map(lambda el: el[0],pathhs))
+        pathhss= list(filter(lambda el :modalityName in el[0] , pathhs))        
+        print(f"modalityName {modalityName}  pathhs {len(pathhss)}  paths orig {len(pathhs)} ")
+        if(len(pathhss)==0):
+            return ' ',[]        
+        return (modalityName,(pathhss[0][1]))
 
 def myFlatten(liist):
     return  itertools.chain(*liist)
-def map_modalities(pathhs,modalities):
-    return toolz.pipe(modalities
-                ,map(partial(getListModality,pathhs=pathhs))
+
+def map_modalities(pathhs,modalities,non_mri_inputs):
+    return toolz.pipe(modalities+non_mri_inputs
+                ,map(partial(getListModality,pathhs=pathhs,non_mri_inputs=non_mri_inputs))
                 ,list
             )
 
 
 
-def iterGroupModalities(groupTuple,modalities_of_intrest,label_cols ):
+def iterGroupModalities(groupTuple,modalities_of_intrest,label_cols,non_mri_inputs ):
     """
     grouping the paths into dictionary relative to modalities they represent and lesions on thise 
     modalities
     """
     masterOlds, listRows= groupTuple
     pathhs=toolz.pipe(listRows
-                ,map(partial(getPathsFromRow,list_columns=label_cols+['series_MRI_path']))
+                ,map(partial(getPathsFromRow,list_columns=np.unique(label_cols+['series_MRI_path']+non_mri_inputs)))
                 ,myFlatten
-                ,filter(lambda el : len(el)>2)
+                # ,filter(lambda el : len(el)>2)
                 ,list
-                ,partial(map_modalities,modalities=modalities_of_intrest+["prostate"])
+                ,partial(map_modalities,modalities=modalities_of_intrest,non_mri_inputs=non_mri_inputs)
                 ,dict
                 )   
     return (masterOlds,pathhs)
@@ -166,26 +171,35 @@ def save_from_arr(zeroArray,image3D,newPathLab):
     image = sitk.GetImageFromArray(zeroArray.astype(np.uint8))  
     image.SetSpacing(image3D.GetSpacing())
     image.SetOrigin(image3D.GetOrigin())
-    image.SetDirection(image3D.GetDirection())    
-
+    image.SetDirection(image3D.GetDirection())   
+    image = sitk.DICOMOrient(image, 'LPS')
+    image.SetDirection(tuple(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
     writer.SetFileName(newPathLab)
     writer.Execute(image)
 
 def copy_changing_type(source, dest):
     image= sitk.ReadImage(source)
+    image = sitk.DICOMOrient(image, 'LPS')
+    image.SetDirection(tuple(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
     writer = sitk.ImageFileWriter() 
     writer.SetFileName(dest)
     writer.Execute(image)
     return dest
 
-def prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder ):
+
+# mod="adc"
+def get_key_by_value(mod,channel_names):
+    return list(channel_names.keys())[list(channel_names.values()).index(mod)]
+
+def prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder,non_mri_inputs ):
     #preparing names
     for_id=get_4_id(group[0])
     label_new_path= join(labelsTrFolder,f"9{for_id}00.nii.gz" )
-    prostate_path=join(imagesTrFolder,f"9{for_id}00_000{3}.nii.gz" )
-    out_pathsDict= list(map( lambda mod:(mod,join(imagesTrFolder,f"9{for_id}00_000{modalities_of_intrest.index(mod)}.nii.gz" )) ,modalities_of_intrest))
+    # prostate_path=join(imagesTrFolder,f"9{for_id}00_000{3}.nii.gz" )
+    print(f"np.unique(modalities_of_intrest+non_mri_inputs) {np.unique(modalities_of_intrest+non_mri_inputs)}")
+    out_pathsDict= list(map( lambda mod:(mod,join(imagesTrFolder,f"9{for_id}00_000{get_key_by_value(mod,channel_names)}.nii.gz" )) ,np.unique(modalities_of_intrest+non_mri_inputs) ))
     out_pathsDict=dict(out_pathsDict)
-    return label_new_path,prostate_path,out_pathsDict
+    return label_new_path,out_pathsDict
 
 def process_labels_prim(labels,group,main_modality,label_new_path):
     # we get the sum of all labels 
@@ -199,17 +213,25 @@ def process_labels_prim(labels,group,main_modality,label_new_path):
     save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
 
 
-def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,transformix_path,labelsTrFolder,imagesTrFolder,process_labels ):
+
+# def set_common_prhysical_data():
+
+#     image_out.SetOrigin(img.GetOrigin())
+#     image_out.SetSpacing(img.GetSpacing())
+#     #set to RAI
+#     image_out.SetDirection(tuple(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0))
+
+def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,transformix_path,labelsTrFolder
+              ,imagesTrFolder,process_labels,non_mri_inputs ):
     """
     first register images and their respective labels to t2w
     then reduces all labels into their sum
     then saves mri and reduced labels into nnunet workdir to get structure the same as in baseline picai nnunet algorithm
     """
-    label_new_path,out_prostate_path,out_pathsDict=prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder )
+    label_new_path,out_pathsDict=prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder,non_mri_inputs )
     #In case file already exist
     if(exists(out_pathsDict[main_modality])):
         out_pathsDict['label']=label_new_path 
-        out_pathsDict['prostate']=out_prostate_path 
         return (group[0],out_pathsDict)
 
 
@@ -231,7 +253,6 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     labels=labels+group[1][main_modality][1]
 
     if(len(labels)>0):
-
         process_labels(labels,group,main_modality,label_new_path)
 
 
@@ -239,7 +260,9 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     #zipping for starmap use
     zipped_modalit_path = list(zip(modalities,mris))
     zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
-    
+    zipped_modalit_path_add= list(map( lambda el:(group[1][el], out_pathsDict[el]) ,non_mri_inputs))
+    zipped_modalit_path=zipped_modalit_path+zipped_modalit_path_add
+    zipped_modalit_path= list(filter(  lambda tupl: tupl[0]!=" " and tupl[1]!=" ",zipped_modalit_path))
     #as we already have prepared the destination paths and sources for images we need now to copy files
     # we need to remember that we are  getting from mha to nii gz
     list(itertools.starmap(copy_changing_type ,zipped_modalit_path ))
@@ -249,9 +272,9 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     newPaths= list(zip(modalities,new_mri_paths))
     newPaths.append(('label',label_new_path ))
     #copying label holding segmentation of full prostate gland
-    currProstPath= group[1]['prostate']
-    shutil.copyfile(currProstPath,out_prostate_path )
-    newPaths.append(('prostate',out_prostate_path))
+    # currProstPath= group[1]['prostate']
+    # shutil.copyfile(currProstPath,out_prostate_path )
+    # newPaths.append(('prostate',out_prostate_path))
 
     #clearing temporary directory
     shutil.rmtree(temp_dir, ignore_errors=True)
@@ -259,12 +282,10 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     return (group[0],dict(newPaths))
 
 
-def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_names,label_cols,process_labels):
+def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_names,label_cols,process_labels,non_mri_inputs):
     """
     main function for preparing nnunet
     """
-
-
     #first removing old data
     nNunetBaseFolder='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
 
@@ -307,12 +328,12 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
         grouped_rows= toolz.pipe(sourceFrame.iterrows()
                                 ,filter(lambda row: row[1]['series_desc'] in modalities_of_intrest)
                                 ,groupByMaster
-                                ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=label_cols))
-                                ,filter(lambda group: ' ' not in group[1].keys() )
+                                ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=label_cols,non_mri_inputs=non_mri_inputs))
+                                ,filter(lambda group: ' ' not in group[1].keys() )#krowa 
                                 ,list
                                 ,pmap(partial(add_files,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,reg_prop=reg_prop,
                                               elacticPath=elacticPath,transformix_path=transformix_path,labelsTrFolder=labelsTrFolder,imagesTrFolder=imagesTrFolder
-                                               ,process_labels=process_labels ))
+                                               ,process_labels=process_labels,non_mri_inputs=non_mri_inputs ))
                                 ,list
                                 )
 
@@ -342,27 +363,35 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
 # modalities that we want to include in the model
 modalities_of_intrest=['t2w','adc','hbv']
 prostate_col= 'pg_noSeg' # name of the column with segmentaton of whole prostate gland
+#  'ob_noSeg' 'ob_Seg' 'ob_num' 'pg_noSeg'
+#  'pg_Seg' 'pg_num' 'pz_noSeg' 'pz_Seg' 'pz_num' 'sv_l_noSeg' 'sv_l_Seg'
+#  'sv_l_num' 'sv_r_noSeg' 'sv_r_Seg' 'sv_r_num' 'tz_noSeg' 'tz_Seg'
+#  'tz_num' 'ur_noSeg' 'ur_Seg' 'ur_num'
+
+non_mri_inputs=[prostate_col]
 
 label_cols=lesion_cols
 label_cols=lesion_cols+[prostate_col]
 channel_names={  
-    "0": "T2", 
-    "1": "ADC",
-    "2": "HBV",
-    "3": "prostate"
+    "0": "t2w", 
+    "1": "adc",
+    "2": "hbv",
+    "3": "pg_noSeg"
     }
 label_names= {  # THIS IS DIFFERENT NOW!
     "background": 0,
     "lesion": 1,
     }
 
-grouped_rows= main_prepare_nnunet('279',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim)
+
+
+grouped_rows= main_prepare_nnunet('279',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs)
     
 
-group = grouped_rows[5]
+# print(np.array(cols))
 
 
-print(group)
+print(len(grouped_rows))
 
 # nnUNetv2_plan_and_preprocess -d 279 --verify_dataset_integrity
 # CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 279 3d_fullres 0
