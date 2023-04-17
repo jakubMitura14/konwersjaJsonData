@@ -173,14 +173,14 @@ def save_from_arr(zeroArray,image3D,newPathLab):
     image.SetOrigin(image3D.GetOrigin())
     image.SetDirection(image3D.GetDirection())   
     image = sitk.DICOMOrient(image, 'LPS')
-    image.SetDirection(tuple(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
+    image.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
     writer.SetFileName(newPathLab)
     writer.Execute(image)
 
 def copy_changing_type(source, dest):
     image= sitk.ReadImage(source)
     image = sitk.DICOMOrient(image, 'LPS')
-    image.SetDirection(tuple(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
+    image.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
     writer = sitk.ImageFileWriter() 
     writer.SetFileName(dest)
     writer.Execute(image)
@@ -267,8 +267,9 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     # we need to remember that we are  getting from mha to nii gz
     list(itertools.starmap(copy_changing_type ,zipped_modalit_path ))
 
+    print(f"zipped_modalit_path 0 {zipped_modalit_path[0]}")
     _,new_mri_paths= list(toolz.sandbox.core.unzip(zipped_modalit_path))
-    new_mri_paths=list(new_mri_paths)
+    new_mri_paths=np.unique(new_mri_paths+non_mri_inputs)
     newPaths= list(zip(modalities,new_mri_paths))
     newPaths.append(('label',label_new_path ))
     #copying label holding segmentation of full prostate gland
@@ -350,9 +351,9 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     with open(json_path, 'w') as outfile:
         outfile.write(json_string)
 
-    cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
-    p = Popen(cmd_terminal, shell=True)
-    p.wait()
+    # cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
+    # p = Popen(cmd_terminal, shell=True)
+    # p.wait()
 
 
     return grouped_rows
@@ -390,6 +391,7 @@ grouped_rows= main_prepare_nnunet('279',modalities_of_intrest,channel_names,labe
 
 # print(np.array(cols))
 
+print(grouped_rows[0])
 
 print(len(grouped_rows))
 
