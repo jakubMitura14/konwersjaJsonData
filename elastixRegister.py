@@ -39,7 +39,6 @@ def reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPat
 
     return a tuple where first entry is a registered MRI and second one are registered labels
     """
-       
     path=path_b
     outPath = out_folder
     os.makedirs(out_folder ,exist_ok = True)    

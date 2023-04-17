@@ -192,6 +192,8 @@ wget https://github.com/SuperElastix/elastix/releases/download/5.0.1/elastix-5.0
 tar -xf elastix-5.0.1-linux.tar.bz2
 
 
+# /workspaces/konwersjaJsonData/prepareNNunet.py
+
 RUN mkdir ${HOME}/nnUNet  && \
     git clone https://github.com/MIC-DKFZ/nnUNet.git  ${HOME}/nnUNet && \
     cd ${HOME}/nnUNet  && \
@@ -233,8 +235,12 @@ COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
 # ENV nnUNet_results="/media/fabian/nnUNet_results"
 ENV nnUNet_raw="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw"
 ENV nnUNet_preprocessed="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed"
-ENV nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_results"
+# ENV nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
 
 CMD ["/bin/bash"]
 
+import os
+
+# Set the value DEBUG variable
+os.environ.setdefault('DEBUG', 'True')
 
