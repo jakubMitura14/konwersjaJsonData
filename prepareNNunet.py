@@ -196,7 +196,6 @@ def prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder,
     for_id=get_4_id(group[0])
     label_new_path= join(labelsTrFolder,f"9{for_id}00.nii.gz" )
     # prostate_path=join(imagesTrFolder,f"9{for_id}00_000{3}.nii.gz" )
-    print(f"np.unique(modalities_of_intrest+non_mri_inputs) {np.unique(modalities_of_intrest+non_mri_inputs)}")
     out_pathsDict= list(map( lambda mod:(mod,join(imagesTrFolder,f"9{for_id}00_000{get_key_by_value(mod,channel_names)}.nii.gz" )) ,np.unique(modalities_of_intrest+non_mri_inputs) ))
     out_pathsDict=dict(out_pathsDict)
     return label_new_path,out_pathsDict
@@ -228,11 +227,18 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     then reduces all labels into their sum
     then saves mri and reduced labels into nnunet workdir to get structure the same as in baseline picai nnunet algorithm
     """
+    modalit_path_add= list(map( lambda el:(group[1][el]) ,non_mri_inputs))
+    filtered= list(filter(lambda el: el==' ',modalit_path_add))
+
+    if len(filtered)!=0:
+        return (' ',{})
+    
+    
     label_new_path,out_pathsDict=prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder,non_mri_inputs )
     #In case file already exist
-    if(exists(out_pathsDict[main_modality])):
-        out_pathsDict['label']=label_new_path 
-        return (group[0],out_pathsDict)
+    # if(exists(out_pathsDict[main_modality])):
+    #     out_pathsDict['label']=label_new_path 
+    #     return (group[0],out_pathsDict)
 
 
     temp_dir = tempfile.mkdtemp() # temporary directory
@@ -262,15 +268,18 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
     zipped_modalit_path_add= list(map( lambda el:(group[1][el], out_pathsDict[el]) ,non_mri_inputs))
     zipped_modalit_path=zipped_modalit_path+zipped_modalit_path_add
+
     zipped_modalit_path= list(filter(  lambda tupl: tupl[0]!=" " and tupl[1]!=" ",zipped_modalit_path))
     #as we already have prepared the destination paths and sources for images we need now to copy files
     # we need to remember that we are  getting from mha to nii gz
     list(itertools.starmap(copy_changing_type ,zipped_modalit_path ))
 
-    print(f"zipped_modalit_path 0 {zipped_modalit_path[0]}")
     _,new_mri_paths= list(toolz.sandbox.core.unzip(zipped_modalit_path))
-    new_mri_paths=np.unique(new_mri_paths+non_mri_inputs)
+    new_mri_paths=np.unique(list(new_mri_paths)+non_mri_inputs)
     newPaths= list(zip(modalities,new_mri_paths))
+    non_mri_inputs_new_paths= list(map( lambda el:(el, out_pathsDict[el]) ,non_mri_inputs))
+
+    newPaths=newPaths+non_mri_inputs_new_paths
     newPaths.append(('label',label_new_path ))
     #copying label holding segmentation of full prostate gland
     # currProstPath= group[1]['prostate']
@@ -280,6 +289,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     #clearing temporary directory
     shutil.rmtree(temp_dir, ignore_errors=True)
 
+    newPaths_paths= list(map(lambda tupl: tupl[1], newPaths))
     return (group[0],dict(newPaths))
 
 
@@ -317,7 +327,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     os.makedirs(mainResults_folder ,exist_ok = True)
     os.makedirs(join(mainResults_folder,taskName),exist_ok = True)
     # Set the value nnUNet_results enviroment variable
-    os.environ.setdefault('nnUNet_results', join(mainResults_folder,taskName))
+    # os.environ.setdefault('nnUNet_results', join(mainResults_folder,taskName))
 
     grouped_rows=[]
     with mp.Pool(processes = mp.cpu_count()) as pool:
@@ -335,6 +345,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
                                 ,pmap(partial(add_files,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,reg_prop=reg_prop,
                                               elacticPath=elacticPath,transformix_path=transformix_path,labelsTrFolder=labelsTrFolder,imagesTrFolder=imagesTrFolder
                                                ,process_labels=process_labels,non_mri_inputs=non_mri_inputs ))
+                                ,filter(lambda el: el[0]!=' ')
                                 ,list
                                 )
 
@@ -351,9 +362,11 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     with open(json_path, 'w') as outfile:
         outfile.write(json_string)
 
-    # cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
-    # p = Popen(cmd_terminal, shell=True)
-    # p.wait()
+
+
+    cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity -np 8"
+    p = Popen(cmd_terminal, shell=True)
+    p.wait()
 
 
     return grouped_rows
@@ -388,13 +401,21 @@ label_names= {  # THIS IS DIFFERENT NOW!
 
 grouped_rows= main_prepare_nnunet('279',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs)
     
+# mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate"
+# CUDA_VISIBLE_DEVICES=0 nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate" nnUNetv2_train 279 3d_fullres 0
 
 # print(np.array(cols))
 
-print(grouped_rows[0])
+# print(grouped_rows[0])
 
-print(len(grouped_rows))
+# print(len(grouped_rows))
+
+# mapped= list(map(lambda el:len(el[1]),grouped_rows))
+# print(f"lensss \n {mapped}")
 
 # nnUNetv2_plan_and_preprocess -d 279 --verify_dataset_integrity
 # CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 279 3d_fullres 0
 
+# 9041700
+
+# ['/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset279_Prostate/imagesTr/9041700_0000.nii.gz', '/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset279_Prostate/imagesTr/9041700_0001.nii.gz', '/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset279_Prostate/imagesTr/9041700_0002.nii.gz', '/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset279_Prostate/imagesTr/9041700_0003.nii.gz', '/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset279_Prostate/labelsTr/9041700.nii.gz'] 

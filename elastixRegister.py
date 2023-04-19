@@ -16,13 +16,14 @@ from os.path import basename, dirname, exists, isdir, join, split
 from pathlib import Path
 import fileinput
 import re
+import subprocess
 
 
 def transform_label(path_label,out_folder,transformix_path ,transformixParameters):
     outPath_label= join(out_folder,Path(path_label).name.replace(".nii.gz",""))
     os.makedirs(outPath_label ,exist_ok = True)
     cmd_transFormix=f"{transformix_path} -in {path_label} -def all -out {outPath_label} -tp {transformixParameters} -threads 1"
-    p = Popen(cmd_transFormix, shell=True)
+    p = Popen(cmd_transFormix, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)
     p.wait()
     return join(outPath_label,'result.mha')
 
@@ -46,7 +47,7 @@ def reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPat
 
 
     cmd=f"{elacticPath} -f {path_a} -m {path} -out {outPath} -p {reg_prop} -threads 1"
-    p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
+    p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
     p.wait()
     #we will repeat operation multiple max 9 times if the result would not be written
     if((not pathOs.exists(result)) and reIndex<3):
@@ -54,7 +55,8 @@ def reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPat
         reg_prop=reg_prop.replace("parameters","parametersB")
 
         cmd=f"{elacticPath} -f {path_a} -m {path} -out {outPath} -p {reg_prop} -threads 1"
-        p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
+
+        p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
         p.wait()
 
         # reIndexNew=reIndex+1

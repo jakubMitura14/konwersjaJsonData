@@ -137,7 +137,11 @@ RUN python3.9 -m pip  --no-cache-dir install \
     highdicom==0.19.0 \
     # nnunet==1.7.0 \
     multiprocess \
-    dill xnat pyxnat mdai
+    dill \
+    xnat \
+    pyxnat\
+    mdai \
+    pyradiomics
 
 
 
@@ -235,12 +239,8 @@ COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
 # ENV nnUNet_results="/media/fabian/nnUNet_results"
 ENV nnUNet_raw="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw"
 ENV nnUNet_preprocessed="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed"
-# ENV nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
+ENV nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
 
 CMD ["/bin/bash"]
 
-import os
-
-# Set the value DEBUG variable
-os.environ.setdefault('DEBUG', 'True')
 
