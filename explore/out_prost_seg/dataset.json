@@ -1,0 +1,14 @@
+{
+    "channel_names": {
+        "0": "t2w",
+        "1": "adc",
+        "2": "hbv"
+    },
+    "labels": {
+        "background": 0,
+        "prostate": 1
+    },
+    "numTraining": 274,
+    "file_ending": ".nii.gz",
+    "overwrite_image_reader_writer": "SimpleITKIO"
+}
