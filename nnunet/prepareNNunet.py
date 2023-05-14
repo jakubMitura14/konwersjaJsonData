@@ -213,6 +213,8 @@ def process_labels_prim(labels,group,main_modality,label_new_path):
 
 
 
+
+
 # def set_common_prhysical_data():
 
 #     image_out.SetOrigin(img.GetOrigin())
