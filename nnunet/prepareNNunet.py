@@ -106,7 +106,6 @@ def getListModality(modalityName,pathhs,non_mri_inputs):
     elif(modalityName in non_mri_inputs):
         colNames=list(map(lambda el: el[0],pathhs))
         pathhss= list(filter(lambda el :modalityName in el[0] , pathhs))        
-        print(f"modalityName {modalityName}  pathhs {len(pathhss)}  paths orig {len(pathhs)} ")
         if(len(pathhss)==0):
             return ' ',[]        
         return (modalityName,(pathhss[0][1]))
@@ -263,8 +262,6 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     if(len(labels)>0):
         process_labels(labels,group,main_modality,label_new_path)
 
-
-
     #zipping for starmap use
     zipped_modalit_path = list(zip(modalities,mris))
     zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
@@ -302,13 +299,12 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     #first removing old data
     nNunetBaseFolder='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
 
-    shutil.rmtree(nNunetBaseFolder)
+    # shutil.rmtree(nNunetBaseFolder)
     taskName= f"Dataset{dataset_id}_Prostate"
     taskFolder = join(nNunetBaseFolder,'nnUNet_raw',taskName)
     preprocesss_folder= join(nNunetBaseFolder,'nnUNet_preprocessed')
     results_folder= join(nNunetBaseFolder,'nnUNet_results')
     mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
-
     imagesTrFolder= join(taskFolder,'imagesTr')
     labelsTrFolder= join(taskFolder,'labelsTr')
     imagesTsFolder= join(taskFolder,'imagesTs')

@@ -78,41 +78,42 @@ dataset_id='280'
 
 # CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 280 3d_fullres 0
 
-def train_2_folds_and_save():
-    """
-    runs the training on 2 folds and copies resulting checkpoints into a separate folder
-    """
-    main_dir='/home/sliceruser/workspaces/konwersjaJsonData/results_to_save'
-    os.makedirs(main_dir ,exist_ok = True)
-    cmd_terminal=f"CUDA_VISIBLE_DEVICES=0 nnUNetv2_train {dataset_id} 3d_fullres 2"
-    p = Popen(cmd_terminal, shell=True)
-    p.wait()
-    cmd_terminal=f"CUDA_VISIBLE_DEVICES=0 nnUNetv2_train {dataset_id} 3d_fullres 3"
-    p = Popen(cmd_terminal, shell=True)
-    p.wait()
-    cmd_terminal=f"CUDA_VISIBLE_DEVICES=0 nnUNetv2_train {dataset_id} 3d_fullres 4"
-    p = Popen(cmd_terminal, shell=True)
-    p.wait()
+# def train_2_folds_and_save():
+#     """
+#     runs the training on 2 folds and copies resulting checkpoints into a separate folder
+#     """
+#     main_dir='/home/sliceruser/workspaces/konwersjaJsonData/results_to_save'
+#     os.makedirs(main_dir ,exist_ok = True)
+#     cmd_terminal=f"CUDA_VISIBLE_DEVICES=0 nnUNetv2_train {dataset_id} 3d_fullres 2"
+#     p = Popen(cmd_terminal, shell=True)
+#     p.wait()
+#     cmd_terminal=f"CUDA_VISIBLE_DEVICES=0 nnUNetv2_train {dataset_id} 3d_fullres 3"
+#     p = Popen(cmd_terminal, shell=True)
+#     p.wait()
+#     cmd_terminal=f"CUDA_VISIBLE_DEVICES=0 nnUNetv2_train {dataset_id} 3d_fullres 4"
+#     p = Popen(cmd_terminal, shell=True)
+#     p.wait()
 
-    dir_project_id=f"/home/sliceruser/workspaces/konwersjaJsonData/results_to_save/{dataset_id}"
-    os.makedirs(dir_project_id ,exist_ok = True)
-    dir_project_id_with_date=f"/home/sliceruser/workspaces/konwersjaJsonData/results_to_save/{dataset_id}/{date.today()}"
-    # os.makedirs(dir_project_id_with_date ,exist_ok = True)
-    original_results_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
-    shutil.copytree(original_results_folder, dir_project_id_with_date,dirs_exist_ok=True) 
+#     dir_project_id=f"/home/sliceruser/workspaces/konwersjaJsonData/results_to_save/{dataset_id}"
+#     os.makedirs(dir_project_id ,exist_ok = True)
+#     dir_project_id_with_date=f"/home/sliceruser/workspaces/konwersjaJsonData/results_to_save/{dataset_id}/{date.today()}"
+#     # os.makedirs(dir_project_id_with_date ,exist_ok = True)
+#     original_results_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
+#     shutil.copytree(original_results_folder, dir_project_id_with_date,dirs_exist_ok=True) 
 
-train_2_folds_and_save()
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/results_to_save/280/2023-05-08 /home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results
 
-nnUNetv2_find_best_configuration 280 -c CONFIGURATIONS 
-nnUNetv2_find_best_configuration 280 -c '3d_fullres' 
+# train_2_folds_and_save()
 
-# nnUNetv2_find_best_configuration 280 -c '3d_fullres' -f 0 -np 8
-# nnUNetv2_find_best_configuration -h
-#The file "/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/labelsTr/9043100.nii.gz" does not exist.
+# nnUNetv2_find_best_configuration 280 -c CONFIGURATIONS 
+# nnUNetv2_find_best_configuration 280 -c '3d_fullres' 
 
-nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_infered -d 280 -c '3d_fullres' 
+# # nnUNetv2_find_best_configuration 280 -c '3d_fullres' -f 0 -np 8
+# # nnUNetv2_find_best_configuration -h
+# #The file "/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/labelsTr/9043100.nii.gz" does not exist.
 
---save_probabilities
-9000100_0000.nii.gz  9014100_0001.nii.gz
+# nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_infered -d 280 -c '3d_fullres' 
 
-cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/imagesTr/9000100_0003.nii.gz /workspaces/konwersjaJsonData/explore/in_prost_seg/9000100_0003.nii.gz
+# --save_probabilities
+
+# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/imagesTr/9000100_0003.nii.gz /workspaces/konwersjaJsonData/explore/in_prost_seg/9000100_0003.nii.gz

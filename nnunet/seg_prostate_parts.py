@@ -83,29 +83,51 @@ prostate_col= new_col_name # name of the column with segmentaton of whole prosta
 
 non_mri_inputs=[new_col_name]
 
-label_cols=lesion_cols
-label_cols=lesion_cols+[prostate_col]
+anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg']
+
+
+label_cols=anatomic_cols
+# label_cols=lesion_cols+[prostate_col]
 channel_names={  
     "0": "t2w", 
     "1": "adc",
     "2": "hbv",
-    "3": "pg_noSeg"
-    }
-label_names= {  # THIS IS DIFFERENT NOW!
-    "background": 0,
-    "lesion": 1,
+    "3": new_col_name
     }
 
+
+label_names= {  # THIS IS DIFFERENT NOW!
+    "background": 0,
+    "afs": 1,
+    "cz": 2,
+    "pz": 3,
+    "tz": 4,
+    }
+
+def get_int_arr_from_path(pathh):
+    """
+    given path reads it and return associated array
+    then it casts it to boolean data type
+    """
+    index=10
+    if('afs' in pathh):
+        index=1
+    if('cz' in pathh):
+        index=2        
+    if('pz' in pathh):
+        index=3
+    if('tz' in pathh):
+        index=4
+
+    imageA=sitk.ReadImage(pathh)
+    return np.array(sitk.GetArrayFromImage(imageA).astype(bool).astype(int) *(index))
 
 def process_labels_prim(labels,group,main_modality,label_new_path):
     # we get the sum of all labels 
-    # reduced = np.array(toolz.sandbox.parallel.fold(get_bool_or, labels,map=map))
-    reduced = np.array(functools.reduce(get_bool_or, labels))
-    # now we need to save the sumed label and all of the MRIs 
-    # we want to make it compatible with both nnunet in general and with the picai dataset so we will keep picai convention of numering cases
-    # 0 t2w, 1 adc 2 hbv additionally we will set prostate gland label as 3 which will be output of the segmentation algorithm passed as preprocessing step
-    # in order to avoid problems with repeating ids all ids from 9
-    # we need also to add related labels        
+    arrays= list(map(get_int_arr_from_path,labels))
+    # arrays= list(map(list,arrays))
+    reduced = np.sum(np.stack(arrays,axis=0),axis=0)
+    # print(np.unique(reduced))
     save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
 
 
@@ -115,7 +137,7 @@ grouped_rows= main_prepare_nnunet('281',modalities_of_intrest,channel_names,labe
     
 # mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate"
 # CUDA_VISIBLE_DEVICES=0 nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate" nnUNetv2_train 279 3d_fullres 0
-# CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 279 3d_fullres 0
+# CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 281 3d_fullres 0
 
 
 # https://github.com/jakubMitura14/konwersjaJsonData.git
