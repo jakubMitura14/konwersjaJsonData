@@ -52,6 +52,9 @@ def get_id_from_file_name(path_str):
     path_str=path_str[1:5]
     return int(path_str)
 
+def add_t2w_to_name(source):
+    
+    copy_changing_type(source, dest)
 
 def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
     """ 
@@ -64,6 +67,9 @@ def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
     list_files= list(map( lambda el: f"{dir_inferred_prost}/{el}" ,list_files))
     file_and_id= dict(list(zip(list_ids,list_files)))
     new_col_dat= list(map( lambda el: file_and_id.get(el,' ') ,df['masterolds'].to_numpy() ))
+    #changing path name to mark it is t2w related
+    
+
     df[new_col_name]=new_col_dat
     return df
 
@@ -75,19 +81,22 @@ lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 main_modality = 't2w'
 
 sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_name)
-
 # modalities that we want to include in the model
 modalities_of_intrest=['t2w','adc','hbv']
 prostate_col= new_col_name # name of the column with segmentaton of whole prostate gland
 
+# prostate_col= 'pg_noSeg'
+# new_col_name=prostate_col
+
 
 non_mri_inputs=[new_col_name]
 
-anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg']
+anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg',new_col_name]
+# anatomic_cols=['afs_noSeg']
 
 
 label_cols=anatomic_cols
-# label_cols=lesion_cols+[prostate_col]
+# label_cols=anatomic_cols+[prostate_col]
 channel_names={  
     "0": "t2w", 
     "1": "adc",
@@ -104,37 +113,61 @@ label_names= {  # THIS IS DIFFERENT NOW!
     "tz": 4,
     }
 
+# label_names= {  # THIS IS DIFFERENT NOW!
+#     "background": 0,
+#     "afs": 1,
+#     }
+
 def get_int_arr_from_path(pathh):
     """
     given path reads it and return associated array
     then it casts it to boolean data type
     """
-    index=10
+    index=15
+    to_ignore=False
     if('afs' in pathh):
         index=1
-    if('cz' in pathh):
+    elif('cz' in pathh):
         index=2        
-    if('pz' in pathh):
+    elif('pz' in pathh):
         index=3
-    if('tz' in pathh):
+    elif('tz' in pathh):
         index=4
+    else:
+        to_ignore=True
 
     imageA=sitk.ReadImage(pathh)
-    return np.array(sitk.GetArrayFromImage(imageA).astype(bool).astype(int) *(index))
+    imageA=sitk.GetArrayFromImage(imageA)
+    if(to_ignore):
+        return np.zeros_like(imageA)
+    return np.array(imageA.astype(bool).astype(np.uint8) *(index))
 
 def process_labels_prim(labels,group,main_modality,label_new_path):
     # we get the sum of all labels 
     arrays= list(map(get_int_arr_from_path,labels))
     # arrays= list(map(list,arrays))
-    reduced = np.sum(np.stack(arrays,axis=0),axis=0)
-    # print(np.unique(reduced))
+    reduced = np.sum(np.stack(arrays,axis=0),axis=0).astype(np.uint8)
+    print(np.unique(reduced))
     save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
 
 
+def for_filter_unwanted(group):
+    """ 
+    we want only cases where  afs cz pz and tz are indicated
+    """
+    # print(f"llll {len(group[1]['t2w'][1])}")
+    # print(f"tttt {group[1]['t2w'][1]}")
+    # print(f"tttt {group[1]['t2w'][1]}")
+
+    # return len(group[1]['t2w'][1])>3
+    return True
 
 
-grouped_rows= main_prepare_nnunet('281',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality)
-    
+
+grouped_rows= main_prepare_nnunet('281',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
+
+
+
 # mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate"
 # CUDA_VISIBLE_DEVICES=0 nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate" nnUNetv2_train 279 3d_fullres 0
 # CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 281 3d_fullres 0

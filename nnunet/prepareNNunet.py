@@ -105,19 +105,23 @@ def getListModality(modalityName,pathhs,non_mri_inputs):
         return (modalityName,(mri,mod_paths))
     elif(modalityName in non_mri_inputs):
         colNames=list(map(lambda el: el[0],pathhs))
-        pathhss= list(filter(lambda el :modalityName in el[0] , pathhs))        
+        pathhss= list(filter(lambda el :modalityName in el[0] , pathhs))   
         if(len(pathhss)==0):
             return ' ',[]        
-        return (modalityName,(pathhss[0][1]))
+        res= (modalityName,(pathhss[0][1]))
+        return res
+
 
 def myFlatten(liist):
     return  itertools.chain(*liist)
 
 def map_modalities(pathhs,modalities,non_mri_inputs):
-    return toolz.pipe(modalities+non_mri_inputs
+    res= toolz.pipe(modalities+non_mri_inputs
                 ,map(partial(getListModality,pathhs=pathhs,non_mri_inputs=non_mri_inputs))
                 ,list
             )
+    # print(f"gggg {res}")
+    return res
 
 
 
@@ -167,7 +171,15 @@ def save_from_arr(zeroArray,image3D,newPathLab):
     given array saves it to file into defined path using simpleitk
     """
     writer = sitk.ImageFileWriter()
+<<<<<<< HEAD
     image = sitk.GetImageFromArray(zeroArray.astype(np.uint8))  
+=======
+    image = sitk.GetImageFromArray(zeroArray.astype(float).astype(np.uint8))  
+    nan_count=np.sum(np.isnan(np.array(sitk.GetArrayFromImage(image)).flatten()))
+    if(nan_count>0):
+        raise ValueError(f"!!! nan in image would be saved as {newPathLab}")
+
+>>>>>>> ca4611f (up)
     image.SetSpacing(image3D.GetSpacing())
     image.SetOrigin(image3D.GetOrigin())
     image.SetDirection(image3D.GetDirection())   
@@ -178,8 +190,12 @@ def save_from_arr(zeroArray,image3D,newPathLab):
 
 def copy_changing_type(source, dest):
     image= sitk.ReadImage(source)
+    nan_count=np.sum(np.isnan(np.array(sitk.GetArrayFromImage(image)).flatten()))
+    if(nan_count>0):
+        raise ValueError(f"!!! nan in {source}")
     image = sitk.DICOMOrient(image, 'LPS')
     image.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
+    image=sitk.Cast(image, sitk.sitkFloat32)
     writer = sitk.ImageFileWriter() 
     writer.SetFileName(dest)
     writer.Execute(image)
@@ -292,14 +308,20 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     return (group[0],dict(newPaths))
 
 
+<<<<<<< HEAD
 def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_names,label_cols,process_labels,non_mri_inputs):
+=======
+def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_names,label_cols,process_labels,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted=None):
+>>>>>>> ca4611f (up)
     """
     main function for preparing nnunet
     """
     #first removing old data
     nNunetBaseFolder='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
 
-    # shutil.rmtree(nNunetBaseFolder)
+    shutil.rmtree(f"{nNunetBaseFolder}/nnUNet_preprocessed")
+    shutil.rmtree(f"{nNunetBaseFolder}/nnUNet_raw")
+
     taskName= f"Dataset{dataset_id}_Prostate"
     taskFolder = join(nNunetBaseFolder,'nnUNet_raw',taskName)
     preprocesss_folder= join(nNunetBaseFolder,'nnUNet_preprocessed')
@@ -326,7 +348,10 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     os.makedirs(join(mainResults_folder,taskName),exist_ok = True)
     # Set the value nnUNet_results enviroment variable
     # os.environ.setdefault('nnUNet_results', join(mainResults_folder,taskName))
-
+    #defaul is not filter out anything
+    if(for_filter_unwanted==None):
+        print("for_filter_unwanted is None")
+        for_filter_unwanted=lambda group: True
     grouped_rows=[]
     with mp.Pool(processes = mp.cpu_count()) as pool:
     # with mp.Pool(processes = 1) as pool:
@@ -338,7 +363,13 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
                                 ,filter(lambda row: row[1]['series_desc'] in modalities_of_intrest)
                                 ,groupByMaster
                                 ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=label_cols,non_mri_inputs=non_mri_inputs))
+<<<<<<< HEAD
                                 ,filter(lambda group: ' ' not in group[1].keys() )#krowa 
+=======
+                                ,filter(lambda group: ' ' not in group[1].keys() )
+                                ,filter(for_filter_unwanted )
+
+>>>>>>> ca4611f (up)
                                 ,list
                                 ,pmap(partial(add_files,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,reg_prop=reg_prop,
                                               elacticPath=elacticPath,transformix_path=transformix_path,labelsTrFolder=labelsTrFolder,imagesTrFolder=imagesTrFolder
