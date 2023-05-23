@@ -26,8 +26,8 @@ from toolz import curry
 from os.path import basename, dirname, exists, isdir, join, split
 import nnunetv2
 
-import elastixRegister as elastixRegister
-from elastixRegister import reg_a_to_b
+import nnunet.elastixRegister as elastixRegister
+from nnunet.elastixRegister import reg_a_to_b
 from datetime import date
 from toolz.itertoolz import groupby
 from toolz import curry

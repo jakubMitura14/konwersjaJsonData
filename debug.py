@@ -29,8 +29,8 @@ from preprocess import dilatate_erode_conditionally
 from os.path import basename, dirname, exists, isdir, join, split
 import nnunetv2
 
-import elastixRegister
-from elastixRegister import reg_a_to_b
+import nnunet.elastixRegister as elastixRegister
+from nnunet.elastixRegister import reg_a_to_b
 import tempfile
 import shutil
 import re

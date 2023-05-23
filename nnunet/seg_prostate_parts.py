@@ -161,7 +161,7 @@ def for_filter_unwanted(group):
     we want only cases where  afs cz pz and tz are indicated
     """
 
-    # print(f"tttt {group[1]['t2w'][1]}")
+    print(f"tttt {group[1]['t2w'][1]}")
 
     # return len(group[1]['t2w'][1])==5
     return True

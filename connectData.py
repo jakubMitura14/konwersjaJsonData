@@ -31,7 +31,8 @@ import re
 import shutil
 import getVolume
 from getVolume import get_volumes_frames
-
+from map_anatomy_on_adc import save_mean_anatomy_adc
+from get_max_perimeter import save_max_paerimeter
 print("veeeeeeer 11")
 
 #JSON filr from mdai summarizing data about annotations etc. 
@@ -95,10 +96,20 @@ prostateLab = 'prostate'
 labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra','seminal vesicles L',
        'seminal vesicles R']#
 ####additionally dilatate_erode_conditionally after processing saves dicom seg's into previosly created folders
-dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
+# dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
 
 ##measurements
 #after data is preprocessed we will perform measurements like volumes of labels
-get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLab)
 
+#directory of the csv to save data about volumes
+prost_volumes_csv_dir='/workspaces/konwersjaJsonData/explore/prost_volumes.csv'
+lesion_volumes_csv_dir='/workspaces/konwersjaJsonData/explore/lesion_volumes.csv'
+adc_means_csv_dir='/workspaces/konwersjaJsonData/explore/mean_adcs.csv'
+
+anatomic_cols=['pg_noSeg','afs_noSeg','cz_noSeg','pz_noSeg','sv_l_noSeg','sv_r_noSeg','tz_noSeg','ur_noSeg']
+# get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLab,anatomic_cols,adc_means_csv_dir)
+anatomy_adc_csv_dir='/workspaces/konwersjaJsonData/explore/mean_adcs_per_anatomy.csv'
+save_mean_anatomy_adc(out_files_frame,anatomic_cols,anatomy_adc_csv_dir)
+circ_frame_csv_dir='/workspaces/konwersjaJsonData/explore/max_circs.csv'
+# save_max_paerimeter(out_files_frame,anatomic_cols,circ_frame_csv_dir)
 
