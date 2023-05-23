@@ -53,8 +53,13 @@ def get_id_from_file_name(path_str):
     return int(path_str)
 
 def add_t2w_to_name(source):
-    
-    copy_changing_type(source, dest)
+    if(source==' '):
+        return ' '
+    if('t2w' in source):
+        return source
+    new_path= source.replace('.nii.gz','_t2w.nii.gz')
+    copy_changing_type(source, new_path)
+    return new_path
 
 def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
     """ 
@@ -68,7 +73,7 @@ def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
     file_and_id= dict(list(zip(list_ids,list_files)))
     new_col_dat= list(map( lambda el: file_and_id.get(el,' ') ,df['masterolds'].to_numpy() ))
     #changing path name to mark it is t2w related
-    
+    new_col_dat= list(map(add_t2w_to_name,new_col_dat))
 
     df[new_col_name]=new_col_dat
     return df
@@ -155,11 +160,10 @@ def for_filter_unwanted(group):
     """ 
     we want only cases where  afs cz pz and tz are indicated
     """
-    # print(f"llll {len(group[1]['t2w'][1])}")
-    # print(f"tttt {group[1]['t2w'][1]}")
+
     # print(f"tttt {group[1]['t2w'][1]}")
 
-    # return len(group[1]['t2w'][1])>3
+    # return len(group[1]['t2w'][1])==5
     return True
 
 

@@ -102,13 +102,13 @@ def getListModality(modalityName,pathhs,non_mri_inputs):
         mri=mri[0]   
         mod_paths= list(filter(lambda pathh: '.mha' not in pathh , mod_paths))
 
-        return (modalityName,(mri,mod_paths))
+        return (modalityName,(mri,np.unique(mod_paths).tolist()))
     elif(modalityName in non_mri_inputs):
         colNames=list(map(lambda el: el[0],pathhs))
         pathhss= list(filter(lambda el :modalityName in el[0] , pathhs))   
         if(len(pathhss)==0):
             return ' ',[]        
-        res= (modalityName,(pathhss[0][1]))
+        res= (modalityName, (modalityName,np.unique(pathhss[0][1]).tolist())  )
         return res
 
 
@@ -273,7 +273,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     mris.append(group[1][main_modality][0])    
 
     #adding to the list the labels from main modality thay did not needed to be registered
-    labels=labels+group[1][main_modality][1]
+    labels=np.array(labels+group[1][main_modality][1]).flatten()
 
     if(len(labels)>0):
         process_labels(labels,group,main_modality,label_new_path)
@@ -281,9 +281,9 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     #zipping for starmap use
     zipped_modalit_path = list(zip(modalities,mris))
     zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
-    zipped_modalit_path_add= list(map( lambda el:(group[1][el], out_pathsDict[el]) ,non_mri_inputs))
+    zipped_modalit_path_add= list(map( lambda el:(group[1][el][1][0], out_pathsDict[el]) ,non_mri_inputs))
     zipped_modalit_path=zipped_modalit_path+zipped_modalit_path_add
-
+    # print(f"zipped_modalit_path_add {zipped_modalit_path_add} \n zipped_modalit_path {zipped_modalit_path} \n out_pathsDict {out_pathsDict}  ")
     zipped_modalit_path= list(filter(  lambda tupl: tupl[0]!=" " and tupl[1]!=" ",zipped_modalit_path))
     #as we already have prepared the destination paths and sources for images we need now to copy files
     # we need to remember that we are  getting from mha to nii gz
