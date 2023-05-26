@@ -218,8 +218,8 @@ RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so.1 /usr/local
 RUN ldconfig
 RUN apt-get install -q -y vim nano 
 RUN mkdir ${HOME}/registration
-# COPY registration/parameters.txt ${HOME}/registration/parameters.txt
-# COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
+COPY registration/parameters.txt ${HOME}/registration/parameters.txt
+COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
 
 ### DCMQI from https://hub.docker.com/r/qiicr/dcmqi/dockerfile
 

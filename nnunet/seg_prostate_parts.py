@@ -90,8 +90,8 @@ sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame
 modalities_of_intrest=['t2w','adc','hbv']
 prostate_col= new_col_name # name of the column with segmentaton of whole prostate gland
 
-# prostate_col= 'pg_noSeg'
-# new_col_name=prostate_col
+prostate_col= 'pg_noSeg'
+new_col_name=prostate_col
 
 
 non_mri_inputs=[new_col_name]
@@ -110,7 +110,7 @@ channel_names={
     }
 
 
-label_names= {  # THIS IS DIFFERENT NOW!
+label_names= {  
     "background": 0,
     "afs": 1,
     "cz": 2,
@@ -162,9 +162,10 @@ def for_filter_unwanted(group):
     """
 
     print(f"tttt {group[1]['t2w'][1]}")
+    print(f"lll {len(group[1]['t2w'][1])}")
 
-    # return len(group[1]['t2w'][1])==5
-    return True
+    return len(group[1]['t2w'][1])==5
+    # return True
 
 
 

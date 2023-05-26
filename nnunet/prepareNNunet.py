@@ -167,9 +167,9 @@ def save_from_arr(zeroArray,image3D,newPathLab):
 
 def copy_changing_type(source, dest):
     image= sitk.ReadImage(source)
-    nan_count=np.sum(np.isnan(np.array(sitk.GetArrayFromImage(image)).flatten()))
-    if(nan_count>0):
-        raise ValueError(f"!!! nan in {source}")
+    # nan_count=np.sum(np.isnan(np.array(sitk.GetArrayFromImage(image)).flatten()))
+    # if(nan_count>0):
+    #     raise ValueError(f"!!! nan in {source}")
     image = sitk.DICOMOrient(image, 'LPS')
     image.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
     image=sitk.Cast(image, sitk.sitkFloat32)
