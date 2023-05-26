@@ -73,7 +73,7 @@ def process_labels_prim(labels,group,main_modality,label_new_path):
 
 dataset_id='280'
 
-# grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality)
+grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality)
     
 
 # CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 280 3d_fullres 0
