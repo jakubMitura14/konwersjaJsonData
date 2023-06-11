@@ -171,6 +171,7 @@ def for_filter_unwanted(group):
 
 grouped_rows= main_prepare_nnunet('281',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
+#nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered -d 281 -c '3d_fullres' 
 
 
 # mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate"
@@ -179,3 +180,8 @@ grouped_rows= main_prepare_nnunet('281',modalities_of_intrest,channel_names,labe
 
 
 # https://github.com/jakubMitura14/konwersjaJsonData.git
+
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 281 3d_fullres 1
+#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 281 3d_fullres 2
+#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 281 3d_fullres 3
+#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 281 3d_fullres 4
