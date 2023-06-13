@@ -260,7 +260,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     new_mri_paths=np.unique(list(new_mri_paths)+non_mri_inputs)
     newPaths= list(zip(modalities,new_mri_paths))
     non_mri_inputs_new_paths= list(map( lambda el:(el, out_pathsDict[el]) ,non_mri_inputs))
-
+    # print(f"non_mri_inputs_new_paths {non_mri_inputs_new_paths} non_mri_inputs {non_mri_inputs}")
     newPaths=newPaths+non_mri_inputs_new_paths
     newPaths.append(('label',label_new_path ))
     #copying label holding segmentation of full prostate gland

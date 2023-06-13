@@ -144,6 +144,15 @@ sourceFrame=add_inferred_prost_parts_to_dataframe(dir_inferred_prost_parts, sour
 sourceFrame=add_inferred_prost_parts_to_dataframe(dir_inferred_prost_parts, sourceFrame,new_col_names[2], 3)
 sourceFrame=add_inferred_prost_parts_to_dataframe(dir_inferred_prost_parts, sourceFrame,new_col_names[3], 4)
 
+sourceFrame=sourceFrame.loc[sourceFrame[new_prost_col_name] != " "]
+sourceFrame=sourceFrame.loc[sourceFrame[new_col_names[0]] != " "]
+sourceFrame=sourceFrame.loc[sourceFrame[new_col_names[1]] != " "]
+sourceFrame=sourceFrame.loc[sourceFrame[new_col_names[2]] != " "]
+sourceFrame=sourceFrame.loc[sourceFrame[new_col_names[3]] != " "]
+
+
+
+
 # modalities that we want to include in the model
 modalities_of_intrest=['t2w','adc','hbv']
 
@@ -207,7 +216,7 @@ def for_filter_unwanted(group):
     return True
 
 
-grouped_rows= main_prepare_nnunet('282',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
+grouped_rows= main_prepare_nnunet('283',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
 #nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset281_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered -d 281 -c '3d_fullres' 
 
@@ -219,9 +228,12 @@ grouped_rows= main_prepare_nnunet('282',modalities_of_intrest,channel_names,labe
 
 # https://github.com/jakubMitura14/konwersjaJsonData.git
 
-#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 281 3d_fullres 1
-#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 281 3d_fullres 2
-#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 281 3d_fullres 3
-#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 281 3d_fullres 4
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 283 3d_fullres 0
+
+
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 283 3d_fullres 1
+#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 283 3d_fullres 2
+#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 283 3d_fullres 3
+#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 283 3d_fullres 4
 
 # /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed/Dataset281_Prostate/gt_segmentations
