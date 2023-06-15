@@ -46,8 +46,8 @@
 // The optimizer AdaptiveStochasticGradientDescent (ASGD) works
 // quite ok in general. The Transform and Metric are important
 // and need to be chosen careful for each application. See manual.
-//(Transform "EulerTransform")
-(Transform "AffineTransform")
+(Transform "EulerTransform")
+//(Transform "AffineTransform")
 
 (Sampler "RandomCoordinate")
 (Optimizer "AdaptiveStochasticGradientDescent")
@@ -98,8 +98,8 @@
 // Maximum number of iterations in each resolution level:
 // 200-500 works usually fine for rigid registration.
 // For more robustness, you may increase this to 1000-2000.
-//(MaximumNumberOfIterations 4000 4000 5500 5500)
-(MaximumNumberOfIterations 0 0 0 0)
+(MaximumNumberOfIterations 4000 4000 5500 5500)
+//(MaximumNumberOfIterations 0 0 0 0)
 
 
 
@@ -117,7 +117,7 @@
 // With an AdaptiveStochasticGradientDescent optimizer,
 // in combination with the two options below, around 2000
 // samples may already suffice.
-(NumberOfSpatialSamples 30480)
+(NumberOfSpatialSamples 304800)
 
 // Refresh these spatial samples in every iteration, and select
 // them randomly. See the manual for information on other sampling
