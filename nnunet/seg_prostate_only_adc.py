@@ -50,7 +50,7 @@ sourceFrame = pd.read_csv(resCSVDir)
 cols=sourceFrame.columns
 noSegCols=list(filter(lambda el: '_noSeg' in el , cols))+['series_MRI_path']
 lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
-main_modality = 't2w'
+main_modality = 'adc'
 
 
 # modalities that we want to include in the model
@@ -93,9 +93,14 @@ def process_labels_prim(labels,group,main_modality,label_new_path):
     labels= list(filter(lambda pathh : 'my_prost' not in  pathh, labels))
     labels= list(filter(lambda pathh : 'adc' in  pathh, labels))
     
-    print(labels)
+    # print(labels)
     
-    reduced = np.array(functools.reduce(get_bool_or, labels))
+    reduced=[]
+    if(len(labels)==1):
+        reduced=get_bool_arr_from_path(labels[0])
+    else:    
+        reduced = np.array(functools.reduce(get_bool_or, labels))
+    
     # now we need to save the sumed label and all of the MRIs 
     # we want to make it compatible with both nnunet in general and with the picai dataset so we will keep picai convention of numering cases
     # 0 t2w, 1 adc 2 hbv additionally we will set prostate gland label as 3 which will be output of the segmentation algorithm passed as preprocessing step
@@ -129,13 +134,13 @@ grouped_rows= main_prepare_nnunet('284',modalities_of_intrest,channel_names,labe
 
 # https://github.com/jakubMitura14/konwersjaJsonData.git
 
-#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 283 3d_fullres 0
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 284 3d_fullres 0
 
 
-#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 283 3d_fullres 1
-#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 283 3d_fullres 2
-#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 283 3d_fullres 3
-#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 283 3d_fullres 4
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 284 3d_fullres 1
+#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 284 3d_fullres 2
+#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 284 3d_fullres 3
+#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 284 3d_fullres 4
 
 # /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed/Dataset281_Prostate/gt_segmentations
 

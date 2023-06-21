@@ -227,9 +227,10 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
 
     temp_dir = tempfile.mkdtemp() # temporary directory
     modalities_of_intrest_without_main= list(filter( lambda el: el!=main_modality , modalities_of_intrest))
-    print(f"modalities_of_intrest_without_main {modalities_of_intrest_without_main}")
     modalities=[]
     labels=[]
+    mris=[]
+    newPaths=[]
     if(len(modalities_of_intrest_without_main)>0):
         #register all modalities and associated labels to main_modality
         registered_modalities= list(map(lambda mod: reg_a_to_b(join(temp_dir,mod),group[0],group[1][main_modality][0],group[1][mod][0],group[1][mod][1],reg_prop
@@ -239,7 +240,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
         modalities,mris,labels=list(toolz.sandbox.core.unzip(registered_modalities))
         labels=list(toolz.concat(labels))
         modalities=list(modalities)
-        modalities.append(main_modality)
+    modalities.append(main_modality)
     
     
     mris=list(mris)
@@ -251,35 +252,37 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     if(len(labels)>0):
         process_labels(labels,group,main_modality,label_new_path)
 
-    #zipping for starmap use
-    zipped_modalit_path = list(zip(modalities,mris))
-    zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
-    zipped_modalit_path_add= list(map( lambda el:(group[1][el][1][0], out_pathsDict[el]) ,non_mri_inputs))
-    zipped_modalit_path=zipped_modalit_path+zipped_modalit_path_add
-    # print(f"zipped_modalit_path_add {zipped_modalit_path_add} \n zipped_modalit_path {zipped_modalit_path} \n out_pathsDict {out_pathsDict}  ")
-    zipped_modalit_path= list(filter(  lambda tupl: tupl[0]!=" " and tupl[1]!=" ",zipped_modalit_path))
-    #as we already have prepared the destination paths and sources for images we need now to copy files
-    # we need to remember that we are  getting from mha to nii gz
-    list(itertools.starmap(copy_changing_type ,zipped_modalit_path ))
 
-    _,new_mri_paths= list(toolz.sandbox.core.unzip(zipped_modalit_path))
-    new_mri_paths=np.unique(list(new_mri_paths)+non_mri_inputs)
-    newPaths= list(zip(modalities,new_mri_paths))
-    non_mri_inputs_new_paths= list(map( lambda el:(el, out_pathsDict[el]) ,non_mri_inputs))
-    # print(f"non_mri_inputs_new_paths {non_mri_inputs_new_paths} non_mri_inputs {non_mri_inputs}")
-    newPaths=newPaths+non_mri_inputs_new_paths
-    newPaths.append(('label',label_new_path ))
-    #copying label holding segmentation of full prostate gland
-    # currProstPath= group[1]['prostate']
-    # shutil.copyfile(currProstPath,out_prostate_path )
-    # newPaths.append(('prostate',out_prostate_path))
+        #zipping for starmap use
+        zipped_modalit_path = list(zip(modalities,mris))
+        zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
+        zipped_modalit_path_add= list(map( lambda el:(group[1][el][1][0], out_pathsDict[el]) ,non_mri_inputs))
+        zipped_modalit_path=zipped_modalit_path+zipped_modalit_path_add
+        # print(f"zipped_modalit_path_add {zipped_modalit_path_add} \n zipped_modalit_path {zipped_modalit_path} \n out_pathsDict {out_pathsDict}  ")
+        zipped_modalit_path= list(filter(  lambda tupl: tupl[0]!=" " and tupl[1]!=" ",zipped_modalit_path))
+        #as we already have prepared the destination paths and sources for images we need now to copy files
+        # we need to remember that we are  getting from mha to nii gz
+        list(itertools.starmap(copy_changing_type ,zipped_modalit_path ))
 
-    #clearing temporary directory
-    shutil.rmtree(temp_dir, ignore_errors=True)
+        _,new_mri_paths= list(toolz.sandbox.core.unzip(zipped_modalit_path))
+        new_mri_paths=np.unique(list(new_mri_paths)+non_mri_inputs)
+        newPaths= list(zip(modalities,new_mri_paths))
+        non_mri_inputs_new_paths= list(map( lambda el:(el, out_pathsDict[el]) ,non_mri_inputs))
+        # print(f"non_mri_inputs_new_paths {non_mri_inputs_new_paths} non_mri_inputs {non_mri_inputs}")
+        newPaths=newPaths+non_mri_inputs_new_paths
+        
+        newPaths.append(('label',label_new_path ))
+        #copying label holding segmentation of full prostate gland
+        # currProstPath= group[1]['prostate']
+        # shutil.copyfile(currProstPath,out_prostate_path )
+        # newPaths.append(('prostate',out_prostate_path))
 
-    newPaths_paths= list(map(lambda tupl: tupl[1], newPaths))
-    return (group[0],dict(newPaths))
+        #clearing temporary directory
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
+        newPaths_paths= list(map(lambda tupl: tupl[1], newPaths))
+        return (group[0],dict(newPaths))
+    return " "
 
 def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_names,label_cols,process_labels,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted=None):
     """
@@ -322,8 +325,8 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
         print("for_filter_unwanted is None")
         for_filter_unwanted=lambda group: True
     grouped_rows=[]
-    with mp.Pool(processes = mp.cpu_count()) as pool:
-    # with mp.Pool(processes = 1) as pool:
+    # with mp.Pool(processes = mp.cpu_count()) as pool:
+    with mp.Pool(processes = 1) as pool:
         @curry  
         def pmap(fun,iterable):
             return pool.map(fun,iterable)
@@ -340,7 +343,9 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
                                 ,pmap(partial(add_files,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,reg_prop=reg_prop,
                                               elacticPath=elacticPath,transformix_path=transformix_path,labelsTrFolder=labelsTrFolder,imagesTrFolder=imagesTrFolder
                                                ,process_labels=process_labels,non_mri_inputs=non_mri_inputs,channel_names=channel_names ))
+                                ,filter(lambda el: el!=' ')
                                 ,filter(lambda el: el[0]!=' ')
+                                
                                 ,list
                                 )
 
