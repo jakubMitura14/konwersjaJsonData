@@ -227,15 +227,21 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
 
     temp_dir = tempfile.mkdtemp() # temporary directory
     modalities_of_intrest_without_main= list(filter( lambda el: el!=main_modality , modalities_of_intrest))
-    #register all modalities and associated labels to main_modality
-    registered_modalities= list(map(lambda mod: reg_a_to_b(join(temp_dir,mod),group[0],group[1][main_modality][0],group[1][mod][0],group[1][mod][1],reg_prop
-                                                            ,elacticPath,transformix_path,mod)
-                    ,modalities_of_intrest_without_main   ))
-    # now we unzip to get 0) list of modalities 1) list of paths to main mris 2) list of lists of labels paths
-    modalities,mris,labels=list(toolz.sandbox.core.unzip(registered_modalities))
-    labels=list(toolz.concat(labels))
-    modalities=list(modalities)
-    modalities.append(main_modality)
+    print(f"modalities_of_intrest_without_main {modalities_of_intrest_without_main}")
+    modalities=[]
+    labels=[]
+    if(len(modalities_of_intrest_without_main)>0):
+        #register all modalities and associated labels to main_modality
+        registered_modalities= list(map(lambda mod: reg_a_to_b(join(temp_dir,mod),group[0],group[1][main_modality][0],group[1][mod][0],group[1][mod][1],reg_prop
+                                                                ,elacticPath,transformix_path,mod)
+                        ,modalities_of_intrest_without_main   ))
+        # now we unzip to get 0) list of modalities 1) list of paths to main mris 2) list of lists of labels paths
+        modalities,mris,labels=list(toolz.sandbox.core.unzip(registered_modalities))
+        labels=list(toolz.concat(labels))
+        modalities=list(modalities)
+        modalities.append(main_modality)
+    
+    
     mris=list(mris)
     mris.append(group[1][main_modality][0])    
 
