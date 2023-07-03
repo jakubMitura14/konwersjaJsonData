@@ -44,8 +44,9 @@ from prepareNNunet import *
 resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory with inferred prostates
 
-
 sourceFrame = pd.read_csv(resCSVDir) 
+
+
 
 cols=sourceFrame.columns
 noSegCols=list(filter(lambda el: '_noSeg' in el , cols))+['series_MRI_path']
@@ -53,8 +54,10 @@ lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 main_modality = 'adc'
 
 
+
+
 # modalities that we want to include in the model
-modalities_of_intrest=['adc']
+modalities_of_intrest=['adc','hbv']
 
 # prostate_col= 'pg_noSeg'
 # new_col_name=prostate_col
@@ -76,9 +79,8 @@ lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 label_cols=lesion_cols
 # label_cols=anatomic_cols+[prostate_col]
 channel_names={  
-    "0": "adc", 
-    
- }
+    "0": "adc",
+    "1": "hbv"  }
 
 
 
@@ -91,16 +93,9 @@ label_names= {
 
 def process_labels_prim(labels,group,main_modality,label_new_path):
     labels= list(filter(lambda pathh : 'my_prost' not in  pathh, labels))
-    labels= list(filter(lambda pathh : 'adc' in  pathh, labels))
+    print(labels)
     
-    # print(labels)
-    
-    reduced=[]
-    if(len(labels)==1):
-        reduced=get_bool_arr_from_path(labels[0])
-    else:    
-        reduced = np.array(functools.reduce(get_bool_or, labels))
-    
+    reduced = np.array(functools.reduce(get_bool_or, labels))
     # now we need to save the sumed label and all of the MRIs 
     # we want to make it compatible with both nnunet in general and with the picai dataset so we will keep picai convention of numering cases
     # 0 t2w, 1 adc 2 hbv additionally we will set prostate gland label as 3 which will be output of the segmentation algorithm passed as preprocessing step
@@ -121,28 +116,26 @@ def for_filter_unwanted(group):
     return True
 
 
-grouped_rows= main_prepare_nnunet('284',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
+grouped_rows= main_prepare_nnunet('287',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
-#only adc result aroun 0.65 on single fold
-
-
+# mean dice on adc + hbv  0.7
+# configurations=("2d", "3d_fullres", "3d_lowres", "3d_cascade_fullres")
 #nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset281_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered -d 281 -c '3d_fullres' 
 
 
 # mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate"
-# CUDA_VISIBLE_DEVICES=0 nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate" nnUNetv2_train 279 3d_fullres 0
-# CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 281 3d_fullres 0
+# CUDA_VISIBLE_DEVICES=0 nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate" nnUNetv2_train 285 3d_cascade_fullres 0
 
 
 # https://github.com/jakubMitura14/konwersjaJsonData.git
 
-#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 284 3d_fullres 0
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 287 3d_fullres 0
 
 
-#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 284 3d_fullres 1
-#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 284 3d_fullres 2
-#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 284 3d_fullres 3
-#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 284 3d_fullres 4
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 287 3d_fullres 1
+#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 287 3d_fullres 2
+#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 287 3d_fullres 3
+#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 287 3d_fullres 4
 
 # /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed/Dataset281_Prostate/gt_segmentations
 
@@ -182,5 +175,4 @@ grouped_rows= main_prepare_nnunet('284',modalities_of_intrest,channel_names,labe
 # cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0007.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0007.nii.gz
 
 # cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/labelsTr/9005500.nii.gz /workspaces/konwersjaJsonData/explore/imagess/label_9005500.nii.gz
-
 

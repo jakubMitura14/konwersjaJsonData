@@ -43,18 +43,108 @@ from prepareNNunet import *
 #metadata directory
 resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory with inferred prostates
-
+dir_inferred_prost_parts='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered'
+dir_inferred_prost='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_infered'
+new_prost_col_name= 'inferred_pg'
 
 sourceFrame = pd.read_csv(resCSVDir) 
+
+
+
+def get_id_from_file_name(path_str):
+    path_str=path_str.replace('.nii.gz','')
+    path_str=path_str[1:5]
+    return int(path_str)
+
+def add_t2w_to_name(source):
+    if(source==' '):
+        return ' '
+    if('t2w' in source):
+        return source
+    new_path= source.replace('.nii.gz','_t2w.nii.gz')
+    copy_changing_type(source, new_path)
+    return new_path
+
+def get_prost_part_separate_file(path,pros_part_name, curr_int):
+    """ 
+    given a path to file with multiple labels and int indicating ths label
+    and a name we will create separate binary file for each label
+    """
+    if(path==" "):
+        return " "
+    writer = sitk.ImageFileWriter()
+    newPathLab=path.replace('.nii.gz',f"_{pros_part_name}_t2w.nii.gz")
+    image3D= sitk.ReadImage(path)
+    arr=sitk.GetArrayFromImage(image3D)
+    arr=(arr==curr_int)
+
+    image = sitk.GetImageFromArray(arr.astype(np.uint8))  
+ 
+    image.SetSpacing(image3D.GetSpacing())
+    image.SetOrigin(image3D.GetOrigin())
+    image.SetDirection(image3D.GetDirection())   
+    image = sitk.DICOMOrient(image, 'LPS')
+    image.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
+    writer.SetFileName(newPathLab)
+    writer.Execute(image)
+    return newPathLab
+    
+def add_inferred_prost_to_dataframe(dir_inferred_prost_parts, df,new_col_name):
+    """ 
+    we have some inferred anatomical segmentations done by previous 
+    models now we want to take the folder with 
+    """
+    list_files= os.listdir(dir_inferred_prost_parts)
+    list_files= list(filter(lambda el : el[0]=='9' ,list_files ))
+    list_ids= list(map(get_id_from_file_name,list_files))
+    list_files= list(map( lambda el: f"{dir_inferred_prost_parts}/{el}" ,list_files))
+    file_and_id= dict(list(zip(list_ids,list_files)))
+    new_col_dat= list(map( lambda el: file_and_id.get(el,' ') ,df['masterolds'].to_numpy() ))
+    #changing path name to mark it is t2w related
+    new_col_dat= list(map(add_t2w_to_name,new_col_dat))
+
+    df[new_col_name]=new_col_dat
+    return df
+
+
+
+def add_inferred_prost_parts_to_dataframe(dir_inferred_prost_parts, df,pros_part_name,curr_int):
+    """ 
+    we have some inferred anatomical segmentations done by previous 
+    models now we want to take the folder with 
+    """
+    list_files= os.listdir(dir_inferred_prost_parts)
+    list_files= list(filter(lambda el : el[0]=='9' ,list_files ))
+    list_ids= list(map(get_id_from_file_name,list_files))
+    list_files= list(map( lambda el: f"{dir_inferred_prost_parts}/{el}" ,list_files))
+    file_and_id= dict(list(zip(list_ids,list_files)))
+    new_col_dat= list(map( lambda el: file_and_id.get(el,' ') ,df['masterolds'].to_numpy() ))
+    
+    #changing path name to mark it is t2w related
+    new_col_dat= list(map(lambda path:get_prost_part_separate_file(path,pros_part_name, curr_int),new_col_dat))
+
+    df[pros_part_name]=new_col_dat
+    return df
+
+
+
 
 cols=sourceFrame.columns
 noSegCols=list(filter(lambda el: '_noSeg' in el , cols))+['series_MRI_path']
 lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
-main_modality = 'adc'
+main_modality = 't2w'
+
+
+#adding data about earlier inferred anatomy
+sourceFrame=add_inferred_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_prost_col_name)
+sourceFrame=sourceFrame.loc[sourceFrame[new_prost_col_name] != " "]
+
+
+
 
 
 # modalities that we want to include in the model
-modalities_of_intrest=['adc']
+modalities_of_intrest=['t2w','adc','hbv']
 
 # prostate_col= 'pg_noSeg'
 # new_col_name=prostate_col
@@ -63,8 +153,7 @@ modalities_of_intrest=['adc']
 
 
 
-non_mri_inputs=[]
-
+non_mri_inputs=[new_prost_col_name]
 # anatomic_cols=['afs_noSeg']
 
 
@@ -76,13 +165,11 @@ lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 label_cols=lesion_cols
 # label_cols=anatomic_cols+[prostate_col]
 channel_names={  
-    "0": "adc", 
-    
- }
-
-
-
-
+    "0": "t2w", 
+    "1": "adc",
+    "2": "hbv",
+    "3": new_prost_col_name,
+  }
 
 label_names= {  
     "background": 0,
@@ -90,17 +177,16 @@ label_names= {
     }
 
 def process_labels_prim(labels,group,main_modality,label_new_path):
+    
     labels= list(filter(lambda pathh : 'my_prost' not in  pathh, labels))
-    labels= list(filter(lambda pathh : 'adc' in  pathh, labels))
-    
-    # print(labels)
-    
+    labels= list(filter(lambda pathh : ('adc' in  pathh) or ('hbv' in  pathh) , labels))
     reduced=[]
-    if(len(labels)==1):
-        reduced=get_bool_arr_from_path(labels[0])
-    else:    
-        reduced = np.array(functools.reduce(get_bool_or, labels))
     
+    print(labels)
+    if(len(labels)==0):
+        reduced =np.zeros_like(sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0])))
+    else:
+        reduced = np.array(functools.reduce(get_bool_or, labels))
     # now we need to save the sumed label and all of the MRIs 
     # we want to make it compatible with both nnunet in general and with the picai dataset so we will keep picai convention of numering cases
     # 0 t2w, 1 adc 2 hbv additionally we will set prostate gland label as 3 which will be output of the segmentation algorithm passed as preprocessing step
@@ -121,11 +207,10 @@ def for_filter_unwanted(group):
     return True
 
 
-grouped_rows= main_prepare_nnunet('284',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
+grouped_rows= main_prepare_nnunet('283',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
-#only adc result aroun 0.65 on single fold
-
-
+# mean dice on first fold less then 0.6
+# adc and hbv Dice around 0,622
 #nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset281_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered -d 281 -c '3d_fullres' 
 
 
@@ -136,13 +221,13 @@ grouped_rows= main_prepare_nnunet('284',modalities_of_intrest,channel_names,labe
 
 # https://github.com/jakubMitura14/konwersjaJsonData.git
 
-#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 284 3d_fullres 0
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 283 3d_fullres 0
 
 
-#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 284 3d_fullres 1
-#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 284 3d_fullres 2
-#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 284 3d_fullres 3
-#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 284 3d_fullres 4
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 283 3d_fullres 1
+#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 283 3d_fullres 2
+#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 283 3d_fullres 3
+#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 283 3d_fullres 4
 
 # /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed/Dataset281_Prostate/gt_segmentations
 
@@ -182,5 +267,4 @@ grouped_rows= main_prepare_nnunet('284',modalities_of_intrest,channel_names,labe
 # cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0007.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0007.nii.gz
 
 # cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/labelsTr/9005500.nii.gz /workspaces/konwersjaJsonData/explore/imagess/label_9005500.nii.gz
-
 

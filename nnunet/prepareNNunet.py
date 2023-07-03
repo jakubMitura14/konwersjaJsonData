@@ -318,6 +318,35 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     os.makedirs(results_folder ,exist_ok = True)
     os.makedirs(mainResults_folder ,exist_ok = True)
     os.makedirs(join(mainResults_folder,taskName),exist_ok = True)
+    
+    
+        #plans well explained in https://github.com/MIC-DKFZ/nnUNet/blob/4612d35b1b80d558f3e1a650decd408f6f70c68a/documentation/explanation_plans_files.md?plain=1#L164
+
+    
+    
+    
+    #      "configurations": {
+    #   "3d_lowres": {
+    #     "inherits_from": "3d_fullres",
+    #     "data_identifier": "3d_lowres",
+    #     "spacing": [2.0, 2.0, 2.0], # from [1.0, 1.0, 1.0] in 3d_fullres
+    #     "median_image_size_in_voxels": [18, 25, 18], # from [36, 50, 35]
+    #     "patch_size": [20, 28, 20], # from [40, 56, 40]
+    #     "n_conv_per_stage_encoder": [2, 2, 2], # one less entry than 3d_fullres ([2, 2, 2, 2])
+    #     "n_conv_per_stage_decoder": [2, 2], # one less entry than 3d_fullres
+    #     "num_pool_per_axis": [2, 2, 2], # one less pooling than 3d_fullres in each dimension (3d_fullres: [3, 3, 3])
+    #     "pool_op_kernel_sizes": [[1, 1, 1], [2, 2, 2], [2, 2, 2]], # one less [2, 2, 2]
+    #     "conv_kernel_sizes": [[3, 3, 3], [3, 3, 3], [3, 3, 3]], # one less [3, 3, 3]
+    #     "next_stage": "3d_cascade_fullres" # name of the next stage in the cascade
+    #   },
+    #   "3d_cascade_fullres": { # does not need a data_identifier because we can use the data of 3d_fullres
+    #     "inherits_from": "3d_fullres",
+    #     "previous_stage": "3d_lowres" # name of the previous stage
+    #   }
+    
+
+    
+    
     # Set the value nnUNet_results enviroment variable
     # os.environ.setdefault('nnUNet_results', join(mainResults_folder,taskName))
     #defaul is not filter out anything
@@ -325,8 +354,8 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
         print("for_filter_unwanted is None")
         for_filter_unwanted=lambda group: True
     grouped_rows=[]
-    # with mp.Pool(processes = mp.cpu_count()) as pool:
-    with mp.Pool(processes = 1) as pool:
+    with mp.Pool(processes = mp.cpu_count()) as pool:
+    # with mp.Pool(processes = 1) as pool:
         @curry  
         def pmap(fun,iterable):
             return pool.map(fun,iterable)
@@ -349,30 +378,55 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
                                 ,list
                                 )
 
+
     data = { 
     "channel_names": channel_names, 
-    "labels": label_names, 
-    "numTraining": len(grouped_rows), 
+    "labels": label_names,  
     "file_ending": ".nii.gz",
-    "overwrite_image_reader_writer": "SimpleITKIO"  # optional! If not provided nnU-Net will automatically determine the ReaderWriter
+    "overwrite_image_reader_writer": "SimpleITKIO",
+    "normalization_schemes" : "noNorm",
+    "numTraining" : len(grouped_rows),
+    "nnUNetPlans" : ['2d','3d_lowres','3d_cascade_fullres', '3d_fullres']
 
     }
+
+    
+    
+    # data['configurations']['3d_lowres'] = {
+    #         "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time
+    #         'inherits_from': '3d_fullres',
+    #         "patch_size": [20, 28, 20],
+    #         "median_image_size_in_voxels": [18.0, 25.0, 18.0],
+    #         "spacing": [2.0, 2.0, 2.0],
+    #         "n_conv_per_stage_encoder": [2, 2, 2],
+    #         "n_conv_per_stage_decoder": [2, 2],
+    #         "num_pool_per_axis": [2, 2, 2],
+    #         "pool_op_kernel_sizes": [[1, 1, 1], [2, 2, 2], [2, 2, 2]],
+    #         "conv_kernel_sizes": [[3, 3, 3], [3, 3, 3], [3, 3, 3]],
+    #         "next_stage": "3d_cascade_fullres"
+    #     }
+    # data['configurations']['3d_cascade_fullres'] = {
+    #         'inherits_from': '3d_fullres',
+    #         "previous_stage": "3d_lowres"
+    #     }
+    
+
     # .dumps() as a string
     json_string = json.dumps(data)
     with open(json_path, 'w') as outfile:
         outfile.write(json_string)
+    
 
-
-
-    cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity -np 8"
+    cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
     p = Popen(cmd_terminal, shell=True)
     p.wait()
+
 
 
     return grouped_rows
 
 
-
+# nnUNetv2_plan_and_preprocess -d 285 --verify_dataset_integrity -c [2d 3d_fullres 3d_lowres]-np 8
 
 
 

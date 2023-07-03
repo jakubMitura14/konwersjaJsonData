@@ -44,9 +44,9 @@
 		// "ms-python.vscode-pylance"
 	],
 	"mounts": [
-		"source=/mnt/disks/sdb,target=/home/sliceruser/workspaces,type=bind,consistency=cached",
-		"source=/home/jakubmitura/explore,target=/home/sliceruser/explore,type=bind,consistency=cached",
-		"source=/home/jakubmitura/konwersjaJsonData,target=/home/sliceruser/code,type=bind,consistency=cached"
+		 "source=/mnt/disks/sdb,target=/home/sliceruser/workspaces,type=bind,consistency=cached",
+		 "source=/home/jakubmitura/explore,target=/home/sliceruser/explore,type=bind,consistency=cached",
+		 "source=/home/jakubmitura/konwersjaJsonData,target=/home/sliceruser/code,type=bind,consistency=cached"
 	  ],
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -64,4 +64,3 @@
 	}
 }
 
-/workspaces/konwersjaJsonData/test_measurements.ipynb
