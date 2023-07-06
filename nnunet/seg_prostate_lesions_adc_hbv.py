@@ -93,7 +93,13 @@ label_names= {
 
 def process_labels_prim(labels,group,main_modality,label_new_path):
     labels= list(filter(lambda pathh : 'my_prost' not in  pathh, labels))
-    print(labels)
+    # print(labels)
+    for index,lab in enumerate(labels):
+        
+        label_loc= label_new_path.replace('.nii.gz',f"_{index}.nii.gz")
+        lab=get_bool_arr_from_path(lab)
+        save_from_arr(lab,sitk.ReadImage(group[1][main_modality][0]),label_loc)
+    
     
     reduced = np.array(functools.reduce(get_bool_or, labels))
     # now we need to save the sumed label and all of the MRIs 
@@ -116,11 +122,16 @@ def for_filter_unwanted(group):
     return True
 
 
-grouped_rows= main_prepare_nnunet('287',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
+# grouped_rows= main_prepare_nnunet('287',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
+grouped_rows= main_prepare_nnunet('287',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted,is_test_prep=True)
+
+
+
+
 
 # mean dice on adc + hbv  0.7
 # configurations=("2d", "3d_fullres", "3d_lowres", "3d_cascade_fullres")
-#nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset281_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered -d 281 -c '3d_fullres' 
+#nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset287_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/inferred_test_cases -d 287 -c '3d_fullres' 
 
 
 # mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate"
@@ -139,40 +150,8 @@ grouped_rows= main_prepare_nnunet('287',modalities_of_intrest,channel_names,labe
 
 # /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed/Dataset281_Prostate/gt_segmentations
 
-
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9000100_0000.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9000100_0000.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9000100_0001.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9000100_0001.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9000100_0002.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9000100_0002.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9000100_0003.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9000100_0003.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9000100_0004.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9000100_0004.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9000100_0005.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9000100_0005.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9000100_0006.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9000100_0006.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9000100_0007.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9000100_0007.nii.gz
-
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/labelsTr/9000100.nii.gz /workspaces/konwersjaJsonData/explore/imagess/label_9000100.nii.gz
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/inferred_test_cases /workspaces/konwersjaJsonData/explore/to_eval_test_cases/inferred
 
 
-
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9015900_0000.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9000100_0000.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9015900_0001.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9015900_0001.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9015900_0002.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9015900_0002.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9015900_0003.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9015900_0003.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9015900_0004.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9015900_0004.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9015900_0005.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9015900_0005.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9015900_0006.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9015900_0006.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9015900_0007.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9015900_0007.nii.gz
-
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/labelsTr/9015900.nii.gz /workspaces/konwersjaJsonData/explore/imagess/label_9015900.nii.gz
-
-
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0000.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0000.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0001.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0001.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0002.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0002.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0003.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0003.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0004.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0004.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0005.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0005.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0006.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0006.nii.gz
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/imagesTr/9005500_0007.nii.gz /workspaces/konwersjaJsonData/explore/imagess/9005500_0007.nii.gz
-
-# cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/labelsTr/9005500.nii.gz /workspaces/konwersjaJsonData/explore/imagess/label_9005500.nii.gz
-
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset287_Prostate /workspaces/konwersjaJsonData/explore/to_eval_test_cases/sources
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset287_Prostate /workspaces/konwersjaJsonData/explore/to_eval_test_cases/sources_detailed

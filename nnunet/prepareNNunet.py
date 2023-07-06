@@ -284,7 +284,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
         return (group[0],dict(newPaths))
     return " "
 
-def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_names,label_cols,process_labels,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted=None):
+def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_names,label_cols,process_labels,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted=None,is_test_prep=False):
     """
     main function for preparing nnunet
     """
@@ -354,6 +354,13 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
         print("for_filter_unwanted is None")
         for_filter_unwanted=lambda group: True
     grouped_rows=[]
+    
+    filter_out_test_ids=lambda row: row[1]['masterolds'] not in test_ids
+    filter_in_test_ids=lambda row: row[1]['masterolds'] in test_ids
+    filter_ids=filter_out_test_ids
+    if(is_test_prep):
+        filter_ids=filter_in_test_ids
+    
     with mp.Pool(processes = mp.cpu_count()) as pool:
     # with mp.Pool(processes = 1) as pool:
         @curry  
@@ -362,7 +369,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
 
         grouped_rows= toolz.pipe(sourceFrame.iterrows()
                                 ,filter(lambda row: row[1]['series_desc'] in modalities_of_intrest)
-                                ,filter(lambda row: row[1]['masterolds'] not in test_ids) # filter out all of the test cases
+                                ,filter(filter_ids) # filter out all of the test cases
                                 ,groupByMaster
                                 ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=label_cols,non_mri_inputs=non_mri_inputs))
                                 ,filter(lambda group: ' ' not in group[1].keys() )
