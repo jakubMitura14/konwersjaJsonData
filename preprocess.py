@@ -244,9 +244,9 @@ def dilatate_erode_conditionally(files_df,labelsOfIntrest,prostateLab ,annot,jso
 
     # list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full), list(frame_of_intr.iterrows())))
 
-    # with mp.Pool(processes = mp.cpu_count()) as pool:
-    #     pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows()))
-    list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows())))
+    with mp.Pool(processes = mp.cpu_count()) as pool:
+        pool.map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows()))
+    # list(map(partial(grow_labels,labelsOfIntrest=labelsOfIntrest,indicies_around=indicies_around,annot=annot,prostateLab=prostateLab,indicies_around_full=indicies_around_full,jsonFolder=jsonFolder), list(frame_of_intr.iterrows())))
 
 
 

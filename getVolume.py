@@ -77,7 +77,8 @@ def get_mean_adc(colName,current_row, studyId, number, series_desc, adc_path):
         return (' ',' ',' ',' ',' ')
 
     meann=((np.sum(data_adc))/np.sum(bool_data_lesion))
-    return (meann, studyId, number, series_desc,colName)
+
+    return (meann, studyId, number, series_desc,colName,np.min(data_adc))
 
 
 
@@ -141,7 +142,7 @@ def get_volumes_frames(preprocessed_df,prost_volumes_csv_dir,lesion_volumes_csv_
     #     curr_vol_dat= list(map(lambda zipped : list(filter(lambda tupl: tupl[0]==col_vol_name ,zipped ))[0]  ,all_volumes_data))
     #     volumes_frame[col_vol_name]=curr_vol_dat
     cols=preprocessed_df.columns
-    cols=list(filter(lambda el: 'lesion' in el ,cols))
+    cols=list(filter(lambda el: 'lesion' in el or 'bladder_lumen' in el or 'bladder_wall' in el or 'rec_abd_L' in el or 'rec_abd_R' in el ,cols))
     adc_lesion_cols=list(filter(lambda el: 'adc_noSeg' in el ,cols))
 
     lesion_mean_adc_data= list(map( partial(mean_adc_of_adc_lesions,adc_lesion_cols=adc_lesion_cols), preprocessed_df.iterrows()))
@@ -149,12 +150,13 @@ def get_volumes_frames(preprocessed_df,prost_volumes_csv_dir,lesion_volumes_csv_
 
     adc_means_frame= pd.DataFrame()
 
-    adc_means_frame['study_id']=list(map(lambda el: el[1],lesion_mean_adc_data )) 
+    # adc_means_frame['study_id']=list(map(lambda el: el[1],lesion_mean_adc_data )) 
     adc_means_frame['number']=list(map(lambda el: el[2],lesion_mean_adc_data )) 
     adc_means_frame['modality']=list(map(lambda el: el[3],lesion_mean_adc_data )) 
     adc_means_frame['mean_adc']=list(map(lambda el: el[0],lesion_mean_adc_data )) 
-    adc_means_frame['lesion_name']=list(map(lambda el: el[4].split('_')[0],lesion_mean_adc_data )) 
-    adc_means_frame['annotator_id']=list(map(lambda el: f"{el[4].split('_')[1]}_{el[4].split('_')[2]}",lesion_mean_adc_data )) 
+    adc_means_frame['min_adc']=list(map(lambda el: el[5],lesion_mean_adc_data )) 
+    adc_means_frame['lesion_name']=list(map(lambda el: el[4].replace(f"_{el[4].split('_')[-4]}_{el[4].split('_')[-3]}_{el[4].split('_')[-2]}_{el[4].split('_')[-1]}",""),lesion_mean_adc_data )) 
+    adc_means_frame['annotator_id']=list(map(lambda el: f"{el[4].split('_')[-4]}_{el[4].split('_')[-3]}",lesion_mean_adc_data )) 
 
 
 

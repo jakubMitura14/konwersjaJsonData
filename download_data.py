@@ -164,7 +164,10 @@ downloading data from mdai client
 # datasetId='D_gQm1nQ'
 # dataset = p.get_dataset_by_id(datasetId)
 # dataset.prepare()
-# /mnt/disks/sdb/raw/out
+# # /mnt/disks/sdb/raw/out
+
+
+
 
 """
 downloading xnat
@@ -189,6 +192,10 @@ for index in range(len(subjects)):
     subb.download_dir(f"{testXnatPath}/{subb.label}")
 session.disconnect()
 
+
+
+
+
 """
 download csvs ...
 """
@@ -196,4 +203,8 @@ download csvs ...
 
 
 
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_2023-07-06-130642_part1of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
 
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_2023-07-06-130642_part2of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
+
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_2023-07-06-130642_part3of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/

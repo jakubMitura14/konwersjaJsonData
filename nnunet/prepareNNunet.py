@@ -308,7 +308,6 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
 
 
     os.makedirs(nNunetBaseFolder ,exist_ok = True)
-
     # os.makedirs(join(nNunetBaseFolder,'nnUNet_raw_data_base') ,exist_ok = True)
     # os.makedirs(join(nNunetBaseFolder,'nnUNet_raw_data_base','nnUNet_raw_data') ,exist_ok = True)
     os.makedirs(taskFolder ,exist_ok = True)

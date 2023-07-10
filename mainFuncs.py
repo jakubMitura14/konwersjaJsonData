@@ -172,7 +172,11 @@ def getLabelsAbbrev(lab):
                     ,'lesion 3' : 'lesion3' 
                     ,'lesion 4' : 'lesion4' 
                     ,'lesion 5' : 'lesion5'                    
-                    ,'lesion 6' : 'lesion6'                    
+                    ,'lesion 6' : 'lesion6' 
+                    ,'bladder lumen' :'bladder_lumen'                   
+                    ,'bladder wall' :'bladder_wall'                   
+                    ,'rectus abdominis muscle L' :'rec_abd_L'                   
+                    ,'rectus abdominis muscle R' :'rec_abd_R'                   
                     
                     }
     # if('lesion' in lab):

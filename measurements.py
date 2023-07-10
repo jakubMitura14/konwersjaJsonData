@@ -17,7 +17,14 @@ from os import path as pathOs
 import more_itertools
 from os.path import basename, dirname, exists, isdir, join, split
 import shutil
+import glob
+import os
 
+import numpy as np
+import pymia.evaluation.metric as metric
+import pymia.evaluation.evaluator as eval_
+import pymia.evaluation.writer as writer
+from itertools import product
 
 
 
@@ -366,6 +373,89 @@ def alalyze_per_lesion_for_consensus(current_lesion,maxDocName,doctors_not_max,m
         list(map( lambda tupl : save_from_arr(tupl[0].astype(np.uint8),image3D,tupl[1]) ,zippedBiImage  ))
         #return paths of the saved files
         return [*fusedBiImageNames,name ]
+
+
+def is_newanatomy_in(row,new_anatomy_cols):
+    is_sth=list(map(lambda name : len(row[name])>2, new_anatomy_cols))
+    return np.sum(is_sth)>0
+
+def get_annotator_id(path,path_info ):
+    """ 
+    based on path return annotator id
+    """
+    # print(f"in det annot id filterr {list(filter(lambda tupl: tupl[0]==path ,path_info))} path {path}")
+    col_name=list(filter(lambda tupl: tupl[0]==path ,path_info))[0][1]
+    return f"{col_name.split('_')[-4]}_{col_name.split('_')[-3]}"
+
+def analyze_pair(pair_paths,path_info,name,evaluator,patient_id):
+    namee=f"{patient_id}_|_{name}_|_{get_annotator_id(pair_paths[0],path_info )}_|_{get_annotator_id(pair_paths[0],path_info )}"
+    evaluator.evaluate(sitk.ReadImage(pair_paths[0]), sitk.ReadImage(pair_paths[1]), namee)
+
+def analyze_same_anatomy(name,row,new_anatomy_cols,evaluator):
+    """ 
+    first we find all of the columns that has appropriate name
+    then we collect the files and compare the using dice and hausdorff
+    return info about what is compared and what is the score and what metric used
+    """
+    colss= list(filter( lambda col_name: name in col_name,new_anatomy_cols))
+    pathss = list(map(lambda col_name :row[col_name] ,colss ))
+    path_info=list(zip(pathss,colss))
+    path_info=list(filter(lambda tupl: 'konwersjaJsonData' in tupl[0] ,path_info))
+    pathss= list(map(lambda tupl: tupl[0],path_info))
+
+    # print(f"pppp pathss {pathss}")
+
+    cart_prod=list(product(pathss,pathss))
+    cart_prod= list(filter(lambda tupl: tupl[0]!=tupl[1],cart_prod))
+    
+    list(map(lambda pair_paths :analyze_pair(pair_paths,path_info,name,evaluator,row['masterolds']),cart_prod))
+    
+
+
+
+
+
+# writer.CSVWriter(result_file).write(evaluator.results)
+# functions = {'MEAN': np.mean, 'STD': np.std}
+# writer.CSVStatisticsWriter(result_summary_file, functions=functions).write(evaluator.results)
+# print('\nAggregated statistic results...')
+# writer.ConsoleStatisticsWriter(functions=functions).write(evaluator.results)
+
+def analyze_row(row,new_anatomy_cols,evaluator):
+    """ 
+    we have row where some new anatomy was analyzed
+    """
+    names= ['bladder_lumen','bladder_wall','rec_abd_L','rec_abd_R']
+    list(map(lambda name :analyze_same_anatomy(name,row,new_anatomy_cols,evaluator),names))
+
+def get_new_anatomu_inter_observer_agreement(preprocessed_df,new_anatomy_csv_dir):
+    """ 
+    looking for abdomen and bladder annotations and noting how much in agreement the annottors were
+    """
+    metrics = [metric.DiceCoefficient(), metric.HausdorffDistance(percentile=95, metric='HDRFDST95'), metric.VolumeSimilarity()]
+    labels = {1: 'segmentation' }
+    evaluator = eval_.SegmentationEvaluator(metrics, labels)
+
+    cols=preprocessed_df.columns
+    cols=list(filter(lambda el: 'bladder_lumen' in el or 'bladder_wall' in el or 'rec_abd_L' in el or 'rec_abd_R' in el ,cols))
+    new_anatomy_cols=list(filter(lambda el: '_noSeg' in el ,cols))
+    rows= preprocessed_df.iterrows()
+    rows= list(map(lambda el: el[1],rows))
+    rows= list(filter(lambda row :is_newanatomy_in(row,new_anatomy_cols) ,rows))
+
+    list(map(lambda row : analyze_row(row,new_anatomy_cols,evaluator),rows))
+    writer.CSVWriter(new_anatomy_csv_dir).write(evaluator.results)
+    frame = pd.read_csv(new_anatomy_csv_dir,header=0,sep=";")
+
+    print(f"ffff {frame.columns}")
+    subj=frame['SUBJECT'].to_numpy()
+    subj = list(map(lambda el: el.split('_|_'),subj ))
+    frame["patient_id"]=list(map(lambda el: el[0]  ,subj))
+    frame["organ"]=list(map(lambda el: el[1]  ,subj))
+    frame["annotator_a"]=list(map(lambda el: el[2]  ,subj))
+    frame["annotator_b"]=list(map(lambda el: el[3]  ,subj))
+
+    frame.to_csv(new_anatomy_csv_dir)
 
 
 #/media/jakub/NewVolume/projects/konwersjaJsonData/forLesionAnalysis/1.3.12.2.1107.5.2.41.69644.202006090804423911430615.0.0.0

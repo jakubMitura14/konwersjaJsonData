@@ -59,3 +59,13 @@ def save_dicom_seg_label(roww,jsonFolder,colName,outPath=' ',dicomSPath=' ',seri
     
     dcm.save_as(outPath)
     # dcm.save_as(join(roww[colNameSeg], curr_no_space_name+".dcm"))
+
+
+# jsonFolder="/workspaces/konwersjaJsonData/dicomSeg"
+# example_seg= "/workspaces/konwersjaJsonData/explore/all_prost_segm/my_prost_infered/9023400.nii.gz"
+
+# save_dicom_seg_label([],jsonFolder,colName=" ",outPath='/workspaces/konwersjaJsonData/explore/prost_dicom_seg/example.dcm'
+#                      ,dicomSPath='/workspaces/konwersjaJsonData/explore/prost_dicom_seg/234_t2w'
+#                      ,seriesId='1111'
+#                      ,segmentation=sitk.ReadImage(example_seg)
+#                      ,curr_no_space_name='pg' )
