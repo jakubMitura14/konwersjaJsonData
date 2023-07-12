@@ -518,7 +518,7 @@ def getLabelNames(tupl):
 
 
 
-def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir,neededNumbersCSVDir):
+def get_frame_with_output(files_df,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir,neededNumbersCSVDir):
     """
     in parallel iterates over all studies and series and save the paths of created files in the csv file
     """
@@ -534,10 +534,10 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     neededIds = list(map( lambda el: int(el),neededIds))
 
     #filtering only rows that we are intrested in 
-    yy = list(files_df_origFolds['masterolds'].to_numpy())
+    yy = list(files_df['masterolds'].to_numpy())
     yy= list(map(lambda el: int(el) in neededIds,yy))
 
-    files_df_origFolds=files_df_origFolds.loc[yy]
+    files_df=files_df.loc[yy]
 
     # dicomSeg main folders
     data_path_seg= join(mainFoldDirSeg,"Data")
@@ -557,7 +557,7 @@ def get_frame_with_output(files_df,files_df_origFolds,annot,outputDir,resCSVDir,
     #iterate over all files
     allPaths=[]
     with mp.Pool(processes = mp.cpu_count()) as pool: 
-        allPaths=pool.map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame,neededIds=neededIds), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy()))
+        allPaths=pool.map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame,neededIds=neededIds), np.unique(files_df['StudyInstanceUID'].to_numpy()))
     
     # allPaths=list(map(partial(iterate_overStudySafe, files_df=files_df,files_df_origFolds=files_df_origFolds,annot=annot,outputDir=outputDir,mainPaths=mainPaths,jsonFolder=jsonFolder,correctionsFrame=correctionsFrame,neededIds=neededIds), np.unique(files_df_origFolds['StudyInstanceUID'].to_numpy())))    #filtering out all cases where we returned a dummy
     # allPaths= list(filter(lambda el: len(el)>0,allPaths))

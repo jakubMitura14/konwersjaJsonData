@@ -100,6 +100,11 @@ def get_Aquisition_Number(ds):
         return ds[(0x0020, 0x0012)].repval
     return ' '
 
+def get_patient_name(ds):
+    if((0x0010, 0x0010) in ds):
+        return ds[(0x0010, 0x0010)].repval
+    return ' '
+
 
 def get_all_file_paths(dataDir):
     """
@@ -122,7 +127,8 @@ def getUids(row):
         sop=get_SOPInstanceUID(ds)
         SeriesInstanceUID= get_SeriesInstanceUID(ds)
         InstanceUID=get_StudyInstanceUID(ds)
-        return(sop,SeriesInstanceUID,InstanceUID  )
+
+        return(sop,SeriesInstanceUID,InstanceUID,get_patient_name(ds)  )
     except:
         return (' ',' ',' ')   
 
@@ -143,9 +149,11 @@ def get_df_file_info(dataDir,client_down_csv):
     sops = list(map(lambda tupl: tupl[0], resList))
     SeriesInstanceUIDs = list(map(lambda tupl: tupl[1], resList))
     InstanceUIDs = list(map(lambda tupl: tupl[2], resList))
+    pat_names = list(map(lambda tupl: tupl[3], resList))
     df['SOPInstanceUID']=sops   
     df['SeriesInstanceUID']=SeriesInstanceUIDs   
     df['StudyInstanceUID']=InstanceUIDs
+    df['masterolds']=pat_names
     df.to_csv(client_down_csv)       
     return df        
 

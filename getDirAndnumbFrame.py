@@ -76,12 +76,9 @@ def get_df_orig_dir_info(orig_data_dir,csvDir):
     # resList=list(itertools.chain(*resList))
 
     masterolds=list(map(lambda tupl: tupl[0], resList))
-    masterolds=list(map(lambda strr: strr.split('_MR')[0], masterolds))
+    masterolds=list(map(lambda strr: strr.split('_MR')[0], masterolds))  
 
-
-    
-
-    print(f"masterolds {masterolds}")
+    # print(f"masterolds {masterolds}")
     currentFilePath=list(map(lambda tupl: tupl[1], resList))
     StudyInstanceUID = list(map(lambda tupl: tupl[2], resList))
     SeriesInstanceUIDs = list(map(lambda tupl: tupl[3], resList))

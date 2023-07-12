@@ -155,16 +155,16 @@ labels_dict = {
     "L_8KGxb8": 521,  # curvilinear contact
 }
 
-"""
-downloading data from mdai client
-"""
+# """
+# downloading data from mdai client
+# """
 # mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
 # p = mdai_client.project('gaq3y0Rl', path='/home/sliceruser/workspaces/konwersjaJsonData/out')
 # p.set_labels_dict(labels_dict)
 # datasetId='D_gQm1nQ'
 # dataset = p.get_dataset_by_id(datasetId)
 # dataset.prepare()
-# # /mnt/disks/sdb/raw/out
+# # # /mnt/disks/sdb/raw/out
 
 
 
@@ -208,3 +208,5 @@ download csvs ...
 # cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_2023-07-06-130642_part2of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
 
 # cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_2023-07-06-130642_part3of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
+
+

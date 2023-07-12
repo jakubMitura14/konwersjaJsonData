@@ -68,9 +68,10 @@ annot=results['annotations']
 #files passed from the folder where they were downloaded by mdai client
 files_df= mainFuncs.get_df_file_info(dataDir,client_down_csv)
 #adding data  about original folders from orig folder
-files_df_origFolds= get_df_orig_dir_info(testXnatPath,orig_data_csv)
+# files_df_origFolds= get_df_orig_dir_info(testXnatPath,orig_data_csv)
 #add data about original folder structure to frame based on data downloaded with mdai client
-files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
+# files_df_with_orig_folds=getDirAndnumbFrame.add_orig_dir_data(files_df, files_df_origFolds)
+
 os.makedirs('/home/sliceruser/workspaces/konwersjaJsonData/outCsv' ,exist_ok = True)
 os.makedirs(outputDir ,exist_ok = True)
 ################
@@ -80,7 +81,7 @@ os.makedirs(outputDir ,exist_ok = True)
 ###############
 
 #parsing files and saving 3D data in the output folder
-out_files_frame= get_frame_with_output(files_df_with_orig_folds,files_df_origFolds,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir,neededNumbersCSVDir)
+out_files_frame= get_frame_with_output(files_df,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir,neededNumbersCSVDir)
 
 ### preprocessing
 #we first define the labels that should as a sum be included in a prostate gland 
@@ -90,7 +91,7 @@ prostateLab = 'prostate'
 labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra','seminal vesicles L',
        'seminal vesicles R']#
 ####additionally dilatate_erode_conditionally after processing saves dicom seg's into previosly created folders
-# dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
+dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
 
 ##measurements
 #after data is preprocessed we will perform measurements like volumes of labels
