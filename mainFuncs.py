@@ -132,6 +132,12 @@ def getUids(row):
     except:
         return (' ',' ',' ')   
 
+def my_get_int(el):
+    el = el.replace("'","")
+    if(el==' ' or el==''):
+        return ' '
+    return int(el) 
+
 
 def get_df_file_info(dataDir,client_down_csv):
     """
@@ -150,6 +156,8 @@ def get_df_file_info(dataDir,client_down_csv):
     SeriesInstanceUIDs = list(map(lambda tupl: tupl[1], resList))
     InstanceUIDs = list(map(lambda tupl: tupl[2], resList))
     pat_names = list(map(lambda tupl: tupl[3], resList))
+    pat_names= list(map(my_get_int,pat_names))
+
     df['SOPInstanceUID']=sops   
     df['SeriesInstanceUID']=SeriesInstanceUIDs   
     df['StudyInstanceUID']=InstanceUIDs

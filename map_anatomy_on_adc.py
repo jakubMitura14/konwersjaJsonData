@@ -38,7 +38,7 @@ import subprocess
 
 elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
-reg_prop='/workspaces/konwersjaJsonData/registration/parameters.txt'  
+reg_prop='/workspaces/konwersjaJsonData/nnunet/registration/parameters.txt'  
 
 
 def groupByMaster(rowws):
@@ -83,7 +83,10 @@ def iterGroups(groupTuple,adc_lesion_cols,anatomy_cols ):
     lesion_paths=list(filter(lambda  el: len(el)>0 , lesion_paths))
 
     mri_paths = list(map(lambda row: (row[1]['series_desc'],row[1]['series_MRI_path']) ,listRows))
-    adc = list(filter(lambda el: el[0]== 'adc' ,mri_paths ))[0]
+    adc = list(filter(lambda el: el[0]== 'adc' ,mri_paths ))
+    if(len(adc)==0):
+        return (' ',' ',[])
+    adc=adc[0]
     t2w = list(filter(lambda el: el[0]== 't2w' ,mri_paths ))[0]
     # now we need a path to t2w and adc
     return (masterOlds,adc[1],t2w[1],list(zip(anatomy_cols,anatomy_paths)),list(zip(adc_lesion_cols,lesion_paths )))
@@ -181,7 +184,7 @@ def save_mean_anatomy_adc(sourceFrame,anatomy_cols,anatomy_adc_csv_dir):
         adc_means= toolz.pipe(sourceFrame.iterrows()
                                 ,groupByMaster
                                 ,pmap(partial(iterGroups,adc_lesion_cols=adc_lesion_cols,anatomy_cols=anatomy_cols ))
-                                # ,filter(lambda group: ' ' not in group[1].keys() )
+                                 ,filter(lambda group: group[0]!=' ')
                                 ,list
                                 ,pmap(partial(register_in_group,temp_dir=temp_dir ))
                                 ,list   

@@ -63,6 +63,7 @@ correctionsCSVDir= '/home/sliceruser/workspaces/konwersjaJsonData/metaDataProjec
 neededNumbersCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/metaDataProject/AI4AR_PCa_radiological.csv'# 'AI4A4_PCa_clinical.csv' #frame where we will get those ids that we are intrested in
 #loading data from JSON
 results = mdai.common_utils.json_to_dataframe(JSON)
+results['annotations'].to_csv('/workspaces/konwersjaJsonData/explore/mdai_prim_results.csv') 
 annot=results['annotations']
 #load data about files in directory folder
 #files passed from the folder where they were downloaded by mdai client
@@ -103,13 +104,13 @@ adc_means_csv_dir='/workspaces/konwersjaJsonData/explore/mean_adcs.csv'
 new_anatomy_csv_dir='/workspaces/konwersjaJsonData/explore/new_anatomies.csv'
 
 anatomic_cols=['pg_noSeg','afs_noSeg','cz_noSeg','pz_noSeg','sv_l_noSeg','sv_r_noSeg','tz_noSeg','ur_noSeg']
-# get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLab,anatomic_cols,adc_means_csv_dir)
+get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLab,anatomic_cols,adc_means_csv_dir)
 measurements.get_new_anatomu_inter_observer_agreement(out_files_frame,new_anatomy_csv_dir)
 
-# anatomy_adc_csv_dir='/workspaces/konwersjaJsonData/explore/mean_adcs_per_anatomy.csv'
-# save_mean_anatomy_adc(out_files_frame,anatomic_cols,anatomy_adc_csv_dir)
-# circ_frame_csv_dir='/workspaces/konwersjaJsonData/explore/max_circs.csv'
-# save_max_paerimeter(out_files_frame,anatomic_cols,circ_frame_csv_dir)
+anatomy_adc_csv_dir='/workspaces/konwersjaJsonData/explore/mean_adcs_per_anatomy.csv'
+save_mean_anatomy_adc(out_files_frame,anatomic_cols,anatomy_adc_csv_dir)
+circ_frame_csv_dir='/workspaces/konwersjaJsonData/explore/max_circs.csv'
+save_max_paerimeter(out_files_frame,anatomic_cols,circ_frame_csv_dir)
 
 
 # sudo cp -a /home/jm/Downloads/to_eval_test_cases /media/jm/hddData/datasets/workspace/konwersjaJsonData/to_eval_test_cases

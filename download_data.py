@@ -155,16 +155,21 @@ labels_dict = {
     "L_8KGxb8": 521,  # curvilinear contact
 }
 
-# """
-# downloading data from mdai client
-# """
-# mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
-# p = mdai_client.project('gaq3y0Rl', path='/home/sliceruser/workspaces/konwersjaJsonData/out')
+"""
+downloading data from mdai client
+"""
+import mdai
+
+
+mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
+p = mdai_client.project('gaq3y0Rl', path='/home/sliceruser/workspaces/konwersjaJsonData/out')
+datasetId='D_gQm1nQ'
+dataset = p.get_dataset_by_id(datasetId)
+dataset.prepare()
+
 # p.set_labels_dict(labels_dict)
-# datasetId='D_gQm1nQ'
-# dataset = p.get_dataset_by_id(datasetId)
-# dataset.prepare()
-# # # /mnt/disks/sdb/raw/out
+
+# # /mnt/disks/sdb/raw/out
 
 
 
@@ -173,24 +178,24 @@ labels_dict = {
 downloading xnat
 """
 
-import xnat
-import os
-session = xnat.connect('https://lssi-xnat-test.opi.org.pl', user="jmitura", password="@bx}%IRlT/Yb,ytfriMh")
-subjects=session.projects['TEST'].subjects
-testXnatPath= '/home/sliceruser/workspaces/konwersjaJsonData/TEST'
+# import xnat
+# import os
+# session = xnat.connect('https://lssi-xnat-test.opi.org.pl', user="jmitura", password="@bx}%IRlT/Yb,ytfriMh")
+# subjects=session.projects['TEST'].subjects
+# testXnatPath= '/home/sliceruser/workspaces/konwersjaJsonData/TEST'
 
-# def download(subb):
-#     print(f"subb {subb}")
+# # def download(subb):
+# #     print(f"subb {subb}")
+# #     dirr=os.makedirs(f"{testXnatPath}/{subb.label}",exist_ok=True)
+# #     sub.download_dir(f"{testXnatPath}/{subb.label}")
+
+# # list(map(download,subjects))
+# for index in range(len(subjects)):
+#     subb= subjects[index]
+#     print(f"subb {type(subb)}")
 #     dirr=os.makedirs(f"{testXnatPath}/{subb.label}",exist_ok=True)
-#     sub.download_dir(f"{testXnatPath}/{subb.label}")
-
-# list(map(download,subjects))
-for index in range(len(subjects)):
-    subb= subjects[index]
-    print(f"subb {type(subb)}")
-    dirr=os.makedirs(f"{testXnatPath}/{subb.label}",exist_ok=True)
-    subb.download_dir(f"{testXnatPath}/{subb.label}")
-session.disconnect()
+#     subb.download_dir(f"{testXnatPath}/{subb.label}")
+# session.disconnect()
 
 
 
@@ -203,10 +208,10 @@ download csvs ...
 
 
 
-# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_2023-07-06-130642_part1of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_dataset_D_gQm1nQ_2023-07-12-142231_part1of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
 
-# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_2023-07-06-130642_part2of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_dataset_D_gQm1nQ_2023-07-12-142231_part2of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
 
-# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_2023-07-06-130642_part3of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_dataset_D_gQm1nQ_2023-07-12-142231_part3of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
 
 

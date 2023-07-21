@@ -388,7 +388,7 @@ def get_annotator_id(path,path_info ):
     return f"{col_name.split('_')[-4]}_{col_name.split('_')[-3]}"
 
 def analyze_pair(pair_paths,path_info,name,evaluator,patient_id):
-    namee=f"{patient_id}_|_{name}_|_{get_annotator_id(pair_paths[0],path_info )}_|_{get_annotator_id(pair_paths[0],path_info )}"
+    namee=f"{patient_id}_|_{name}_|_{get_annotator_id(pair_paths[0],path_info )}_|_{get_annotator_id(pair_paths[1],path_info )}"
     evaluator.evaluate(sitk.ReadImage(pair_paths[0]), sitk.ReadImage(pair_paths[1]), namee)
 
 def analyze_same_anatomy(name,row,new_anatomy_cols,evaluator):
@@ -454,6 +454,11 @@ def get_new_anatomu_inter_observer_agreement(preprocessed_df,new_anatomy_csv_dir
     frame["organ"]=list(map(lambda el: el[1]  ,subj))
     frame["annotator_a"]=list(map(lambda el: el[2]  ,subj))
     frame["annotator_b"]=list(map(lambda el: el[3]  ,subj))
+
+    rafal_id='U_8nPj9Q'
+    frame.loc[frame['annotator_a'] != rafal_id ]
+    frame.loc[frame['annotator_b'] != rafal_id ]
+
 
     frame.to_csv(new_anatomy_csv_dir)
 

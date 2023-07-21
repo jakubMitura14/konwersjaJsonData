@@ -518,6 +518,7 @@ def getLabelNames(tupl):
 
 
 
+
 def get_frame_with_output(files_df,annot,outputDir,resCSVDir,mainFoldDirMha,mainFoldDirSeg,jsonFolder,correctionsCSVDir,neededNumbersCSVDir):
     """
     in parallel iterates over all studies and series and save the paths of created files in the csv file
@@ -525,7 +526,7 @@ def get_frame_with_output(files_df,annot,outputDir,resCSVDir,mainFoldDirMha,main
     
     if(pathOs.exists(resCSVDir)):
         return pd.read_csv(resCSVDir) 
-
+    
 
     out_files_frame= pd.DataFrame()
     correctionsFrame=pd.read_csv(correctionsCSVDir)
@@ -535,9 +536,11 @@ def get_frame_with_output(files_df,annot,outputDir,resCSVDir,mainFoldDirMha,main
 
     #filtering only rows that we are intrested in 
     yy = list(files_df['masterolds'].to_numpy())
-    yy= list(map(lambda el: int(el) in neededIds,yy))
+    # print(f"yyyyyy {yy}")
+    # yy= list(map(lambda el: int("".join(list(filter(lambda l: l.isnumeric(),el)))) in neededIds,yy))
+    yy= list(map(lambda el: el in neededIds,yy))
 
-    files_df=files_df.loc[yy]
+    # files_df=files_df.loc[yy]
 
     # dicomSeg main folders
     data_path_seg= join(mainFoldDirSeg,"Data")
