@@ -93,22 +93,42 @@ label_names= {
 
 def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit_path,out_pathsDict):
     labels= list(filter(lambda pathh : 'my_prost' not in  pathh, labels))
-    # print(labels)
-    for index,lab in enumerate(labels):
-        
-        label_loc= label_new_path.replace('.nii.gz',f"_{index}.nii.gz")
-        lab=get_bool_arr_from_path(lab)
-        save_from_arr(lab,sitk.ReadImage(group[1][main_modality][0]),label_loc)
+    label_names=list(map(lambda pathh: list(filter(lambda el: 'lesion' in el  ,pathh.split('_')[-5:]))[0] ,labels ))
+    label_names= list(filter( lambda el: '/' not in el ,label_names))
+    # we want to get sum of all labels of the same name - so lesion 1 sum lesion 2 sum ...
+    # then we encode it in separate file 
+    zipped_names= list(zip(label_names,labels))
+    grouped_by_lesion_num = dict(groupby(lambda tupl :tupl[0],zipped_names)).items()
+    grouped_by_lesion_num= list(map(lambda grouped :  (grouped[0],list(map(lambda el: el[1],grouped[1])) ) , grouped_by_lesion_num  ))
+    grouped_by_lesion_num= list(map(lambda grouped :  (grouped[0],np.array(functools.reduce(get_bool_or, grouped[1]))),grouped_by_lesion_num  ))
+    label_names_uniq=list(map(lambda el: el[0] ,grouped_by_lesion_num))
+    label_nums= list(map(lambda name: list(filter(lambda el:el.isdigit(),name))  ,label_names_uniq))
+    print(f"label_nums {label_nums} ")
+    # we also need to increase number of copies of mri files so we will have one copy for each label
+    label_new_paths= list(map(lambda lab_num : label_new_path.replace('0.nii.gz',f"{lab_num}.nii.gz")  ,label_nums))
+    label_arrs= list(map(lambda tupl: tupl[1] ,grouped_by_lesion_num))
     
+    zipped_new_labels= list(zip(label_new_paths,label_arrs  ))   
+    #saving labels
+    list(map(lambda tupl: save_from_arr(tupl[1],sitk.ReadImage(group[1][main_modality][0]),tupl[0]),zipped_new_labels))   
+    # then for priming we do label erosion and then choose some random point 
     
-    reduced = np.array(functools.reduce(get_bool_or, labels))
-    # now we need to save the sumed label and all of the MRIs 
-    # we want to make it compatible with both nnunet in general and with the picai dataset so we will keep picai convention of numering cases
-    # 0 t2w, 1 adc 2 hbv additionally we will set prostate gland label as 3 which will be output of the segmentation algorithm passed as preprocessing step
-    # in order to avoid problems with repeating ids all ids from 9
-    # we need also to add related labels        
-    save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
-    return [label_new_path],zipped_modalit_path
+
+    # we save result in zipped_modalit_path
+
+    # for index,lab in enumerate(labels):        
+    #     label_loc= label_new_path.replace('0.nii.gz',f"{index}.nii.gz")
+    #     lab=get_bool_arr_from_path(lab)
+    #     save_from_arr(lab,sitk.ReadImage(group[1][main_modality][0]),label_loc)
+    
+    # reduced = np.array(functools.reduce(get_bool_or, labels))
+    # save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
+    
+    zipped_modalit_path=list(map(zipped_modalit_path, label_new_paths))
+
+    zipped_modalit_path= itertools.chain(*zipped_modalit_path)
+    
+    return [label_new_paths],zipped_modalit_path
 
 
 def for_filter_unwanted(group):
@@ -124,7 +144,7 @@ def for_filter_unwanted(group):
 
 
 # grouped_rows= main_prepare_nnunet('287',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
-grouped_rows= main_prepare_nnunet('287',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted,is_test_prep=True)
+grouped_rows= main_prepare_nnunet('287',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted,is_test_prep=False)
 
 
 

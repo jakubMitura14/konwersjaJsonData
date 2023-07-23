@@ -147,13 +147,14 @@ def get_int_arr_from_path(pathh):
         return np.zeros_like(imageA)
     return np.array(imageA.astype(bool).astype(np.uint8) *(index))
 
-def process_labels_prim(labels,group,main_modality,label_new_path):
+def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit_path,out_pathsDict):
     # we get the sum of all labels 
     arrays= list(map(get_int_arr_from_path,labels))
     # arrays= list(map(list,arrays))
     reduced = np.sum(np.stack(arrays,axis=0),axis=0).astype(np.uint8)
     print(np.unique(reduced))
     save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
+    return [label_new_path],zipped_modalit_path
 
 
 def for_filter_unwanted(group):

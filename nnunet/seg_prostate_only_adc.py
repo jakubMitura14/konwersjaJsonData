@@ -89,7 +89,7 @@ label_names= {
     "lesion": 1,
     }
 
-def process_labels_prim(labels,group,main_modality,label_new_path):
+def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit_path,out_pathsDict):
     labels= list(filter(lambda pathh : 'my_prost' not in  pathh, labels))
     labels= list(filter(lambda pathh : 'adc' in  pathh, labels))
     
@@ -107,6 +107,7 @@ def process_labels_prim(labels,group,main_modality,label_new_path):
     # in order to avoid problems with repeating ids all ids from 9
     # we need also to add related labels        
     save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
+    return [label_new_path],zipped_modalit_path
 
 
 def for_filter_unwanted(group):

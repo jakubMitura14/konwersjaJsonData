@@ -40,7 +40,7 @@ elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
 reg_prop='/workspaces/konwersjaJsonData/nnunet/registration/parameters.txt'  
 # dataframe with master ids that we should not include in training
-test_ids_CSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/test_ids.csv'
+test_ids_CSVDir='/workspaces/konwersjaJsonData/explore/test_ids.csv'
 test_ids=pd.read_csv(test_ids_CSVDir)['ids'].to_numpy()
 
 
@@ -232,6 +232,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     mris=[]
     newPaths=[]
     if(len(modalities_of_intrest_without_main)>0):
+        print("aaaaaaaaaaaaaaaa")
         #register all modalities and associated labels to main_modality
         registered_modalities= list(map(lambda mod: reg_a_to_b(join(temp_dir,mod),group[0],group[1][main_modality][0],group[1][mod][0],group[1][mod][1],reg_prop
                                                                 ,elacticPath,transformix_path,mod)
@@ -240,38 +241,50 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
         modalities,mris,labels=list(toolz.sandbox.core.unzip(registered_modalities))
         labels=list(toolz.concat(labels))
         modalities=list(modalities)
+
+
+
+
     modalities.append(main_modality)
-    
+    # zipped_modalit_path = list(zip(modalities,mris))
     
     mris=list(mris)
+    # mris.append(group[1][main_modality][0])    
     mris.append(group[1][main_modality][0])    
+    
 
     #adding to the list the labels from main modality thay did not needed to be registered
     labels=np.array(labels+group[1][main_modality][1]).flatten()
 
     if(len(labels)>0):
-        process_labels(labels,group,main_modality,label_new_path)
-
-
-        #zipping for starmap use
         zipped_modalit_path = list(zip(modalities,mris))
+        # print(f"zipped_modalit_path {zipped_modalit_path}")
+        #zipping for starmap use
+        
         zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
         zipped_modalit_path_add= list(map( lambda el:(group[1][el][1][0], out_pathsDict[el]) ,non_mri_inputs))
         zipped_modalit_path=zipped_modalit_path+zipped_modalit_path_add
         # print(f"zipped_modalit_path_add {zipped_modalit_path_add} \n zipped_modalit_path {zipped_modalit_path} \n out_pathsDict {out_pathsDict}  ")
         zipped_modalit_path= list(filter(  lambda tupl: tupl[0]!=" " and tupl[1]!=" ",zipped_modalit_path))
+        
+        
         #as we already have prepared the destination paths and sources for images we need now to copy files
         # we need to remember that we are  getting from mha to nii gz
-        list(itertools.starmap(copy_changing_type ,zipped_modalit_path ))
+        print(f"zipped_modalit_path {zipped_modalit_path}")
 
+        list(itertools.starmap(copy_changing_type ,zipped_modalit_path ))
         _,new_mri_paths= list(toolz.sandbox.core.unzip(zipped_modalit_path))
         new_mri_paths=np.unique(list(new_mri_paths)+non_mri_inputs)
+        
         newPaths= list(zip(modalities,new_mri_paths))
         non_mri_inputs_new_paths= list(map( lambda el:(el, out_pathsDict[el]) ,non_mri_inputs))
-        # print(f"non_mri_inputs_new_paths {non_mri_inputs_new_paths} non_mri_inputs {non_mri_inputs}")
+
         newPaths=newPaths+non_mri_inputs_new_paths
-        
-        newPaths.append(('label',label_new_path ))
+
+        label_new_paths,zipped_modalit_path= process_labels(labels,group,main_modality,label_new_path,zipped_modalit_path,out_pathsDict)
+
+        for label_new_path in label_new_paths:
+            newPaths.append(('label',label_new_path ))
         #copying label holding segmentation of full prostate gland
         # currProstPath= group[1]['prostate']
         # shutil.copyfile(currProstPath,out_prostate_path )
@@ -281,6 +294,9 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
         shutil.rmtree(temp_dir, ignore_errors=True)
 
         newPaths_paths= list(map(lambda tupl: tupl[1], newPaths))
+
+        print(f"newPaths {newPaths}")
+
         return (group[0],dict(newPaths))
     return " "
 
@@ -350,7 +366,6 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     # os.environ.setdefault('nnUNet_results', join(mainResults_folder,taskName))
     #defaul is not filter out anything
     if(for_filter_unwanted==None):
-        print("for_filter_unwanted is None")
         for_filter_unwanted=lambda group: True
     grouped_rows=[]
     
@@ -360,8 +375,8 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     if(is_test_prep):
         filter_ids=filter_in_test_ids
     
-    with mp.Pool(processes = mp.cpu_count()) as pool:
-    # with mp.Pool(processes = 1) as pool:
+    # with mp.Pool(processes = mp.cpu_count()) as pool:
+    with mp.Pool(processes = 1) as pool:
         @curry  
         def pmap(fun,iterable):
             return pool.map(fun,iterable)

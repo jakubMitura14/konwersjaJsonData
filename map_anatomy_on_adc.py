@@ -85,7 +85,7 @@ def iterGroups(groupTuple,adc_lesion_cols,anatomy_cols ):
     mri_paths = list(map(lambda row: (row[1]['series_desc'],row[1]['series_MRI_path']) ,listRows))
     adc = list(filter(lambda el: el[0]== 'adc' ,mri_paths ))
     if(len(adc)==0):
-        return (' ',' ',[])
+        return (' ',' ',[],[])
     adc=adc[0]
     t2w = list(filter(lambda el: el[0]== 't2w' ,mri_paths ))[0]
     # now we need a path to t2w and adc
@@ -120,6 +120,7 @@ def get_volume(path,bool_volume):
 
 def register_in_group(groupTuple,temp_dir):
     masterOlds,adc,t2w,anatomy_paths,lesion_paths=groupTuple
+    # print(f"groupTuple {groupTuple} anatomy_paths {anatomy_paths}")
     anatomy_names,anatomy_paths_pure = list(toolz.sandbox.core.unzip( anatomy_paths ))
     
     anatomy_names=list(anatomy_names)
@@ -184,7 +185,8 @@ def save_mean_anatomy_adc(sourceFrame,anatomy_cols,anatomy_adc_csv_dir):
         adc_means= toolz.pipe(sourceFrame.iterrows()
                                 ,groupByMaster
                                 ,pmap(partial(iterGroups,adc_lesion_cols=adc_lesion_cols,anatomy_cols=anatomy_cols ))
-                                 ,filter(lambda group: group[0]!=' ')
+                                 ,filter(lambda group: group[0]!=' ') 
+                                 ,filter(lambda group: len(group[3])>0) 
                                 ,list
                                 ,pmap(partial(register_in_group,temp_dir=temp_dir ))
                                 ,list   

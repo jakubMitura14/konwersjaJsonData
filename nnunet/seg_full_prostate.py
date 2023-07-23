@@ -62,12 +62,13 @@ channel_names={
     "1": "adc",
     "2": "hbv",
     }
-label_names= {  # THIS IS DIFFERENT NOW!
+label_names= {  
     "background": 0,
     "prostate": 1,
     }
-def process_labels_prim(labels,group,main_modality,label_new_path):
+def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit_path,out_pathsDict):
     copy_changing_type(labels[0], label_new_path)
+    return [label_new_path],zipped_modalit_path
 
 
 

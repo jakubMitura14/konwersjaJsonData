@@ -172,7 +172,8 @@ def save_max_paerimeter(sourceFrame,anatomy_cols,circ_frame_csv_dir):
         circums= toolz.pipe(sourceFrame.iterrows()
                                 ,groupByMaster
                                 ,pmap(partial(iterGroups,anatomy_cols=anatomy_cols ))
-                                # ,filter(lambda group: ' ' not in group[1].keys() )
+                                ,filter(lambda group: len(group[2])>0) 
+                                 #,filter(lambda group: ' ' not in group[1].keys() )
                                 ,list
                                 ,pmap(get_circumFerences)
                                 ,list   

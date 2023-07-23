@@ -75,7 +75,7 @@ label_names= {  # THIS IS DIFFERENT NOW!
     }
 
 
-def process_labels_prim(labels,group,main_modality,label_new_path):
+def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit_path,out_pathsDict):
     # we get the sum of all labels 
     # reduced = np.array(toolz.sandbox.parallel.fold(get_bool_or, labels,map=map))
     reduced = np.array(functools.reduce(get_bool_or, labels))
@@ -85,6 +85,7 @@ def process_labels_prim(labels,group,main_modality,label_new_path):
     # in order to avoid problems with repeating ids all ids from 9
     # we need also to add related labels        
     save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
+    return [label_new_path],zipped_modalit_path
 
 
 
