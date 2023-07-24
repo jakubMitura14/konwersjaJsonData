@@ -178,7 +178,6 @@ def copy_changing_type(source, dest):
     writer.Execute(image)
     return dest
 
-
 # mod="adc"
 def get_key_by_value(mod,channel_names):
     return list(channel_names.keys())[list(channel_names.values()).index(mod)]
@@ -232,7 +231,6 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     mris=[]
     newPaths=[]
     if(len(modalities_of_intrest_without_main)>0):
-        print("aaaaaaaaaaaaaaaa")
         #register all modalities and associated labels to main_modality
         registered_modalities= list(map(lambda mod: reg_a_to_b(join(temp_dir,mod),group[0],group[1][main_modality][0],group[1][mod][0],group[1][mod][1],reg_prop
                                                                 ,elacticPath,transformix_path,mod)
@@ -255,12 +253,11 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
 
     #adding to the list the labels from main modality thay did not needed to be registered
     labels=np.array(labels+group[1][main_modality][1]).flatten()
-
+    # print(f"labels {labels}  group[1][main_modality] {group[1][main_modality]} ")
     if(len(labels)>0):
         zipped_modalit_path = list(zip(modalities,mris))
         # print(f"zipped_modalit_path {zipped_modalit_path}")
-        #zipping for starmap use
-        
+        #zipping for starmap use        
         zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
         zipped_modalit_path_add= list(map( lambda el:(group[1][el][1][0], out_pathsDict[el]) ,non_mri_inputs))
         zipped_modalit_path=zipped_modalit_path+zipped_modalit_path_add
@@ -270,7 +267,6 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
         
         #as we already have prepared the destination paths and sources for images we need now to copy files
         # we need to remember that we are  getting from mha to nii gz
-        print(f"zipped_modalit_path {zipped_modalit_path}")
 
         list(itertools.starmap(copy_changing_type ,zipped_modalit_path ))
         _,new_mri_paths= list(toolz.sandbox.core.unzip(zipped_modalit_path))
@@ -281,7 +277,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
 
         newPaths=newPaths+non_mri_inputs_new_paths
 
-        label_new_paths,zipped_modalit_path= process_labels(labels,group,main_modality,label_new_path,zipped_modalit_path,out_pathsDict)
+        label_new_paths,newPaths= process_labels(labels,group,main_modality,label_new_path,newPaths,out_pathsDict)
 
         for label_new_path in label_new_paths:
             newPaths.append(('label',label_new_path ))
@@ -295,9 +291,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
 
         newPaths_paths= list(map(lambda tupl: tupl[1], newPaths))
 
-        print(f"newPaths {newPaths}")
-
-        return (group[0],dict(newPaths))
+        return label_new_paths #(group[0],dict(newPaths))
     return " "
 
 def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_names,label_cols,process_labels,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted=None,is_test_prep=False):
@@ -381,32 +375,32 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
         def pmap(fun,iterable):
             return pool.map(fun,iterable)
 
-        grouped_rows= toolz.pipe(sourceFrame.iterrows()
+        label_paths= toolz.pipe(sourceFrame.iterrows()
                                 ,filter(lambda row: row[1]['series_desc'] in modalities_of_intrest)
                                 ,filter(filter_ids) # filter out all of the test cases
                                 ,groupByMaster
                                 ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=label_cols,non_mri_inputs=non_mri_inputs))
                                 ,filter(lambda group: ' ' not in group[1].keys() )
                                 ,filter(for_filter_unwanted )
-
                                 ,list
                                 ,pmap(partial(add_files,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,reg_prop=reg_prop,
                                               elacticPath=elacticPath,transformix_path=transformix_path,labelsTrFolder=labelsTrFolder,imagesTrFolder=imagesTrFolder
                                                ,process_labels=process_labels,non_mri_inputs=non_mri_inputs,channel_names=channel_names ))
-                                ,filter(lambda el: el!=' ')
-                                ,filter(lambda el: el[0]!=' ')
-                                
+                                ,filter(lambda el: el!=' ')                                
                                 ,list
                                 )
 
+    label_paths= list(itertools.chain(*label_paths))
+    label_paths= list(itertools.chain(*label_paths))
 
+    print(f"label_paths {label_paths}")
     data = { 
     "channel_names": channel_names, 
     "labels": label_names,  
     "file_ending": ".nii.gz",
     "overwrite_image_reader_writer": "SimpleITKIO",
     "normalization_schemes" : "noNorm",
-    "numTraining" : len(grouped_rows),
+    "numTraining" : len(label_paths),
     "nnUNetPlans" : ['2d','3d_lowres','3d_cascade_fullres', '3d_fullres']
 
     }

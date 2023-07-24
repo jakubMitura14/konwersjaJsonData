@@ -25,6 +25,7 @@ from toolz.curried import pipe, map, filter, get
 from toolz import curry
 from os.path import basename, dirname, exists, isdir, join, split
 import nnunetv2
+from scipy import ndimage
 
 import elastixRegister as elastixRegister
 from elastixRegister import reg_a_to_b
@@ -39,6 +40,7 @@ import os
 from subprocess import Popen
 import subprocess
 from prepareNNunet import *
+import einops
 
 #metadata directory
 resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
@@ -79,8 +81,10 @@ lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 label_cols=lesion_cols
 # label_cols=anatomic_cols+[prostate_col]
 channel_names={  
-    "0": "adc",
-    "1": "hbv"  }
+    "0": "hbv",
+    "1": "adc" ,
+    "2": "priming" 
+      }
 
 
 
@@ -91,19 +95,53 @@ label_names= {
     "lesion": 1,
     }
 
-def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit_path,out_pathsDict):
+
+def replace_in_path(pathh,num):
+    new_name= (pathh[0],pathh[1].replace('0_', f"{num}_"))
+    # print(f"pathh[1] {pathh[1]} new_name {new_name}")
+    copy_changing_type(pathh[1], new_name[1])
+    return new_name
+
+
+
+
+def erode_and_get_random_coord(arr):
+    new_arr=ndimage.binary_erosion(arr,iterations=1)
+    if(np.sum(new_arr.flatten())==0):
+        new_arr=arr
+    coords=new_arr.nonzero()
+    # print(f"suuuun {np.sum(np.stack(list(coords)).flatten())} arr {np.sum(arr.flatten())}  prim coords {np.sum(ndimage.binary_erosion(arr,iterations=2).flatten())}")
+    coords=einops.rearrange(list(coords),'f c->c f')
+
+    ran_int = np.random.randint(coords.shape[0] , size=1)[0]
+    # print(f"coords {coords.shape} ran_int {ran_int}")
+    rand_coord=coords[ran_int,:]
+    zeros = np.zeros_like(arr)
+    zeros[rand_coord[0],rand_coord[1],rand_coord[2]]=1
+    return zeros
+
+def process_labels_prim(labels,group,main_modality,label_new_path,newPaths,out_pathsDict):
     labels= list(filter(lambda pathh : 'my_prost' not in  pathh, labels))
-    label_names=list(map(lambda pathh: list(filter(lambda el: 'lesion' in el  ,pathh.split('_')[-5:]))[0] ,labels ))
+    # print(f"labels {labels}")
+    label_names=list(map(lambda pathh:  
+                         list(filter( lambda el_out:'/' not in el_out ,
+                            list(filter(lambda el: 'lesion' in el  ,pathh.split('_')))))[0]
+                         
+                         ,labels ))
     label_names= list(filter( lambda el: '/' not in el ,label_names))
     # we want to get sum of all labels of the same name - so lesion 1 sum lesion 2 sum ...
     # then we encode it in separate file 
     zipped_names= list(zip(label_names,labels))
+
+    print(f"zipped_names {zipped_names} ")
     grouped_by_lesion_num = dict(groupby(lambda tupl :tupl[0],zipped_names)).items()
     grouped_by_lesion_num= list(map(lambda grouped :  (grouped[0],list(map(lambda el: el[1],grouped[1])) ) , grouped_by_lesion_num  ))
+    print(f"\n grouped_by_lesion_num {grouped_by_lesion_num} \n")
     grouped_by_lesion_num= list(map(lambda grouped :  (grouped[0],np.array(functools.reduce(get_bool_or, grouped[1]))),grouped_by_lesion_num  ))
     label_names_uniq=list(map(lambda el: el[0] ,grouped_by_lesion_num))
-    label_nums= list(map(lambda name: list(filter(lambda el:el.isdigit(),name))  ,label_names_uniq))
-    print(f"label_nums {label_nums} ")
+    label_nums= list(map(lambda name: "".join(list(filter(lambda el:el.isdigit(),name)))  ,label_names_uniq))
+
+
     # we also need to increase number of copies of mri files so we will have one copy for each label
     label_new_paths= list(map(lambda lab_num : label_new_path.replace('0.nii.gz',f"{lab_num}.nii.gz")  ,label_nums))
     label_arrs= list(map(lambda tupl: tupl[1] ,grouped_by_lesion_num))
@@ -113,6 +151,9 @@ def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit
     list(map(lambda tupl: save_from_arr(tupl[1],sitk.ReadImage(group[1][main_modality][0]),tupl[0]),zipped_new_labels))   
     # then for priming we do label erosion and then choose some random point 
     
+    # print(f"newPaths {newPaths}")
+
+
 
     # we save result in zipped_modalit_path
 
@@ -124,11 +165,29 @@ def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit
     # reduced = np.array(functools.reduce(get_bool_or, labels))
     # save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
     
-    zipped_modalit_path=list(map(zipped_modalit_path, label_new_paths))
 
-    zipped_modalit_path= itertools.chain(*zipped_modalit_path)
+    newPaths_new= list(map(lambda num:  list(map(lambda pathh:  replace_in_path(pathh,num), newPaths)) ,label_nums))
+
+
     
-    return [label_new_paths],zipped_modalit_path
+
+
+    list(map(lambda file_path_tupl:os.remove(file_path_tupl[1]),newPaths))
+    newPaths_new= list(itertools.chain(*newPaths_new))
+
+
+    label_arrs_for_priming=list(map(erode_and_get_random_coord,label_arrs))
+    priming_paths= list(filter( lambda tupl: tupl[0]=='adc',newPaths_new))
+    priming_paths= list(map(lambda tupl: tupl[1],priming_paths))
+    priming_paths= list(map(lambda pathhh : pathhh.replace('_0001.nii.gz', '_0002.nii.gz'),priming_paths))
+  
+    zipped_priming_paths=list(zip(priming_paths, label_arrs_for_priming ))
+    list(map(lambda tupl: save_from_arr(tupl[1],sitk.ReadImage(group[1][main_modality][0]),tupl[0]),zipped_priming_paths))   
+      
+    priming_numsss=list(map(lambda numm:f"priming_{numm}" ,label_nums))
+    priming_paths= list(zip(priming_numsss,priming_paths))
+    newPaths_new=newPaths_new+priming_paths
+    return [label_new_paths],newPaths_new
 
 
 def for_filter_unwanted(group):
