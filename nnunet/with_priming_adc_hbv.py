@@ -187,7 +187,7 @@ def process_labels_prim(labels,group,main_modality,label_new_path,newPaths,out_p
     priming_numsss=list(map(lambda numm:f"priming_{numm}" ,label_nums))
     priming_paths= list(zip(priming_numsss,priming_paths))
     newPaths_new=newPaths_new+priming_paths
-    return [label_new_paths],newPaths_new
+    return label_new_paths,newPaths_new
 
 
 def for_filter_unwanted(group):

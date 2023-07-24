@@ -391,7 +391,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
                                 )
 
     label_paths= list(itertools.chain(*label_paths))
-    label_paths= list(itertools.chain(*label_paths))
+    # label_paths= list(itertools.chain(*label_paths))
 
     print(f"label_paths {label_paths}")
     data = { 

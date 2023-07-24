@@ -74,7 +74,7 @@ def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit
 
 dataset_id='280'
 
-grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality)
+grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,is_test_prep=True)
     
 
 # CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 280 3d_fullres 0
@@ -118,3 +118,5 @@ grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names
 # --save_probabilities
 
 # cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/imagesTr/9000100_0003.nii.gz /workspaces/konwersjaJsonData/explore/in_prost_seg/9000100_0003.nii.gz
+
+# cp -a /workspaces/konwersjaJsonData/explore/full_prostate_results/2023-05-08/Dataset280_Prostate /home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results
