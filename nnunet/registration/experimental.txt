@@ -46,12 +46,13 @@
 // The optimizer AdaptiveStochasticGradientDescent (ASGD) works
 // quite ok in general. The Transform and Metric are important
 // and need to be chosen careful for each application. See manual.
-//(Transform "EulerTransform")
-(Transform "AffineTransform")
+(Transform "EulerTransform")
+//(Transform "AffineTransform")
 
 (Sampler "RandomCoordinate")
 (Optimizer "AdaptiveStochasticGradientDescent")
-(Metric "AdvancedMattesMutualInformation")
+//(Metric "AdvancedMattesMutualInformation")
+(Metric "AdvancedMeanSquares")
 
 //************Transform************
 
@@ -68,7 +69,7 @@
 // In generally, Compose is the best option in most cases.
 // It does not influence the results very much.
 (HowToCombineTransforms "Compose")
-(AutomaticTransformInitializationMethod "CenterOfGravity")
+//(AutomaticTransformInitializationMethod "CenterOfGravity")
 
 
 //************Similarity Measure************
@@ -100,6 +101,8 @@
 // For more robustness, you may increase this to 1000-2000.
 //(MaximumNumberOfIterations 4000 4000 5500 5500)
 (MaximumNumberOfIterations 0 0 0 0)
+(MaximumStepLength 0.00000000000001 )
+
 
 // The step size of the optimizer, in mm. By default the voxel size is used.
 // which usually works well. In case of unusual high-resolution images
@@ -115,16 +118,19 @@
 // With an AdaptiveStochasticGradientDescent optimizer,
 // in combination with the two options below, around 2000
 // samples may already suffice.
-(NumberOfSpatialSamples 30480)
+//(NumberOfSpatialSamples 304800)
+(NumberOfSpatialSamples 100)
 
 // Refresh these spatial samples in every iteration, and select
 // them randomly. See the manual for information on other sampling
 // strategies.
 (NewSamplesEveryIteration "true")
-(ImageSampler "RandomCoordinate")
+//(ImageSampler "RandomCoordinate")
+(ImageSampler "Full")
+
 
 (FixedImageBSplineInterpolationOrder 3)
-(UseRandomSampleRegion "true")
+(UseRandomSampleRegion "false")
 //(SampleRegionSize 50 50 50)
 
 // ************* Interpolation and Resampling ****************

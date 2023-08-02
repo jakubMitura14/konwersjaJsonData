@@ -18,6 +18,7 @@ import fileinput
 import re
 import subprocess
 import itk
+import itertools
 
 
 def transform_label(path_label,out_folder,transformix_path ,transformixParameters):
@@ -48,13 +49,14 @@ def reg_a_to_b(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPat
     result=pathOs.join(outPath,"result.0.mha")
     labels_b_list= list(labels_b_list)
 
+
     cmd=f"{elacticPath} -f {path_a} -m {path} -out {outPath} -p {reg_prop} -threads 1"
     p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
     p.wait()
     #we will repeat operation multiple max 9 times if the result would not be written
     if((not pathOs.exists(result)) and reIndex<5):
        
-        reg_prop=reg_prop.replace("parameters","parametersB")
+        # reg_prop=reg_prop.replace("parameters","parametersB")
 
         cmd=f"{elacticPath} -f {path_a} -m {path} -out {outPath} -p {reg_prop} -threads 1"
 
@@ -162,3 +164,106 @@ def reg_a_to_b_itk(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacti
 
 
     return (modality,transformed_a_path,lab_regs) #     
+
+
+
+def reg_a_to_b_by_metadata_single(fixed_image_path,moving_image_path,out_folder):
+    """
+    adapted from last section of
+    https://github.com/InsightSoftwareConsortium/SimpleITK-Notebooks/blob/master/Python/21_Transforms_and_Resampling.ipynb 
+    """
+    fixed_image=sitk.ReadImage(fixed_image_path)
+    moving_image=sitk.ReadImage(moving_image_path)
+
+    # identity = sitk.Transform(3, sitk.sitkIdentity)
+
+
+    images = [fixed_image, moving_image]
+    transforms = [sitk.Transform(3, sitk.sitkIdentity),sitk.Transform(3, sitk.sitkIdentity)]
+    dim = images[0].GetDimension()
+
+    boundary_points = []
+    for image, transform in zip(images, transforms):
+        for boundary_index in list(
+            itertools.product(*zip([0] * dim, [sz - 1 for sz in image.GetSize()]))
+        ):  # Points from the moving image(s) are mapped to the fixed coordinate system using the inverse
+            # of the registration_result.
+            boundary_points.append(
+                # transform.GetInverse().TransformPoint(
+                #     image.TransformIndexToPhysicalPoint(boundary_index)
+                # )
+                image.TransformIndexToPhysicalPoint(boundary_index)
+            )
+    max_coords = np.max(boundary_points, axis=0)
+    min_coords = np.min(boundary_points, axis=0)
+
+    new_origin = min_coords
+    # Arbitrarily use the spacing of the first image and its pixel type,
+    # change these to suite your needs.
+    new_spacing = images[0].GetSpacing()
+    new_pixel_type = images[0].GetPixelID()
+    new_size = (((max_coords - min_coords) / new_spacing).round().astype(int)).tolist()
+    new_direction = np.identity(dim).ravel()
+
+    # Resample all images onto the common grid.
+    resampled_images = []
+    for image, transform in zip(images, transforms):
+        resampled_images.append(
+            sitk.Resample(
+                image,
+                new_size,
+                transform,
+                sitk.sitkLinear,
+                new_origin,
+                new_spacing,
+                new_direction,
+                0.0,
+                new_pixel_type,
+            )
+        )
+    os.makedirs(out_folder ,exist_ok = True)   
+    writer = sitk.ImageFileWriter()
+
+    arr=sitk.GetArrayFromImage(resampled_images[1])
+    print(f"leen {len(resampled_images)} \n prim sum {np.sum(sitk.GetArrayFromImage(sitk.ReadImage(moving_image_path)).flatten())} \n suuum {np.sum(arr.flatten())} \n max_coords {max_coords} \n min_coords {min_coords} \n")
+
+    new_path= join(out_folder,moving_image_path.split('/')[-1])
+    writer.SetFileName(new_path)
+    writer.Execute(resampled_images[1])
+
+    return new_path
+
+def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,out_folder):
+    moving_image_path=moving_image_path[0]
+    fixed_image=sitk.ReadImage(fixed_image_path)
+    moving_image=sitk.ReadImage(moving_image_path)
+
+    # fixed_image=sitk.Cast(fixed_image, sitk.sitkUInt8)
+    # moving_image=sitk.Cast(moving_image, sitk.sitkInt)
+    
+    arr=sitk.GetArrayFromImage(moving_image)
+    resampled=sitk.Resample(moving_image, fixed_image, sitk.Transform(3, sitk.sitkIdentity), sitk.sitkNearestNeighbor, 0)
+    
+    # print(f" prim sum {np.sum(sitk.GetArrayFromImage(sitk.ReadImage(moving_image_path)).flatten())} \n suuum {np.sum(sitk.GetArrayFromImage(resampled).flatten())} ")
+  
+    writer = sitk.ImageFileWriter()
+    new_path= join(out_folder,moving_image_path.split('/')[-1])
+    writer.SetFileName(new_path)
+    writer.Execute(resampled)
+
+    return new_path
+
+# def reg_a_to_b_by_metadata(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPath,transformix_path,modality,reIndex=0):
+#     pass
+    
+    
+# # curr_adc= '/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data/079/79_adc.mha'
+# curr_adc= '/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_dicom/Data/079/79_adc'
+# curr_afs= '/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Anatomical_Labels/079/79_afs_t2w.nii.gz'
+
+# # curr_adc= '/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data/066/66_adc.mha'
+# # curr_afs= '/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Anatomical_Labels/066/66_afs_t2w.nii.gz'
+
+# out_folder='/workspaces/konwersjaJsonData/explore/temp'
+# reg_a_to_b_by_metadata_single_b(curr_adc,curr_afs,out_folder)
+

@@ -117,6 +117,20 @@ def get_volume(path,bool_volume):
     volume = np.sum(bool_volume)*(spacing[0]*spacing[1]*spacing[2])/1000
     return volume
 
+def copy_changing_type_loc(source):
+    dest= source.replace('.mha','.nii.gz')
+    image= sitk.ReadImage(source)
+    # nan_count=np.sum(np.isnan(np.array(sitk.GetArrayFromImage(image)).flatten()))
+    # if(nan_count>0):
+    #     raise ValueError(f"!!! nan in {source}")
+    image = sitk.DICOMOrient(image, 'LPS')
+    # image.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
+    # image=sitk.Cast(image, sitk.sitkFloat32)
+    writer = sitk.ImageFileWriter() 
+    writer.SetFileName(dest)
+    writer.Execute(image)
+    return dest
+
 
 def register_in_group(groupTuple,temp_dir):
     masterOlds,adc,t2w,anatomy_paths,lesion_paths=groupTuple
@@ -131,12 +145,19 @@ def register_in_group(groupTuple,temp_dir):
     # loc_temp_dir=f"/workspaces/konwersjaJsonData/explore/debug/{masterOlds}" # TODO remove unhash above krowa
 
     os.makedirs(loc_temp_dir ,exist_ok = True)
-    regg=reg_a_to_b(loc_temp_dir,masterOlds,adc,t2w,anatomy_paths_pure,reg_prop ,elacticPath,transformix_path,'adc',reIndex=0)
-    if(regg==' '):
-        return ' '
-    _,registered_t2w,registered_anatomies = regg
+    # regg=reg_a_to_b(loc_temp_dir,masterOlds,adc,t2w,anatomy_paths_pure,reg_prop ,elacticPath,transformix_path,'adc',reIndex=0)
+    # # regg=reg_a_to_b(loc_temp_dir,masterOlds,adc,t2w,anatomy_paths_pure,reg_prop ,elacticPath,transformix_path,'adc',reIndex=0)
+    # if(regg==' '):
+    #     return ' '
+    # _,registered_t2w,registered_anatomies = regg
     #get the original lesion changes and registered anatomies to booleans
+    
+    registered_anatomies=list(map(lambda  moving_image_path: elastixRegister.reg_a_to_b_by_metadata_single_b(adc,moving_image_path,temp_dir),anatomy_paths_pure))
+
     anatomy_bools= list(map( get_bool_arr_from_path ,registered_anatomies ))
+    # print(f" aaaaa anatomy_bools {len(anatomy_bools)}")
+
+    list(map(copy_changing_type_loc,registered_anatomies))
 
     mean_adcs=[]
     if(len(lesion_paths)>0):
@@ -144,15 +165,44 @@ def register_in_group(groupTuple,temp_dir):
         lesion_names =list(lesion_names)
         lesion_paths_pure=list(lesion_paths_pure)
         lesion_bools= list(map( get_bool_arr_from_path ,lesion_paths_pure ))
+        #now we will join the tz and afs together || and pz with tz
+        
+
         #removing lesions from anatomy regions
-        anatomy_bools = list(map(partial(remove_lesions_from_anatomy,lesion_bools=lesion_bools),anatomy_bools))    
-        mean_adcs= list(map(partial(get_mean_adc, adc_path=adc),anatomy_bools))
+        anatomy_bools = list(map(partial(remove_lesions_from_anatomy,lesion_bools=lesion_bools),anatomy_bools))  
+
+
+
+    mean_adcs= list(map(partial(get_mean_adc, adc_path=adc) ,anatomy_bools))
+    
+    
+    #### getting new anatomies
+    zipped_with_names= list(zip(anatomy_names,anatomy_bools))
+
+    new_tz= list(filter(lambda tupl:tupl[0]=='tz_noSeg' or tupl[0]=='afs_noSeg' ,zipped_with_names))
+    print(f"* {len(new_tz)}")
+    if(len(new_tz)==2):
+        new_tz= np.logical_or(new_tz[0][1],new_tz[1][1])
     else:
-        mean_adcs= list(map(partial(get_mean_adc, adc_path=adc) ,anatomy_bools))
+        new_tz=new_tz[0][1]
+
+    new_pz= list(filter(lambda tupl:tupl[0]=='pz_noSeg' or tupl[0]=='cz_noSeg' ,zipped_with_names))
+    if(len(new_pz)==2):
+        new_pz= np.logical_or(new_pz[0][1],new_pz[1][1])
+    else:
+        new_pz=new_pz[0][1]
+    
+    mean_adcs_new= list(map(partial(get_mean_adc, adc_path=adc) ,[new_tz,new_pz]))
+    mean_adcs.append(mean_adcs_new[0])
+    mean_adcs.append(mean_adcs_new[1])
+
+    anatomy_names.append('tz_combined')
+    anatomy_names.append('pz_combined')
 
     anatomy_bools_vols= list(itertools.starmap( get_volume ,zip(registered_anatomies,anatomy_bools)))
 
 
+    # print(f"zzzzzzzz anatomy_names {anatomy_names} mean_adcs len {len(mean_adcs)}")
 
 
     return (masterOlds,dict(list(zip(anatomy_names, mean_adcs))),dict(list(zip(anatomy_names, anatomy_bools_vols)))  )
@@ -175,8 +225,8 @@ def save_mean_anatomy_adc(sourceFrame,anatomy_cols,anatomy_adc_csv_dir):
     adc_lesion_cols=list(filter(lambda el: 'adc_noSeg' in el ,cols))
     temp_dir = tempfile.mkdtemp()
     adc_means=[]
-    with mp.Pool(processes = mp.cpu_count()) as pool:
-    # with mp.Pool(processes = 1) as pool:
+    # with mp.Pool(processes = mp.cpu_count()) as pool:
+    with mp.Pool(processes = 1) as pool:
         @curry  
         def pmap(fun,iterable):
             return pool.map(fun,iterable)
@@ -191,18 +241,29 @@ def save_mean_anatomy_adc(sourceFrame,anatomy_cols,anatomy_adc_csv_dir):
                                 ,pmap(partial(register_in_group,temp_dir=temp_dir ))
                                 ,list   
                                 ,filter(lambda el: el!=' ') 
-                                ,list                                                        )
+                                ,list )
 
     means_frame= pd.DataFrame()
     #populating frame with data
     means_frame['id']=list(map(lambda el : el[0]  ,adc_means))
+
+    anatomy_cols.append('tz_combined')
+    anatomy_cols.append('pz_combined')
+
+
     for col_name in anatomy_cols:
         means_frame[col_name]=list(map(lambda el : el[1].get(col_name,' ')  ,adc_means))
         means_frame[f"{col_name}_volume"]=list(map(lambda el : el[2].get(col_name,' ')  ,adc_means))
 
     means_frame.to_csv(anatomy_adc_csv_dir) 
     shutil.rmtree(temp_dir, ignore_errors=True)  
-
     return means_frame
 
 # (masterOlds,dict(list(zip(anatomy_names, mean_adcs))))
+
+# cp -a /tmp/tmpvte8ayof /workspaces/konwersjaJsonData/explore/temp
+
+
+
+# tz=tz +afs; pz pz=pz+cz
+

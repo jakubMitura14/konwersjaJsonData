@@ -68,8 +68,8 @@
 // In generally, Compose is the best option in most cases.
 // It does not influence the results very much.
 (HowToCombineTransforms "Compose")
-(AutomaticTransformInitializationMethod "CenterOfGravity")
-
+//(AutomaticTransformInitializationMethod "CenterOfGravity")
+(AutomaticTransformInitializationMethod "Origins")
 
 //************Similarity Measure************
 

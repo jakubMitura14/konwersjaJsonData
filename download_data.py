@@ -164,8 +164,11 @@ import mdai
 mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
 p = mdai_client.project('gaq3y0Rl', path='/home/sliceruser/workspaces/konwersjaJsonData/out')
 datasetId='D_gQm1nQ'
+p.set_labels_dict(labels_dict)
 dataset = p.get_dataset_by_id(datasetId)
 dataset.prepare()
+
+# cp /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_annotations_2023-07-18-083817.json /home/sliceruser/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_2023-07-18-083817.json
 
 # p.set_labels_dict(labels_dict)
 
