@@ -104,18 +104,14 @@ label_cols=anatomic_cols
 # label_cols=anatomic_cols+[prostate_col]
 channel_names={  
     "0": "t2w", 
-    "1": "adc",
-    "2": "hbv",
-    "3": new_col_name
+    "1": new_col_name
     }
 
 
 label_names= {  
     "background": 0,
-    "afs": 1,
-    "cz": 2,
-    "pz": 3,
-    "tz": 4,
+    "pz": 1,
+    "tz": 2,
     }
 
 # label_names= {  # THIS IS DIFFERENT NOW!
@@ -131,13 +127,13 @@ def get_int_arr_from_path(pathh):
     index=15
     to_ignore=False
     if('afs' in pathh):
-        index=1
+        index=2
     elif('cz' in pathh):
-        index=2        
+        index=1        
     elif('pz' in pathh):
-        index=3
+        index=1
     elif('tz' in pathh):
-        index=4
+        index=2
     else:
         to_ignore=True
 
@@ -162,14 +158,14 @@ def for_filter_unwanted(group):
     we want only cases where  afs cz pz and tz are indicated
     """
 
-    print(f"tttt {group[1]['t2w'][1]}")
-    print(f"lll {len(group[1]['t2w'][1])}")
+    # print(f"tttt {group[1]['t2w'][1]}")
+    # print(f"lll {len(group[1]['t2w'][1])}")
 
-    return len(group[1]['t2w'][1])==5
-    # return True
+    # return len(group[1]['t2w'][1])==5
+    return True
 
 
-# grouped_rows= main_prepare_nnunet('281',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
+grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
 #nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset281_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered -d 281 -c '3d_fullres' 
 
