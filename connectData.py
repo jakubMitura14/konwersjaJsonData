@@ -93,7 +93,7 @@ prostateLab = 'prostate'
 labelsOfIntrest = ['peripheral zone',  'transition zone','anterior fibromuscular stroma', 'central zone', 'urethra','seminal vesicles L',
        'seminal vesicles R']#
 ####additionally dilatate_erode_conditionally after processing saves dicom seg's into previosly created folders
-# dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
+#dilatate_erode_conditionally(out_files_frame,labelsOfIntrest,prostateLab,annot,jsonFolder)  #TODO(unhash)
 
 ##measurements
 #after data is preprocessed we will perform measurements like volumes of labels

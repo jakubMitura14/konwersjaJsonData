@@ -104,9 +104,6 @@ RUN adduser --disabled-password \
     --uid ${NB_UID} \
     ${NB_USER}
 
-
-
-
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python3.9 get-pip.py && \
     rm get-pip.py
@@ -191,13 +188,10 @@ RUN apt -y install libtbb-dev
 RUN apt -y install libgtk-3-dev
 RUN apt update
 
-
-
 RUN mkdir ${HOME}/elastixBase && \
 cd ${HOME}/elastixBase && \
 wget https://github.com/SuperElastix/elastix/releases/download/5.0.1/elastix-5.0.1-linux.tar.bz2&& \
 tar -xf elastix-5.0.1-linux.tar.bz2
-
 
 # /workspaces/konwersjaJsonData/prepareNNunet.py
 
