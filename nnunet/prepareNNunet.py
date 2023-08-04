@@ -97,7 +97,8 @@ def myFlatten(liist):
     return  itertools.chain(*liist)
 
 def map_modalities(pathhs,modalities,non_mri_inputs):
-    res= toolz.pipe(modalities+non_mri_inputs
+    all_modalities=modalities+non_mri_inputs
+    res= toolz.pipe(all_modalities
                 ,map(partial(getListModality,pathhs=pathhs,non_mri_inputs=non_mri_inputs))
                 ,list
             )
@@ -218,6 +219,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     
     
     label_new_path,out_pathsDict=prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder,non_mri_inputs,channel_names )
+    print(f"out_pathsDict {out_pathsDict}")
     #In case file already exist
     # if(exists(out_pathsDict[main_modality])):
     #     out_pathsDict['label']=label_new_path 
@@ -261,7 +263,9 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
         zipped_modalit_path= list(map( lambda tupl:(tupl[1], out_pathsDict[tupl[0]]) ,zipped_modalit_path))
         zipped_modalit_path_add= list(map( lambda el:(group[1][el][1][0], out_pathsDict[el]) ,non_mri_inputs))
         zipped_modalit_path=zipped_modalit_path+zipped_modalit_path_add
+        # print(f"zipped_modalit_path_add {zipped_modalit_path_add} \n  ")
         # print(f"zipped_modalit_path_add {zipped_modalit_path_add} \n zipped_modalit_path {zipped_modalit_path} \n out_pathsDict {out_pathsDict}  ")
+        
         zipped_modalit_path= list(filter(  lambda tupl: tupl[0]!=" " and tupl[1]!=" ",zipped_modalit_path))
         
         
@@ -274,6 +278,8 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
         
         newPaths= list(zip(modalities,new_mri_paths))
         non_mri_inputs_new_paths= list(map( lambda el:(el, out_pathsDict[el]) ,non_mri_inputs))
+
+        # print(f"aaaaa non_mri_inputs {non_mri_inputs} \n non_mri_inputs_new_paths {non_mri_inputs_new_paths} \n")
 
         newPaths=newPaths+non_mri_inputs_new_paths
 
@@ -369,8 +375,8 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     if(is_test_prep):
         filter_ids=filter_in_test_ids
     
-    # with mp.Pool(processes = mp.cpu_count()) as pool:
-    with mp.Pool(processes = 1) as pool:
+    with mp.Pool(processes = mp.cpu_count()) as pool:
+    #with mp.Pool(processes = 1) as pool:
         @curry  
         def pmap(fun,iterable):
             return pool.map(fun,iterable)
