@@ -47,6 +47,8 @@ dir_inferred_prost='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFold
 sourceFrame = pd.read_csv(resCSVDir) 
 new_col_name= 'inferred_pg'
 
+
+
 def get_id_from_file_name(path_str):
     path_str=path_str.replace('.nii.gz','')
     path_str=path_str[1:5]
@@ -87,7 +89,7 @@ main_modality = 't2w'
 
 sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_name)
 # modalities that we want to include in the model
-modalities_of_intrest=['t2w','adc','hbv']
+modalities_of_intrest=['t2w']
 prostate_col= new_col_name # name of the column with segmentaton of whole prostate gland
 
 # prostate_col= 'pg_noSeg'
@@ -172,14 +174,14 @@ grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,labe
 
 # mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate"
 # CUDA_VISIBLE_DEVICES=0 nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate" nnUNetv2_train 279 3d_fullres 0
-# CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 281 3d_fullres 0
+# CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 294 3d_fullres 0
 
 
 # https://github.com/jakubMitura14/konwersjaJsonData.git
 
-#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 281 3d_fullres 1
-#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 281 3d_fullres 2
-#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 281 3d_fullres 3
-#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 281 3d_fullres 4
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 294 3d_fullres 1
+#CUDA_VISIBLE_DEVICES=1 nnUNetv2_train 294 3d_fullres 2
+#CUDA_VISIBLE_DEVICES=2 nnUNetv2_train 294 3d_fullres 3
+#CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 294 3d_fullres 4
 
 # /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed/Dataset281_Prostate/gt_segmentations

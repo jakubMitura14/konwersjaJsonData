@@ -74,7 +74,7 @@ def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit
 
 dataset_id='280'
 
-grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,is_test_prep=True)
+grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,is_test_prep=False)
     
 
 # CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 280 3d_fullres 0
@@ -102,7 +102,11 @@ grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names
 #     original_results_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
 #     shutil.copytree(original_results_folder, dir_project_id_with_date,dirs_exist_ok=True) 
 
-# cp -a /home/sliceruser/workspaces/konwersjaJsonData/results_to_save/280/2023-05-08 /home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/results_to_save/280/2023-05-08/Dataset280_Prostate /home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results
+
+# nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_infered -d 280 -c '3d_fullres' 
+
+
 
 # train_2_folds_and_save()
 
@@ -113,7 +117,6 @@ grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names
 # # nnUNetv2_find_best_configuration -h
 # #The file "/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/labelsTr/9043100.nii.gz" does not exist.
 
-# nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_infered -d 280 -c '3d_fullres' 
 
 # --save_probabilities
 
