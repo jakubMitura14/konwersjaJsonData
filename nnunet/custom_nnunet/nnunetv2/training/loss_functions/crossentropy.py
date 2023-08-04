@@ -1,12 +1,14 @@
 from torch import nn, Tensor
 
 
-class RobustCrossEntropyLoss(nn.CrossEntropyLoss):
+class RobustCrossEntropyLoss(nn.Module):
     """
-    this is just a compatibility layer because my target tensor is float and has an extra dimension
+    we will ignore the 2 - put weight nearly 0 on it and take as binary cross entrophy 1
     """
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        if len(target.shape) == len(input.shape):
-            assert target.shape[1] == 1
-            target = target[:, 0]
-        return super().forward(input, target.long())
+
+        target_a= (target==1)
+        weight= (target!=2)
+        return nn.functional.binary_cross_entropy(input, target_a, weight=weight)
+
+

@@ -318,7 +318,16 @@ def visualize_range(group,main_modality,modalities_of_intrest,non_mri_inputs):
     registered_modalities_arrs= list(map(lambda mod: reg_a_to_b_by_metadata_single_b(sources_dict[main_modality][0],sources_dict[mod][0])                                    
                                                       ,modalities_of_intrest_without_main ))
     
+    ################# manage labels
+
+    reduced = np.array(functools.reduce(get_bool_or, labels))
+
+
+
+
+    ############### reducing size
     adc_arr=sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0]))
+    
     prostate_arr= registered_modalities_arrs[1]
     hbv_arr= registered_modalities_arrs[2]
 
@@ -335,7 +344,6 @@ def visualize_range(group,main_modality,modalities_of_intrest,non_mri_inputs):
 
     add_padd=5
 
-    adc_arr=adc_arr[]
 
 
     big_prost_z=einops.reduce(prostate_arr,'z x y-> z','sum')

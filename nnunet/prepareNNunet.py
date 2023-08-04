@@ -228,13 +228,11 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     mris=[]
     newPaths=[]
     if(len(modalities_of_intrest_without_main)>0):
-        #register all modalities and associated labels to main_modality
-        
+        #register all modalities and associated labels to main_modality        
         registered_modalities= list(map(lambda mod: reg_a_to_b_be_meta_data(join(temp_dir,mod),group[0],group[1][main_modality][0],group[1][mod][0],group[1][mod][1],reg_prop
                                                                 ,elacticPath,transformix_path,mod)
                         ,modalities_of_intrest_without_main   ))
         
-
         # now we unzip to get 0) list of modalities 1) list of paths to main mris 2) list of lists of labels paths
         modalities,mris,labels=list(toolz.sandbox.core.unzip(registered_modalities))
         labels=list(toolz.concat(labels))

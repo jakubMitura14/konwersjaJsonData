@@ -94,7 +94,7 @@ def compute_metrics(reference_file: str, prediction_file: str, image_reader_writ
     seg_pred, seg_pred_dict = image_reader_writer.read_seg(prediction_file)
     # spacing = seg_ref_dict['spacing']
 
-    ignore_mask = seg_ref == ignore_label if ignore_label is not None else None
+    ignore_mask = seg_ref == 2
 
     results = {}
     results['reference_file'] = reference_file
@@ -117,6 +117,16 @@ def compute_metrics(reference_file: str, prediction_file: str, image_reader_writ
         results['metrics'][r]['TN'] = tn
         results['metrics'][r]['n_pred'] = fp + tp
         results['metrics'][r]['n_ref'] = fn + tp
+
+        bigger_target=ignore_mask | mask_ref
+        inn = mask_pred & bigger_target
+        out = mask_pred & (~bigger_target) 
+        
+        results['metrics'][r]['percent_in'] = inn.sum()/(mask_pred.sum())
+
+
+
+
     return results
 
 
