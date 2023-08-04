@@ -195,12 +195,12 @@ tar -xf elastix-5.0.1-linux.tar.bz2
 
 # /workspaces/konwersjaJsonData/prepareNNunet.py
 
-RUN mkdir ${HOME}/nnUNet  && \
-    git clone https://github.com/MIC-DKFZ/nnUNet.git  ${HOME}/nnUNet && \
-    cd ${HOME}/nnUNet  && \
-    python3.9 -m pip  install -e . 
+# RUN mkdir ${HOME}/nnUNet  && \
+#     git clone https://github.com/MIC-DKFZ/nnUNet.git  ${HOME}/nnUNet && \
+#     cd ${HOME}/nnUNet  && \
+#     python3.9 -m pip  install -e . 
 
-ENV nnUNet_n_proc_DA=8
+# ENV nnUNet_n_proc_DA=8
 RUN python3.9 -m pip  --no-cache-dir install --upgrade git+https://github.com/julien-blanchon/hiddenlayer.git
 
 RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so ${HOME}/elastixBase/elastix-5.0.1-linux/bin/libANNlib-5.0.so
@@ -211,11 +211,11 @@ RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so /usr/local/l
 RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so.1 /usr/local/lib/libANNlib-5.0.so.1
 
 RUN ldconfig
-RUN apt-get install -q -y vim nano 
+# RUN apt-get install -q -y vim nano 
 RUN mkdir ${HOME}/registration
 # COPY registration/parameters.txt ${HOME}/registration/parameters.txt
 # COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
-
+RUN apt-get update && apt-get install -y python3.9-tk
 ### DCMQI from https://hub.docker.com/r/qiicr/dcmqi/dockerfile
 
 
@@ -240,3 +240,5 @@ ENV nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results
 
 CMD ["/bin/bash"]
 
+# cd /workspaces/konwersjaJsonData/nnunet/custom_nnunet
+# python3.9 -m pip  install -e .

@@ -123,3 +123,4 @@ grouped_rows= main_prepare_nnunet(dataset_id,modalities_of_intrest,channel_names
 # cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset280_Prostate/imagesTr/9000100_0003.nii.gz /workspaces/konwersjaJsonData/explore/in_prost_seg/9000100_0003.nii.gz
 
 # cp -a /workspaces/konwersjaJsonData/explore/full_prostate_results/2023-05-08/Dataset280_Prostate /home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results
+# nnUNetv2_train 280 3d_fullres 0 -tr nnUNetTrainerV2_Loss_CE

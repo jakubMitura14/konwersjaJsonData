@@ -22,7 +22,7 @@ from os.path import basename, dirname, exists, isdir, join, split
 import nnunetv2
 
 import elastixRegister as elastixRegister
-from elastixRegister import reg_a_to_b
+from elastixRegister import reg_a_to_b,reg_a_to_b_be_meta_data
 import tempfile
 import shutil
 import re
@@ -36,12 +36,13 @@ import os
 from subprocess import Popen
 import subprocess
 
+
 elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
 reg_prop='/workspaces/konwersjaJsonData/nnunet/registration/parameters.txt'  
 # dataframe with master ids that we should not include in training
 test_ids_CSVDir='/workspaces/konwersjaJsonData/explore/test_ids.csv'
-test_ids=pd.read_csv(test_ids_CSVDir)['ids'].to_numpy()
+test_ids=pd.read_csv(test_ids_CSVDir)['ids'].to_numpy().flatten()
 
 
 def groupByMaster(rowws):
@@ -82,10 +83,10 @@ def getListModality(modalityName,pathhs,non_mri_inputs):
             return ' ',[]
         mri=mri[0]   
         mod_paths= list(filter(lambda pathh: '.mha' not in pathh , mod_paths))
-
         return (modalityName,(mri,np.unique(mod_paths).tolist()))
+    
     elif(modalityName in non_mri_inputs):
-        colNames=list(map(lambda el: el[0],pathhs))
+        # colNames=list(map(lambda el: el[0],pathhs))
         pathhss= list(filter(lambda el :modalityName in el[0] , pathhs))   
         if(len(pathhss)==0):
             return ' ',[]        
@@ -219,12 +220,6 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     
     
     label_new_path,out_pathsDict=prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder,non_mri_inputs,channel_names )
-    print(f"out_pathsDict {out_pathsDict}")
-    #In case file already exist
-    # if(exists(out_pathsDict[main_modality])):
-    #     out_pathsDict['label']=label_new_path 
-    #     return (group[0],out_pathsDict)
-
 
     temp_dir = tempfile.mkdtemp() # temporary directory
     modalities_of_intrest_without_main= list(filter( lambda el: el!=main_modality , modalities_of_intrest))
@@ -234,9 +229,12 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
     newPaths=[]
     if(len(modalities_of_intrest_without_main)>0):
         #register all modalities and associated labels to main_modality
-        registered_modalities= list(map(lambda mod: reg_a_to_b(join(temp_dir,mod),group[0],group[1][main_modality][0],group[1][mod][0],group[1][mod][1],reg_prop
+        
+        registered_modalities= list(map(lambda mod: reg_a_to_b_be_meta_data(join(temp_dir,mod),group[0],group[1][main_modality][0],group[1][mod][0],group[1][mod][1],reg_prop
                                                                 ,elacticPath,transformix_path,mod)
                         ,modalities_of_intrest_without_main   ))
+        
+
         # now we unzip to get 0) list of modalities 1) list of paths to main mris 2) list of lists of labels paths
         modalities,mris,labels=list(toolz.sandbox.core.unzip(registered_modalities))
         labels=list(toolz.concat(labels))
@@ -376,7 +374,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
         filter_ids=filter_in_test_ids
     
     with mp.Pool(processes = mp.cpu_count()) as pool:
-    #with mp.Pool(processes = 1) as pool:
+    # with mp.Pool(processes = 1) as pool:
         @curry  
         def pmap(fun,iterable):
             return pool.map(fun,iterable)
@@ -405,7 +403,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     "labels": label_names,  
     "file_ending": ".nii.gz",
     "overwrite_image_reader_writer": "SimpleITKIO",
-    "normalization_schemes" : "noNorm",
+    # "normalization_schemes" : "noNorm",
     "numTraining" : len(label_paths),
     "nnUNetPlans" : ['2d','3d_lowres','3d_cascade_fullres', '3d_fullres']
 

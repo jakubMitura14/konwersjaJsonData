@@ -160,7 +160,6 @@ def get_volumes_frames(preprocessed_df,prost_volumes_csv_dir,lesion_volumes_csv_
 
 
 
-    print(f"savinggg {prostate_volumes_frame}")
     prostate_volumes_frame.to_csv(prost_volumes_csv_dir) 
     lesion_volumes_frame.to_csv(lesion_volumes_csv_dir) 
     adc_means_frame.to_csv(adc_means_csv_dir) 

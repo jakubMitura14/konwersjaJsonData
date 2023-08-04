@@ -167,74 +167,108 @@ def reg_a_to_b_itk(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacti
 
 
 
-def reg_a_to_b_by_metadata_single(fixed_image_path,moving_image_path,out_folder):
+# def reg_a_to_b_by_metadata_single(fixed_image_path,moving_image_path,out_folder):
+#     """
+#     adapted from last section of
+#     https://github.com/InsightSoftwareConsortium/SimpleITK-Notebooks/blob/master/Python/21_Transforms_and_Resampling.ipynb 
+#     """
+#     fixed_image=sitk.ReadImage(fixed_image_path)
+#     moving_image=sitk.ReadImage(moving_image_path)
+
+#     # identity = sitk.Transform(3, sitk.sitkIdentity)
+
+
+#     images = [fixed_image, moving_image]
+#     transforms = [sitk.Transform(3, sitk.sitkIdentity),sitk.Transform(3, sitk.sitkIdentity)]
+#     dim = images[0].GetDimension()
+
+#     boundary_points = []
+#     for image, transform in zip(images, transforms):
+#         for boundary_index in list(
+#             itertools.product(*zip([0] * dim, [sz - 1 for sz in image.GetSize()]))
+#         ):  # Points from the moving image(s) are mapped to the fixed coordinate system using the inverse
+#             # of the registration_result.
+#             boundary_points.append(
+#                 # transform.GetInverse().TransformPoint(
+#                 #     image.TransformIndexToPhysicalPoint(boundary_index)
+#                 # )
+#                 image.TransformIndexToPhysicalPoint(boundary_index)
+#             )
+#     max_coords = np.max(boundary_points, axis=0)
+#     min_coords = np.min(boundary_points, axis=0)
+
+#     new_origin = min_coords
+#     # Arbitrarily use the spacing of the first image and its pixel type,
+#     # change these to suite your needs.
+#     new_spacing = images[0].GetSpacing()
+#     new_pixel_type = images[0].GetPixelID()
+#     new_size = (((max_coords - min_coords) / new_spacing).round().astype(int)).tolist()
+#     new_direction = np.identity(dim).ravel()
+
+#     # Resample all images onto the common grid.
+#     resampled_images = []
+#     for image, transform in zip(images, transforms):
+#         resampled_images.append(
+#             sitk.Resample(
+#                 image,
+#                 new_size,
+#                 transform,
+#                 sitk.sitkLinear,
+#                 new_origin,
+#                 new_spacing,
+#                 new_direction,
+#                 0.0,
+#                 new_pixel_type,
+#             )
+#         )
+#     os.makedirs(out_folder ,exist_ok = True)   
+#     writer = sitk.ImageFileWriter()
+
+#     arr=sitk.GetArrayFromImage(resampled_images[1])
+#     print(f"leen {len(resampled_images)} \n prim sum {np.sum(sitk.GetArrayFromImage(sitk.ReadImage(moving_image_path)).flatten())} \n suuum {np.sum(arr.flatten())} \n max_coords {max_coords} \n min_coords {min_coords} \n")
+
+#     new_path= join(out_folder,moving_image_path.split('/')[-1])
+#     writer.SetFileName(new_path)
+#     writer.Execute(resampled_images[1])
+
+#     return new_path
+
+
+
+def reg_a_to_b_be_meta_data(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPath,transformix_path,modality,reIndex=0):  
     """
-    adapted from last section of
-    https://github.com/InsightSoftwareConsortium/SimpleITK-Notebooks/blob/master/Python/21_Transforms_and_Resampling.ipynb 
+    register image in path_a to image in path_b
+    then using the same registration procedure will move all of the labels associated with path_b to the same space
+    as path_a
+    out_folder - folder where results will be written
+    elactic_path- path to elastix application
+    transformix_path  = path to transformix application
+    reg_prop - path to file with registration
+
+    return a tuple where first entry is a registered MRI and second one are registered labels
     """
-    fixed_image=sitk.ReadImage(fixed_image_path)
-    moving_image=sitk.ReadImage(moving_image_path)
 
-    # identity = sitk.Transform(3, sitk.sitkIdentity)
+    # print(f"path_a {path_a} path_b {path_b} labels_b_list {labels_b_list}")
+
+    os.makedirs(out_folder ,exist_ok = True)    
+    labels_b_list= list(labels_b_list)
+
+    result=reg_a_to_b_by_metadata_single_b(path_a,path_b,out_folder)
 
 
-    images = [fixed_image, moving_image]
-    transforms = [sitk.Transform(3, sitk.sitkIdentity),sitk.Transform(3, sitk.sitkIdentity)]
-    dim = images[0].GetDimension()
 
-    boundary_points = []
-    for image, transform in zip(images, transforms):
-        for boundary_index in list(
-            itertools.product(*zip([0] * dim, [sz - 1 for sz in image.GetSize()]))
-        ):  # Points from the moving image(s) are mapped to the fixed coordinate system using the inverse
-            # of the registration_result.
-            boundary_points.append(
-                # transform.GetInverse().TransformPoint(
-                #     image.TransformIndexToPhysicalPoint(boundary_index)
-                # )
-                image.TransformIndexToPhysicalPoint(boundary_index)
-            )
-    max_coords = np.max(boundary_points, axis=0)
-    min_coords = np.min(boundary_points, axis=0)
+    # lab_regs=list(map(partial(transform_label,out_folder=out_folder, transformix_path=transformix_path,transformixParameters=transformixParameters),np.array(labels_b_list).flatten()))
+    lab_regs=list(map(lambda moving_image_path: reg_a_to_b_by_metadata_single_b(path_b,moving_image_path ),np.array(labels_b_list).flatten()))
 
-    new_origin = min_coords
-    # Arbitrarily use the spacing of the first image and its pixel type,
-    # change these to suite your needs.
-    new_spacing = images[0].GetSpacing()
-    new_pixel_type = images[0].GetPixelID()
-    new_size = (((max_coords - min_coords) / new_spacing).round().astype(int)).tolist()
-    new_direction = np.identity(dim).ravel()
 
-    # Resample all images onto the common grid.
-    resampled_images = []
-    for image, transform in zip(images, transforms):
-        resampled_images.append(
-            sitk.Resample(
-                image,
-                new_size,
-                transform,
-                sitk.sitkLinear,
-                new_origin,
-                new_spacing,
-                new_direction,
-                0.0,
-                new_pixel_type,
-            )
-        )
-    os.makedirs(out_folder ,exist_ok = True)   
-    writer = sitk.ImageFileWriter()
+    return (modality,result,lab_regs) #        
+ 
 
-    arr=sitk.GetArrayFromImage(resampled_images[1])
-    print(f"leen {len(resampled_images)} \n prim sum {np.sum(sitk.GetArrayFromImage(sitk.ReadImage(moving_image_path)).flatten())} \n suuum {np.sum(arr.flatten())} \n max_coords {max_coords} \n min_coords {min_coords} \n")
 
-    new_path= join(out_folder,moving_image_path.split('/')[-1])
-    writer.SetFileName(new_path)
-    writer.Execute(resampled_images[1])
-
-    return new_path
 
 def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,out_folder):
-    moving_image_path=moving_image_path[0]
+    if(len(moving_image_path)<4):
+        moving_image_path=moving_image_path[0]
     fixed_image=sitk.ReadImage(fixed_image_path)
     moving_image=sitk.ReadImage(moving_image_path)
 
@@ -252,6 +286,21 @@ def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,out_folde
     writer.Execute(resampled)
 
     return new_path
+
+
+# def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,interpolator):
+#     # print(f"fixed_image_path {fixed_image_path} moving_image_path {moving_image_path}")
+#     # moving_image_path=moving_image_path[0]
+#     fixed_image=sitk.ReadImage(fixed_image_path)
+#     moving_image=sitk.ReadImage(moving_image_path)
+
+#     # fixed_image=sitk.Cast(fixed_image, sitk.sitkUInt8)
+#     # moving_image=sitk.Cast(moving_image, sitk.sitkInt)
+    
+#     arr=sitk.GetArrayFromImage(moving_image)
+#     resampled=sitk.Resample(moving_image, fixed_image, sitk.Transform(3, sitk.sitkIdentity), interpolator, 0)
+#     return sitk.GetArrayFromImage(resampled)
+
 
 # def reg_a_to_b_by_metadata(out_folder,patId,path_a,path_b,labels_b_list,reg_prop ,elacticPath,transformix_path,modality,reIndex=0):
 #     pass

@@ -268,3 +268,5 @@ grouped_rows= main_prepare_nnunet('283',modalities_of_intrest,channel_names,labe
 
 # cp /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset283_Prostate/labelsTr/9005500.nii.gz /workspaces/konwersjaJsonData/explore/imagess/label_9005500.nii.gz
 
+# CUDA_VISIBLE_DEVICES=0 nnUNetv2_train nnUNetTrainerV2_Loss_DiceTopK10 Dataset283_000 0
+
