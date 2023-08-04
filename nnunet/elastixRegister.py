@@ -263,7 +263,18 @@ def reg_a_to_b_be_meta_data(out_folder,patId,path_a,path_b,labels_b_list,reg_pro
 
     return (modality,result,lab_regs) #        
  
+def reg_a_to_b_by_metadata_single_c(fixed_image_path,moving_image_path,interpolator):
+    # print(f"fixed_image_path {fixed_image_path} moving_image_path {moving_image_path}")
+    # moving_image_path=moving_image_path[0]
+    fixed_image=sitk.ReadImage(fixed_image_path)
+    moving_image=sitk.ReadImage(moving_image_path)
 
+    # fixed_image=sitk.Cast(fixed_image, sitk.sitkUInt8)
+    # moving_image=sitk.Cast(moving_image, sitk.sitkInt)
+    
+    arr=sitk.GetArrayFromImage(moving_image)
+    resampled=sitk.Resample(moving_image, fixed_image, sitk.Transform(3, sitk.sitkIdentity), interpolator, 0)
+    return sitk.GetArrayFromImage(resampled)
 
 
 def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,out_folder):
