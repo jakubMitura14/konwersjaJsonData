@@ -146,7 +146,7 @@ RUN python3.9 -m pip  --no-cache-dir install \
     napari-simpleitk-image-processing 
 
 RUN python3.9 -m pip  --no-cache-dir install itk itk-elastix monai-weekly
-RUN python3.9 -m pip  --no-cache-dir install pymia einops
+RUN python3.9 -m pip  --no-cache-dir install pymia einops seaborn
 
 
 RUN export GITHUB_USER=jakubMitura14

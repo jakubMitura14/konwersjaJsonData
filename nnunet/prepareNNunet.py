@@ -136,6 +136,17 @@ def get_bool_or(pathA,pathB):
     else:
         return np.logical_or(pathB,pathA)
 
+
+def get_bool_and(pathA,pathB):
+    if(isinstance(pathA, str) and isinstance(pathB, str)):
+        return np.logical_and(get_bool_arr_from_path(pathA),get_bool_arr_from_path(pathB))
+    elif(isinstance(pathA, str) and not isinstance(pathB, str)):
+        return np.logical_and(get_bool_arr_from_path(pathA),pathB)
+    elif(not isinstance(pathA, str) and isinstance(pathB, str)):
+        return np.logical_and(get_bool_arr_from_path(pathB),pathA)
+    else:
+        return np.logical_and(pathB,pathA)
+
 def get_4_id(masterolds):
     """
     take master id and changes it into string that starts with 0s and have always length 4
@@ -149,23 +160,65 @@ def get_4_id(masterolds):
         return f"0{masteroldsStand}"
     return masteroldsStand
 
-def save_from_arr(zeroArray,image3D,newPathLab):
+
+def get_id_from_file_name(path_str):
+    path_str=path_str.replace('.nii.gz','')
+    path_str=path_str[1:5]
+    return int(path_str)
+
+def add_t2w_to_name(source):
+    if(source==' '):
+        return ' '
+    if('t2w' in source):
+        return source
+    new_path= source.replace('.nii.gz','_t2w.nii.gz')
+    copy_changing_type(source, new_path)
+    return new_path
+
+def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
+    """ 
+    we have some inferred anatomical segmentations done by previous 
+    models now we want to take the folder with 
+    """
+    list_files= os.listdir(dir_inferred_prost)
+    list_files= list(filter(lambda el : el[0]=='9' ,list_files ))
+    list_ids= list(map(get_id_from_file_name,list_files))
+    list_files= list(map( lambda el: f"{dir_inferred_prost}/{el}" ,list_files))
+    file_and_id= dict(list(zip(list_ids,list_files)))
+    new_col_dat= list(map( lambda el: file_and_id.get(el,' ') ,df['masterolds'].to_numpy() ))
+    #changing path name to mark it is t2w related
+    new_col_dat= list(map(add_t2w_to_name,new_col_dat))
+
+    df[new_col_name]=new_col_dat
+    return df
+
+
+def get_from_arr(zeroArray,image3D):
     """
     given array saves it to file into defined path using simpleitk
     """
-    writer = sitk.ImageFileWriter()
     image = sitk.GetImageFromArray(zeroArray.astype(float).astype(np.uint8))  
-    nan_count=np.sum(np.isnan(np.array(sitk.GetArrayFromImage(image)).flatten()))
-    if(nan_count>0):
-        raise ValueError(f"!!! nan in image would be saved as {newPathLab}")
+    # nan_count=np.sum(np.isnan(np.array(sitk.GetArrayFromImage(image)).flatten()))
+    # if(nan_count>0):
+    #     raise ValueError(f"!!! nan in image would be saved as {newPathLab}")
 
     image.SetSpacing(image3D.GetSpacing())
     image.SetOrigin(image3D.GetOrigin())
     image.SetDirection(image3D.GetDirection())   
     image = sitk.DICOMOrient(image, 'LPS')
-    image.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
+    return image
+
+
+def save_from_arr(zeroArray,image3D,newPathLab):
+    """
+    given array saves it to file into defined path using simpleitk
+    """
+    writer = sitk.ImageFileWriter()
+    image = get_from_arr(zeroArray,image3D)
+    # image.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
     writer.SetFileName(newPathLab)
     writer.Execute(image)
+    return newPathLab
 
 def copy_changing_type(source, dest):
     image= sitk.ReadImage(source)
@@ -406,7 +459,6 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     # "normalization_schemes" : "noNorm",
     "numTraining" : len(label_paths),
     "nnUNetPlans" : ['2d','3d_lowres','3d_cascade_fullres', '3d_fullres']
-
     }
 
     

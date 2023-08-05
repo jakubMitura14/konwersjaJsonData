@@ -138,12 +138,6 @@ nnunetv2/training/network_training/nnUNetTrainerV2_Loss_TopK10.py
 nnunetv2/training/nnUNetTrainer/__init__.py
 nnunetv2/training/nnUNetTrainer/nnUNetTrainer.py
 nnunetv2/training/nnUNetTrainer/nnUNetTrainerV2_Loss_CE.py
-nnunetv2/training/nnUNetTrainer/nnUNetTrainerV2_Loss_Dice.py
-nnunetv2/training/nnUNetTrainer/nnUNetTrainerV2_Loss_DiceFocal.py
-nnunetv2/training/nnUNetTrainer/nnUNetTrainerV2_Loss_DiceTopK10.py
-nnunetv2/training/nnUNetTrainer/nnUNetTrainerV2_Loss_DiceTopK10CE.py
-nnunetv2/training/nnUNetTrainer/nnUNetTrainerV2_Loss_DiceTopK10Focal.py
-nnunetv2/training/nnUNetTrainer/nnUNetTrainerV2_Loss_TopK10.py
 nnunetv2/training/nnUNetTrainer/variants/__init__.py
 nnunetv2/training/nnUNetTrainer/variants/benchmarking/__init__.py
 nnunetv2/training/nnUNetTrainer/variants/benchmarking/nnUNetTrainerBenchmark_5epochs.py

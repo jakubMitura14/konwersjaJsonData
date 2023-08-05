@@ -277,7 +277,7 @@ def reg_a_to_b_by_metadata_single_c(fixed_image_path,moving_image_path,interpola
     return sitk.GetArrayFromImage(resampled)
 
 
-def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,out_folder):
+def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,out_folder, interpolator=sitk.sitkNearestNeighbor):
     if(len(moving_image_path)<4):
         moving_image_path=moving_image_path[0]
     fixed_image=sitk.ReadImage(fixed_image_path)
@@ -287,7 +287,7 @@ def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,out_folde
     # moving_image=sitk.Cast(moving_image, sitk.sitkInt)
     
     arr=sitk.GetArrayFromImage(moving_image)
-    resampled=sitk.Resample(moving_image, fixed_image, sitk.Transform(3, sitk.sitkIdentity), sitk.sitkNearestNeighbor, 0)
+    resampled=sitk.Resample(moving_image, fixed_image, sitk.Transform(3, sitk.sitkIdentity), interpolator, 0)
     
     # print(f" prim sum {np.sum(sitk.GetArrayFromImage(sitk.ReadImage(moving_image_path)).flatten())} \n suuum {np.sum(sitk.GetArrayFromImage(resampled).flatten())} ")
   

@@ -61,9 +61,8 @@
     // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
     //"remoteUser": "vscode",
     "features": {
-        "git": "latest"
-        // "git-lfs": "latest",
-        //  "github-cli": "latest"
-        //"jupyterlab": "latest"
+        "ghcr.io/devcontainers/features/git:1": {},
+        // "ghcr.io/devcontainers/features/python:1": {},
+        "ghcr.io/msclock/features/gitlab-ci-local:0": {}
     }
 }
