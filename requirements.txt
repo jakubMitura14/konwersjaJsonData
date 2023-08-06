@@ -1,6 +1,0 @@
-mdai
-numpy
-pandas
-SimpleITK
-opencv-python
-pydicom
