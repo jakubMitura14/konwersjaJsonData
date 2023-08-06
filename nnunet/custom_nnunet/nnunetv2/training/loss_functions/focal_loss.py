@@ -33,6 +33,13 @@ class FocalLoss(nn.Module):
                 raise ValueError('smooth value should be in [0,1]')
 
     def forward(self, logit, target):
+        
+        target_a= (target==2.0)
+        target_a=target_a[:,0,:,:,:].float()
+        logit=logit[:,2,:,:,:]
+        weight= (torch.abs((((target!=1.0)[:,0,:,:,:] ).float()-0.00000001))+ target_a*3)/4 # TODO() try increasing weight for the center
+        logit=logit*weight
+
         if self.apply_nonlin is not None:
             logit = self.apply_nonlin(logit)
         num_class = logit.shape[1]

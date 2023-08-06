@@ -8,7 +8,7 @@ from copy import deepcopy
 from datetime import datetime
 from time import time, sleep
 from typing import Union, Tuple, List
-
+from focal_loss.focal_loss import FocalLoss
 import numpy as np
 import torch
 from batchgenerators.dataloading.single_threaded_augmenter import SingleThreadedAugmenter
@@ -62,6 +62,8 @@ from torch import distributed as dist
 from torch.cuda import device_count
 from torch.cuda.amp import GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
+from nnunetv2.training.loss_functions.crossentropy import RobustCrossEntropyLosss
+from nnunetv2.training.loss_functions.focal_loss import FocalLoss
 
 
 class nnUNetTrainer(object):
@@ -339,18 +341,20 @@ class nnUNetTrainer(object):
             self.oversample_foreground_percent = oversample_percents[my_rank]
 
     def _build_loss(self):
-        if self.label_manager.has_regions:
-            loss = DC_and_BCE_loss({},
-                                   {'batch_dice': self.configuration_manager.batch_dice,
-                                    'do_bg': True, 'smooth': 1e-5, 'ddp': self.is_ddp},
-                                   use_ignore_label=self.label_manager.ignore_label is not None,
-                                   dice_class=MemoryEfficientSoftDiceLoss)
-        else:
-            loss = DC_and_CE_loss({'batch_dice': self.configuration_manager.batch_dice,
-                                   'smooth': 1e-5, 'do_bg': False, 'ddp': self.is_ddp}, {}, weight_ce=1, weight_dice=1,
-                                  ignore_label=self.label_manager.ignore_label, dice_class=MemoryEfficientSoftDiceLoss)
+        # if self.label_manager.has_regions:
+        #     loss = DC_and_BCE_loss({},
+        #                            {'batch_dice': self.configuration_manager.batch_dice,
+        #                             'do_bg': True, 'smooth': 1e-5, 'ddp': self.is_ddp},
+        #                            use_ignore_label=self.label_manager.ignore_label is not None,
+        #                            dice_class=MemoryEfficientSoftDiceLoss)
+        # else:
+        #     loss = DC_and_CE_loss({'batch_dice': self.configuration_manager.batch_dice,
+        #                            'smooth': 1e-5, 'do_bg': False, 'ddp': self.is_ddp}, {}, weight_ce=1, weight_dice=1,
+        #                           ignore_label=self.label_manager.ignore_label, dice_class=MemoryEfficientSoftDiceLoss)
+        loss= RobustCrossEntropyLosss()
+        # loss= FocalLoss()
 
-        deep_supervision_scales = self._get_deep_supervision_scales()
+        deep_supervision_scales = self._get_deep_supervision_scales()   
 
         # we give each output a weight which decreases exponentially (division by 2) as the resolution decreases
         # this gives higher resolution outputs more weight in the loss
@@ -952,13 +956,38 @@ class nnUNetTrainer(object):
             mask = None
 
         tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
-        print(f"predicted_segmentation_onehot {predicted_segmentation_onehot.shape} target {target.shape}")
 
-        bigger_mask= (target>0)
-        curr=predicted_segmentation_onehot.round().bool()
+        bigger_mask= (target>0)[:,0,:,:,:]
+        curr=predicted_segmentation_onehot.round().bool()[:,2,:,:,:]
+
+        # curr= torch.sum(curr,dim=1)
         inn = curr & bigger_mask
         
+        # print(f"inn.sum()/ {inn.sum()}  curr.sum() {curr.sum()} bigger_mask {bigger_mask.sum()} |0| {predicted_segmentation_onehot.round().bool()[:,0,:,:,:].sum()} |1|   {predicted_segmentation_onehot.round().bool()[:,1,:,:,:].sum()}")
+        total = curr.sum()
+        percent_in= torch.zeros(1)
+        if(total.item()>0):
+            percent_in=inn.sum()/(total)
 
+        percent_in=percent_in.detach().cpu().numpy()
+
+        percent_out=torch.zeros(1)
+        total_mask = bigger_mask.sum()
+
+        if(total.item()>0):
+            out = (curr) & (~bigger_mask)
+            percent_out= out.sum()/total
+
+        twos= (target==2)[:,0,:,:,:]
+        percent_covered=torch.zeros(1)
+        if(twos.sum().item()>0):
+            percent_covered=  ((curr) & (twos)).sum()/ twos.sum()
+        
+
+
+        percent_out=percent_out.detach().cpu().numpy()
+        percent_covered=percent_covered.detach().cpu().numpy()
+        
         tp_hard = tp.detach().cpu().numpy()
         fp_hard = fp.detach().cpu().numpy()
         fn_hard = fn.detach().cpu().numpy()
@@ -971,14 +1000,16 @@ class nnUNetTrainer(object):
             fp_hard = fp_hard[1:]
             fn_hard = fn_hard[1:]
 
-        return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard, 'percent_in' : inn.sum()/(curr.sum()) }
+        return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard, 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered }
 
     def on_validation_epoch_end(self, val_outputs: List[dict]):
         outputs_collated = collate_outputs(val_outputs)
         tp = np.sum(outputs_collated['tp_hard'], 0)
         fp = np.sum(outputs_collated['fp_hard'], 0)
         fn = np.sum(outputs_collated['fn_hard'], 0)
-        percent_in = np.sum(outputs_collated['percent_in'], 0)
+        percent_in = np.mean(outputs_collated['percent_in'], 0)
+        percent_covered = np.mean(outputs_collated['percent_covered'], 0)
+        percent_out = np.mean(outputs_collated['percent_out'], 0)
 
         if self.is_ddp:
             world_size = dist.get_world_size()
@@ -1010,6 +1041,8 @@ class nnUNetTrainer(object):
         self.logger.log('dice_per_class_or_region', global_dc_per_class, self.current_epoch)
         self.logger.log('val_losses', loss_here, self.current_epoch)
         self.logger.log('percent_in', percent_in, self.current_epoch)
+        self.logger.log('percent_covered', percent_covered, self.current_epoch)
+        self.logger.log('percent_out', percent_out, self.current_epoch)
 
     def on_epoch_start(self):
         self.logger.log('epoch_start_timestamps', time(), self.current_epoch)
@@ -1024,6 +1057,10 @@ class nnUNetTrainer(object):
                                                self.logger.my_fantastic_logging['dice_per_class_or_region'][-1]])
         self.print_to_log_file('Percent in', [np.round(i, decimals=4) for i in
                                                self.logger.my_fantastic_logging['percent_in'][-1]])
+        self.print_to_log_file('Percent out', [np.round(i, decimals=4) for i in
+                                               self.logger.my_fantastic_logging['percent_out'][-1]])
+        self.print_to_log_file('Percent covered', [np.round(i, decimals=4) for i in
+                                               self.logger.my_fantastic_logging['percent_covered'][-1]])
 
         self.print_to_log_file(
             f"Epoch time: {np.round(self.logger.my_fantastic_logging['epoch_end_timestamps'][-1] - self.logger.my_fantastic_logging['epoch_start_timestamps'][-1], decimals=2)} s")
@@ -1033,9 +1070,9 @@ class nnUNetTrainer(object):
         if (current_epoch + 1) % self.save_every == 0 and current_epoch != (self.num_epochs - 1):
             self.save_checkpoint(join(self.output_folder, 'checkpoint_latest.pth'))
 
-        # handle 'best' checkpointing. ema_fg_dice is computed by the logger and can be accessed like this
-        if self._best_ema is None or self.logger.my_fantastic_logging['ema_fg_dice'][-1] > self._best_ema:
-            self._best_ema = self.logger.my_fantastic_logging['ema_fg_dice'][-1]
+        # handle 'best' checkpointing. ema_fg_percent is computed by the logger and can be accessed like this
+        if self._best_ema is None or self.logger.my_fantastic_logging['ema_fg_percent'][-1] > self._best_ema:
+            self._best_ema = self.logger.my_fantastic_logging['ema_fg_percent'][-1]
             self.print_to_log_file(f"Yayy! New best EMA pseudo Dice: {np.round(self._best_ema, decimals=4)}")
             self.save_checkpoint(join(self.output_folder, 'checkpoint_best.pth'))
 

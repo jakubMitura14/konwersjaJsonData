@@ -135,7 +135,7 @@ def find_best_configuration(dataset_name_or_id,
                 all_results[identifier] = \
                     {
                     'source': output_folder_ensemble,
-                    'result': load_summary_json(join(output_folder_ensemble, 'summary.json'))['foreground_mean']['Dice']
+                    'result': load_summary_json(join(output_folder_ensemble, 'summary.json'))['foreground_mean']['Dice']#TODO make it non defoult metric
                     }
 
     # pick best and report inference command

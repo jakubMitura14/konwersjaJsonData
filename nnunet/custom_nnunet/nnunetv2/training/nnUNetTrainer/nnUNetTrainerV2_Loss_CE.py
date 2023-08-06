@@ -12,12 +12,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import nnunetv2
-from nnunetv2.training.loss_functions.crossentropy import RobustCrossEntropyLoss
+import torch
+from nnunetv2.training.loss_functions.crossentropy import RobustCrossEntropyLosss
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 
 class nnUNetTrainerV2_Loss_CE(nnUNetTrainer):
-    def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
-                 unpack_data=True, deterministic=True, fp16=False):
-        super().__init__(plans_file, fold, output_folder, dataset_directory, batch_dice, stage, unpack_data,
-                         deterministic, fp16)
-        self.loss = RobustCrossEntropyLoss()
+    def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict, unpack_dataset: bool = True,
+                 device: torch.device = torch.device('cuda')):
+        super().__init__(plans=plans,configuration=configuration,fold=fold,dataset_json=dataset_json
+                         ,unpack_dataset=unpack_dataset,device=device)
+        self.loss = RobustCrossEntropyLosss()

@@ -201,7 +201,7 @@ tar -xf elastix-5.0.1-linux.tar.bz2
 #     python3.9 -m pip  install -e . 
 
 # ENV nnUNet_n_proc_DA=8
-RUN python3.9 -m pip  --no-cache-dir install --upgrade git+https://github.com/julien-blanchon/hiddenlayer.git
+RUN python3.9 -m pip  --no-cache-dir install --upgrade git+https://github.com/julien-blanchon/hiddenlayer.git focal_loss_torch
 
 RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so ${HOME}/elastixBase/elastix-5.0.1-linux/bin/libANNlib-5.0.so
 RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so.1 ${HOME}/elastixBase/elastix-5.0.1-linux/bin/libANNlib-5.0.so.1

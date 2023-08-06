@@ -81,6 +81,12 @@ def my_crop(image,min_z,min_y,min_x,max_z,max_x,max_y):
     extracted_image = extract.Execute(image)
     return extracted_image
 
+def my_concat(grouped):
+    # grouped= list(map(lambda tupl: tupl[1],grouped))
+    res=np.stack(grouped).astype(int)
+    res=np.sum(res,axis=0)
+    res=res>1
+    return res
 
 
 def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,labelsTrFolder,imagesTrFolder):
@@ -133,19 +139,46 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
         # we want to get sum of all labels of the same name - so lesion 1 sum lesion 2 sum ...
         # then we encode it in separate file 
         zipped_names= list(zip(label_names,labels))
-
         grouped_by_lesion_num = dict(groupby(lambda tupl :tupl[0],zipped_names)).items()
         grouped_by_lesion_num= list(map(lambda grouped :  (grouped[0],list(map(lambda el: el[1],grouped[1])) ) , grouped_by_lesion_num  ))
+        # print(f"\n grouped_by_lesion_num {grouped_by_lesion_num} \n")
 
-        grouped_by_lesion_num_arrs= list(map(lambda grouped :  np.array(functools.reduce(get_bool_and, grouped[1])),grouped_by_lesion_num  ))
+        # we need to get the paths to bool arrs and sum it all
+        # next we keep all >1
+        # krowa set it to agreement of 2 annotators
+        # print(f"grouped_by_lesion_num {grouped_by_lesion_num}")
+        grouped_by_lesion_num_arrs= list(map(lambda grouped : 
+                                              list(map(get_bool_arr_from_path, grouped[1]))
+                                                ,grouped_by_lesion_num  ))
+
+        grouped_by_lesion_num_arrs= list(map(my_concat,grouped_by_lesion_num_arrs  ))
+
         grouped_by_lesion_num_arrs= np.stack(grouped_by_lesion_num_arrs,axis=0).astype(int)
-        reduced_common= np.sum(grouped_by_lesion_num_arrs,axis=0)
+
+        reduced_common= (np.sum(grouped_by_lesion_num_arrs,axis=0)>1).astype(int)
 
         reduced_sum = np.array(functools.reduce(get_bool_or, labels)).astype(bool)
         reduced_sum= ndimage.binary_dilation(reduced_sum,iterations=3)
 
+        reduced_common_eroded= ndimage.binary_erosion(reduced_common,iterations=1)
+        summ=np.sum(reduced_common.flatten())
+        if(summ>0):
+            ratio=(np.sum(reduced_common_eroded.flatten()) /np.sum(reduced_common.flatten()))
+            # print(f"ratio {ratio}")
+            if(ratio>0.15 ):
+                reduced_common=reduced_common_eroded
 
-        labRes=reduced_sum.astype(int)
+        reduced_common_eroded= ndimage.binary_erosion(reduced_common,iterations=1)
+        if(summ>0):
+            ratio=(np.sum(reduced_common_eroded.flatten()) /np.sum(reduced_common.flatten()))
+            # print(f"ratio {ratio}")
+            if(ratio>0.15 ):
+                reduced_common=reduced_common_eroded
+
+
+        # print(f"reduced_sum {np.sum(reduced_sum.flatten())}  reduced_common {np.sum(reduced_common.flatten())}")
+        labRes=reduced_sum#(reduced_sum>0).astype(int)
+
         labRes=labRes+(reduced_common.astype(int))
 
 
@@ -323,4 +356,27 @@ p.wait()
 
 
     
+#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 101 3d_fullres 0 
 
+
+#with masked binary_cross_entropy_with_logits
+# 2023-08-05 17:35:45.361709: train_loss 0.0002
+# 2023-08-05 17:35:45.362278: val_loss 0.0003
+# 2023-08-05 17:35:45.362691: Pseudo dice [0.0144, 0.2775]
+# 2023-08-05 17:35:45.363019: Percent in [0.5436]
+# 2023-08-05 17:35:45.363312: Percent out [0.101]
+# 2023-08-05 17:35:45.363678: Epoch time: 202.81 s
+# 2023-08-05 17:36:00.034846: 
+# 2023-08-05 17:36:00.035831: Epoch 88
+
+#focal +cross entropy loss
+# 2023-08-05 23:57:08.044413: Current learning rate: 0.00921
+# 2023-08-06 00:00:23.126401: train_loss 0.0018
+# 2023-08-06 00:00:23.127024: val_loss 0.0028
+# 2023-08-06 00:00:23.127418: Pseudo dice [0.0039, 0.322]
+# 2023-08-06 00:00:23.127787: Percent in [0.6303]
+# 2023-08-06 00:00:23.128125: Percent out [0.3697]
+# 2023-08-06 00:00:23.128488: Epoch time: 195.11 s
+# 2023-08-06 00:00:23.129513: Yayy! New best EMA pseudo Dice: [0.629]
+# 2023-08-06 00:00:36.670725: 
+# 2023-08-06 00:00:36.671606: Epoch 88

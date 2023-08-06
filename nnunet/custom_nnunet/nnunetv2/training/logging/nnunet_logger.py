@@ -17,13 +17,16 @@ class nnUNetLogger(object):
     def __init__(self, verbose: bool = False):
         self.my_fantastic_logging = {
             'mean_fg_dice': list(),
-            'ema_fg_dice': list(),
+            'ema_fg_percent': list(),
             'dice_per_class_or_region': list(),
             'train_losses': list(),
             'val_losses': list(),
             'lrs': list(),
             'epoch_start_timestamps': list(),
-            'epoch_end_timestamps': list()
+            'epoch_end_timestamps': list(),
+            'percent_out': list(),
+            'percent_in': list(),
+            'percent_covered': list()
         }
         self.verbose = verbose
         # shut up, this logging is great
@@ -45,11 +48,11 @@ class nnUNetLogger(object):
             print(f'maybe some logging issue!? logging {key} and {value}')
             self.my_fantastic_logging[key][epoch] = value
 
-        # handle the ema_fg_dice special case! It is automatically logged when we add a new mean_fg_dice
-        if key == 'mean_fg_dice':
-            new_ema_pseudo_dice = self.my_fantastic_logging['ema_fg_dice'][epoch - 1] * 0.9 + 0.1 * value \
-                if len(self.my_fantastic_logging['ema_fg_dice']) > 0 else value
-            self.log('ema_fg_dice', new_ema_pseudo_dice, epoch)
+        # handle the ema_fg_percent special case! It is automatically logged when we add a new mean_fg_dice
+        if key == 'percent_in':
+            new_ema_pseudo_dice = self.my_fantastic_logging['ema_fg_percent'][epoch - 1] * 0.9 + 0.1 * value \
+                if len(self.my_fantastic_logging['ema_fg_percent']) > 0 else value
+            self.log('ema_fg_percent', new_ema_pseudo_dice, epoch)
 
     def plot_progress_png(self, output_folder):
         # we infer the epoch form our internal logging
@@ -64,7 +67,7 @@ class nnUNetLogger(object):
         ax.plot(x_values, self.my_fantastic_logging['val_losses'][:epoch + 1], color='r', ls='-', label="loss_val", linewidth=4)
         ax2.plot(x_values, self.my_fantastic_logging['mean_fg_dice'][:epoch + 1], color='g', ls='dotted', label="pseudo dice",
                  linewidth=3)
-        ax2.plot(x_values, self.my_fantastic_logging['ema_fg_dice'][:epoch + 1], color='g', ls='-', label="pseudo dice (mov. avg.)",
+        ax2.plot(x_values, self.my_fantastic_logging['ema_fg_percent'][:epoch + 1], color='g', ls='-', label="pseudo dice (mov. avg.)",
                  linewidth=4)
         ax.set_xlabel("epoch")
         ax.set_ylabel("loss")
