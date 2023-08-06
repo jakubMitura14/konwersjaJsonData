@@ -41,7 +41,7 @@ elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
 reg_prop='/workspaces/konwersjaJsonData/nnunet/registration/parameters.txt'  
 # dataframe with master ids that we should not include in training
-test_ids_CSVDir='/workspaces/konwersjaJsonData/explore/test_ids.csv'
+test_ids_CSVDir='/workspaces/konwersjaJsonData/test_ids.csv'
 test_ids=pd.read_csv(test_ids_CSVDir)['ids'].to_numpy().flatten()
 
 
@@ -356,7 +356,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     main function for preparing nnunet
     """
     #first removing old data
-    nNunetBaseFolder='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
+    nNunetBaseFolder='/home/sliceruser/nnunetMainFolder'
 
     shutil.rmtree(f"{nNunetBaseFolder}/nnUNet_preprocessed")
     shutil.rmtree(f"{nNunetBaseFolder}/nnUNet_raw")
@@ -365,7 +365,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     taskFolder = join(nNunetBaseFolder,'nnUNet_raw',taskName)
     preprocesss_folder= join(nNunetBaseFolder,'nnUNet_preprocessed')
     results_folder= join(nNunetBaseFolder,'nnUNet_results')
-    mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
+    mainResults_folder="/home/sliceruser/nnUNet_results"
     imagesTrFolder= join(taskFolder,'imagesTr')
     labelsTrFolder= join(taskFolder,'labelsTr')
     imagesTsFolder= join(taskFolder,'imagesTs')

@@ -193,6 +193,9 @@ cd ${HOME}/elastixBase && \
 wget https://github.com/SuperElastix/elastix/releases/download/5.0.1/elastix-5.0.1-linux.tar.bz2&& \
 tar -xf elastix-5.0.1-linux.tar.bz2
 
+
+
+
 # /workspaces/konwersjaJsonData/prepareNNunet.py
 
 # RUN mkdir ${HOME}/nnUNet  && \
@@ -213,6 +216,7 @@ RUN cp ${HOME}/elastixBase/elastix-5.0.1-linux/lib/libANNlib-5.0.so.1 /usr/local
 RUN ldconfig
 # RUN apt-get install -q -y vim nano 
 RUN mkdir ${HOME}/registration
+RUN mkdir /home/sliceruser/nnUNet_results
 # COPY registration/parameters.txt ${HOME}/registration/parameters.txt
 # COPY registration/parametersB.txt ${HOME}/registration/parametersB.txt
 RUN apt-get update && apt-get install -y python3.9-tk
@@ -234,9 +238,13 @@ RUN apt-get update && apt-get install -y python3.9-tk
 # ENV nnUNet_raw="/media/fabian/nnUNet_raw"
 # ENV nnUNet_preprocessed="/media/fabian/nnUNet_preprocessed"
 # ENV nnUNet_results="/media/fabian/nnUNet_results"
-ENV nnUNet_raw="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw"
-ENV nnUNet_preprocessed="/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed"
-ENV nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
+
+# RUN cd /workspaces/konwersjaJsonData/nnunet/custom_nnunet && \
+#  python3.9 -m pip  install -e .
+
+ENV nnUNet_raw="/home/sliceruser/nnunetMainFolder/nnUNet_raw"
+ENV nnUNet_preprocessed="/home/sliceruser/nnunetMainFolder/nnUNet_preprocessed"
+ENV nnUNet_results="/home/sliceruser/nnUNet_results"
 
 CMD ["/bin/bash"]
 

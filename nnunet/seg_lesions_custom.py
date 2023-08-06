@@ -261,7 +261,7 @@ lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 
 sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_name)
 
-test_ids = pd.read_csv('/workspaces/konwersjaJsonData/explore/test_ids.csv' ).to_numpy().flatten()
+test_ids = pd.read_csv('/workspaces/konwersjaJsonData/test_ids.csv' ).to_numpy().flatten()
 
 test_ids= list(map(lambda el: str(el).strip(),test_ids ))
 filter_ids=lambda row: str(row[1]['masterolds']).strip() not in test_ids
@@ -273,15 +273,22 @@ main_modality = 'adc'
 dataset_id=101
 
 non_mri_inputs=[new_col_name]
-out_folder='/workspaces/konwersjaJsonData/explore/temp'
+out_folder='/home/sliceruser/explore/temp'
 # with mp.Pool(processes = mp.cpu_count()) as pool:
 # with mp.Pool(processes = 1) as pool:
 #     @curry  
 #     def pmap(fun,iterable):
 #         return pool.map(fun,iterable)
 
+nNunetBaseFolder='/home/sliceruser/nnunetMainFolder'
 
-nNunetBaseFolder='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder'
+os.makedirs(f"{nNunetBaseFolder}/nnUNet_preprocessed" ,exist_ok = True)
+os.makedirs(f"{nNunetBaseFolder}/nnUNet_raw" ,exist_ok = True)
+os.makedirs(out_folder ,exist_ok = True)
+shutil.rmtree(out_folder)
+os.makedirs(out_folder ,exist_ok = True)
+
+
 
 shutil.rmtree(f"{nNunetBaseFolder}/nnUNet_preprocessed")
 shutil.rmtree(f"{nNunetBaseFolder}/nnUNet_raw")
@@ -290,7 +297,7 @@ taskName= f"Dataset{dataset_id}_Prostate"
 taskFolder = join(nNunetBaseFolder,'nnUNet_raw',taskName)
 preprocesss_folder= join(nNunetBaseFolder,'nnUNet_preprocessed')
 results_folder= join(nNunetBaseFolder,'nnUNet_results')
-mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results"
+mainResults_folder="/home/sliceruser/nnUNet_results"
 imagesTrFolder= join(taskFolder,'imagesTr')
 labelsTrFolder= join(taskFolder,'labelsTr')
 imagesTsFolder= join(taskFolder,'imagesTs')
