@@ -15,7 +15,7 @@ from batchgenerators.dataloading.single_threaded_augmenter import SingleThreaded
 from batchgenerators.transforms.abstract_transforms import AbstractTransform, Compose
 from batchgenerators.transforms.color_transforms import BrightnessMultiplicativeTransform, \
     ContrastAugmentationTransform, GammaTransform
-from batchgenerators.transforms.noise_transforms import GaussianNoiseTransform, GaussianBlurTransform
+from batchgenerators.transforms.noise_transforms import RicianNoiseTransform, GaussianBlurTransform
 from batchgenerators.transforms.resample_transforms import SimulateLowResolutionTransform
 from batchgenerators.transforms.spatial_transforms import SpatialTransform, MirrorTransform
 from batchgenerators.transforms.utility_transforms import RemoveLabelTransform, RenameTransform, NumpyToTensor
@@ -699,10 +699,10 @@ class nnUNetTrainer(object):
         if do_dummy_2d_data_aug:
             tr_transforms.append(Convert2DTo3DTransform())
 
-        tr_transforms.append(GaussianNoiseTransform(p_per_sample=0.1))
+        tr_transforms.append(RicianNoiseTransform(p_per_sample=0.1))
         tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=0.2,
                                                    p_per_channel=0.5))
-        tr_transforms.append(BrightnessMultiplicativeTransform(multiplier_range=(0.75, 1.25), p_per_sample=0.15))
+        # tr_transforms.append(BrightnessMultiplicativeTransform(multiplier_range=(0.75, 1.25), p_per_sample=0.15))
         tr_transforms.append(ContrastAugmentationTransform(p_per_sample=0.15))
         tr_transforms.append(SimulateLowResolutionTransform(zoom_range=(0.5, 1), per_channel=True,
                                                             p_per_channel=0.5,

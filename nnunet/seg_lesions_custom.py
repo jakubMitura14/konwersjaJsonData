@@ -85,9 +85,7 @@ def my_concat(grouped):
     # grouped= list(map(lambda tupl: tupl[1],grouped))
     res=np.stack(grouped).astype(int)
     res=np.sum(res,axis=0)
-    res=res>1
     return res
-
 
 def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,labelsTrFolder,imagesTrFolder):
 
@@ -164,7 +162,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
         summ=np.sum(reduced_common.flatten())
         if(summ>0):
             ratio=(np.sum(reduced_common_eroded.flatten()) /np.sum(reduced_common.flatten()))
-            # print(f"ratio {ratio}")
+            print(f"ratio {ratio}")
             if(ratio>0.15 ):
                 reduced_common=reduced_common_eroded
 
@@ -176,8 +174,8 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
                 reduced_common=reduced_common_eroded
 
 
-        # print(f"reduced_sum {np.sum(reduced_sum.flatten())}  reduced_common {np.sum(reduced_common.flatten())}")
         labRes=reduced_sum#(reduced_sum>0).astype(int)
+        print(f"reduced_sum {np.sum(reduced_sum.flatten())}  reduced_common {np.sum(reduced_common.flatten())} labRes 2 {np.sum((labRes==2).flatten())}")
 
         labRes=labRes+(reduced_common.astype(int))
 
