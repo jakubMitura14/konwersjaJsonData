@@ -110,7 +110,7 @@ class nnUNetTrainer(object):
             api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
             project_name=os.getenv('my_proj_name')
             )
-        self.experiment.add_tag(os.getenv('my_proj_desc'))
+        self.experiment.log_text(os.getenv('my_proj_desc'))
 
         # print what device we are using
         if self.is_ddp:  # implicitly it's clear that we use cuda in this case
