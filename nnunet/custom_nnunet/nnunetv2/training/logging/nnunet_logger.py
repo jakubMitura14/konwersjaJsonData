@@ -26,7 +26,8 @@ class nnUNetLogger(object):
             'epoch_end_timestamps': list(),
             'percent_out': list(),
             'percent_in': list(),
-            'percent_covered': list()
+            'percent_covered': list(),
+            'is_correct': list(),
         }
         self.verbose = verbose
         # shut up, this logging is great
@@ -49,7 +50,7 @@ class nnUNetLogger(object):
             self.my_fantastic_logging[key][epoch] = value
 
         # handle the ema_fg_percent special case! It is automatically logged when we add a new mean_fg_dice
-        if key == 'percent_in':
+        if key == 'is_correct':
             new_ema_pseudo_dice = self.my_fantastic_logging['ema_fg_percent'][epoch - 1] * 0.9 + 0.1 * value \
                 if len(self.my_fantastic_logging['ema_fg_percent']) > 0 else value
             self.log('ema_fg_percent', new_ema_pseudo_dice, epoch)

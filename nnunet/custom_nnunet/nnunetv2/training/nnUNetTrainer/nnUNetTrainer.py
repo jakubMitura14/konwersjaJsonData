@@ -64,7 +64,24 @@ from torch.cuda.amp import GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from nnunetv2.training.loss_functions.crossentropy import RobustCrossEntropyLosss
 from nnunetv2.training.loss_functions.focal_loss import FocalLoss
+from nnunetv2.training.nnUNetTrainer.my_transform import My_PseudoLesion_adder
+from comet_ml import Experiment
+import comet_ml
 
+def get_is_correct(bi,inn,twos):
+    curr_in= inn[bi,:,:,:]
+    curr_twos= twos[bi,:,:,:]
+    total = curr_in.sum()
+    curr_percent_in=torch.zeros(1)
+    curr_percent_covered=torch.zeros(1)
+
+    if(total.item()>0):
+        curr_percent_in=curr_in.sum()/(total)
+    if(curr_twos.sum().item()>0):
+        curr_percent_covered=  ((curr_in) & (curr_twos)).sum()/ curr_twos.sum()
+    curr_percent_in=curr_percent_in.detach().cpu().numpy()
+    curr_percent_covered=curr_percent_covered.detach().cpu().numpy()
+    return (curr_percent_in[0]>0.8 and curr_percent_covered[0]>0.5)
 
 class nnUNetTrainer(object):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict, unpack_dataset: bool = True,
@@ -88,6 +105,12 @@ class nnUNetTrainer(object):
         self.local_rank = 0 if not self.is_ddp else dist.get_rank()
 
         self.device = device
+
+        self.experiment = comet_ml.Experiment(
+            api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
+            project_name=os.getenv('my_proj_name')
+            )
+        self.experiment.add_tag(os.getenv('my_proj_desc'))
 
         # print what device we are using
         if self.is_ddp:  # implicitly it's clear that we use cuda in this case
@@ -700,6 +723,7 @@ class nnUNetTrainer(object):
             tr_transforms.append(Convert2DTo3DTransform())
 
         tr_transforms.append(RicianNoiseTransform(p_per_sample=0.1))
+        # tr_transforms.append(My_PseudoLesion_adder())
         tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=0.2,
                                                    p_per_channel=0.5))
         # tr_transforms.append(BrightnessMultiplicativeTransform(multiplier_range=(0.75, 1.25), p_per_sample=0.15))
@@ -962,7 +986,24 @@ class nnUNetTrainer(object):
 
         # curr= torch.sum(curr,dim=1)
         inn = curr & bigger_mask
-        
+        twos= (target==2)[:,0,:,:,:]
+        shapp= target.shape
+
+        #we work on a single image
+        # for bi in range(shapp[0]):
+        #     curr_in= inn[bi,:,:,:]
+        #     curr_twos= twos[bi,:,:,:]
+        #     total = curr_in.sum()
+        #     curr_percent_in=torch.zeros(1)
+        #     curr_percent_covered=torch.zeros(1)
+
+        #     if(total.item()>0):
+        #         curr_percent_in=curr_in.sum()/(total)
+        #     if(curr_twos.sum().item()>0):
+        #         curr_percent_covered=  ((curr_in) & (curr_twos)).sum()/ curr_twos.sum()
+        # krowa
+        res=list(map(lambda bi : get_is_correct(bi,inn,twos),range(shapp[0])))
+        is_correct= np.array([np.mean(np.array(res).astype(float))])
         # print(f"inn.sum()/ {inn.sum()}  curr.sum() {curr.sum()} bigger_mask {bigger_mask.sum()} |0| {predicted_segmentation_onehot.round().bool()[:,0,:,:,:].sum()} |1|   {predicted_segmentation_onehot.round().bool()[:,1,:,:,:].sum()}")
         total = curr.sum()
         percent_in= torch.zeros(1)
@@ -978,12 +1019,10 @@ class nnUNetTrainer(object):
             out = (curr) & (~bigger_mask)
             percent_out= out.sum()/total
 
-        twos= (target==2)[:,0,:,:,:]
         percent_covered=torch.zeros(1)
         if(twos.sum().item()>0):
             percent_covered=  ((curr) & (twos)).sum()/ twos.sum()
         
-
 
         percent_out=percent_out.detach().cpu().numpy()
         percent_covered=percent_covered.detach().cpu().numpy()
@@ -991,6 +1030,7 @@ class nnUNetTrainer(object):
         tp_hard = tp.detach().cpu().numpy()
         fp_hard = fp.detach().cpu().numpy()
         fn_hard = fn.detach().cpu().numpy()
+
         if not self.label_manager.has_regions:
             # if we train with regions all segmentation heads predict some kind of foreground. In conventional
             # (softmax training) there needs tobe one output for the background. We are not interested in the
@@ -1000,7 +1040,7 @@ class nnUNetTrainer(object):
             fp_hard = fp_hard[1:]
             fn_hard = fn_hard[1:]
 
-        return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard, 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered }
+        return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard, 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered,'is_correct':is_correct }
 
     def on_validation_epoch_end(self, val_outputs: List[dict]):
         outputs_collated = collate_outputs(val_outputs)
@@ -1010,6 +1050,11 @@ class nnUNetTrainer(object):
         percent_in = np.mean(outputs_collated['percent_in'], 0)
         percent_covered = np.mean(outputs_collated['percent_covered'], 0)
         percent_out = np.mean(outputs_collated['percent_out'], 0)
+        is_correct = np.mean(outputs_collated['is_correct'], 0)
+
+        self.experiment.log_metric("percent in", percent_in)
+        self.experiment.log_metric("percent covered", percent_covered)
+        self.experiment.log_metric("is correct", is_correct)
 
         if self.is_ddp:
             world_size = dist.get_world_size()
@@ -1043,6 +1088,7 @@ class nnUNetTrainer(object):
         self.logger.log('percent_in', percent_in, self.current_epoch)
         self.logger.log('percent_covered', percent_covered, self.current_epoch)
         self.logger.log('percent_out', percent_out, self.current_epoch)
+        self.logger.log('is_correct', is_correct, self.current_epoch)
 
     def on_epoch_start(self):
         self.logger.log('epoch_start_timestamps', time(), self.current_epoch)
@@ -1061,6 +1107,8 @@ class nnUNetTrainer(object):
                                                self.logger.my_fantastic_logging['percent_out'][-1]])
         self.print_to_log_file('Percent covered', [np.round(i, decimals=4) for i in
                                                self.logger.my_fantastic_logging['percent_covered'][-1]])
+        self.print_to_log_file('is correct', [np.round(i, decimals=2) for i in
+                                               self.logger.my_fantastic_logging['is_correct'][-1]])
 
         self.print_to_log_file(
             f"Epoch time: {np.round(self.logger.my_fantastic_logging['epoch_end_timestamps'][-1] - self.logger.my_fantastic_logging['epoch_start_timestamps'][-1], decimals=2)} s")

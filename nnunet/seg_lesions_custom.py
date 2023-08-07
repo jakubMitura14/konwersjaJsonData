@@ -264,7 +264,6 @@ test_ids = pd.read_csv('/workspaces/konwersjaJsonData/test_ids.csv' ).to_numpy()
 
 test_ids= list(map(lambda el: str(el).strip(),test_ids ))
 filter_ids=lambda row: str(row[1]['masterolds']).strip() not in test_ids
-modalities_of_intrest=['t2w','adc','hbv']
 cols=sourceFrame.columns
 noSegCols=list(filter(lambda el: '_noSeg' in el , cols))+['series_MRI_path']
 lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
@@ -359,10 +358,8 @@ p = Popen(cmd_terminal, shell=True)
 p.wait()
 
 
-
-
     
-#CUDA_VISIBLE_DEVICES=0 nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 1"  my_proj_desc="" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits

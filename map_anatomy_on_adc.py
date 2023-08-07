@@ -92,6 +92,31 @@ def iterGroups(groupTuple,adc_lesion_cols,anatomy_cols ):
     return (masterOlds,adc[1],t2w[1],list(zip(anatomy_cols,anatomy_paths)),list(zip(adc_lesion_cols,lesion_paths )))
 
 
+
+def iterGroups_hbv(groupTuple,adc_lesion_cols,anatomy_cols ):
+    masterOlds, listRows= groupTuple
+    #first find all of the lesion paths and anatomy paths
+    anatomy_paths=toolz.pipe(anatomy_cols
+                ,map(partial(getPathsFromRows,listRows=listRows))
+                ,list) 
+    lesion_paths=toolz.pipe(adc_lesion_cols
+                ,map(partial(getPathsFromRows,listRows=listRows))
+                ,list) 
+    anatomy_paths=list(filter(lambda  el: len(el)>0 , anatomy_paths))
+    lesion_paths=list(filter(lambda  el: len(el)>0 , lesion_paths))
+
+    mri_paths = list(map(lambda row: (row[1]['series_desc'],row[1]['series_MRI_path']) ,listRows))
+    adc = list(filter(lambda el: el[0]== 'hbv' ,mri_paths ))
+    if(len(adc)==0):
+        return (' ',' ',[],[])
+    adc=adc[0]
+    t2w = list(filter(lambda el: el[0]== 't2w' ,mri_paths ))[0]
+    # now we need a path to t2w and adc
+    return (masterOlds,adc[1],t2w[1],list(zip(anatomy_cols,anatomy_paths)),list(zip(adc_lesion_cols,lesion_paths )))
+
+
+
+
 def remove_lesions_from_anatomy(anatomy_bool,lesion_bools ):
     """ 
     removes all areas of lesions from each anatomic area
@@ -260,6 +285,49 @@ def save_mean_anatomy_adc(sourceFrame,anatomy_cols,anatomy_adc_csv_dir):
     shutil.rmtree(temp_dir, ignore_errors=True)  
     return means_frame
 
+
+
+
+def save_mean_anatomy_hbv(sourceFrame,anatomy_cols,anatomy_adc_csv_dir):
+
+    cols=sourceFrame.columns
+    cols=list(filter(lambda el: 'lesion' in el ,cols))
+    adc_lesion_cols=list(filter(lambda el: 'hbv_noSeg' in el ,cols))
+    temp_dir = tempfile.mkdtemp()
+    adc_means=[]
+    # with mp.Pool(processes = mp.cpu_count()) as pool:
+    with mp.Pool(processes = 1) as pool:
+        @curry  
+        def pmap(fun,iterable):
+            return pool.map(fun,iterable)
+
+
+        adc_means= toolz.pipe(sourceFrame.iterrows()
+                                ,groupByMaster
+                                ,pmap(partial(iterGroups_hbv,adc_lesion_cols=adc_lesion_cols,anatomy_cols=anatomy_cols ))
+                                 ,filter(lambda group: group[0]!=' ') 
+                                 ,filter(lambda group: len(group[3])>0) 
+                                ,list
+                                ,pmap(partial(register_in_group,temp_dir=temp_dir ))
+                                ,list   
+                                ,filter(lambda el: el!=' ') 
+                                ,list )
+
+    means_frame= pd.DataFrame()
+    #populating frame with data
+    means_frame['id']=list(map(lambda el : el[0]  ,adc_means))
+
+    anatomy_cols.append('tz_combined')
+    anatomy_cols.append('pz_combined')
+
+
+    for col_name in anatomy_cols:
+        means_frame[col_name]=list(map(lambda el : el[1].get(col_name,' ')  ,adc_means))
+        means_frame[f"{col_name}_volume"]=list(map(lambda el : el[2].get(col_name,' ')  ,adc_means))
+
+    means_frame.to_csv(anatomy_adc_csv_dir) 
+    shutil.rmtree(temp_dir, ignore_errors=True)  
+    return means_frame
 
 
 

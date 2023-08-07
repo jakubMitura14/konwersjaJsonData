@@ -31,7 +31,7 @@ import re
 import shutil
 import getVolume
 from getVolume import get_volumes_frames
-from map_anatomy_on_adc import save_mean_anatomy_adc
+from map_anatomy_on_adc import save_mean_anatomy_adc,save_mean_anatomy_hbv
 from get_max_perimeter import save_max_paerimeter
 
 #JSON filr from mdai summarizing data about annotations etc. 
@@ -106,11 +106,13 @@ hbv_means_csv_dir='/workspaces/konwersjaJsonData/explore/mean_hbvs.csv'
 new_anatomy_csv_dir='/workspaces/konwersjaJsonData/explore/new_anatomies.csv'
 
 anatomic_cols=['pg_noSeg','afs_noSeg','cz_noSeg','pz_noSeg','sv_l_noSeg','sv_r_noSeg','tz_noSeg','ur_noSeg']
-get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLab,anatomic_cols,adc_means_csv_dir,hbv_means_csv_dir)
+# get_volumes_frames(out_files_frame,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLab,anatomic_cols,adc_means_csv_dir,hbv_means_csv_dir)
 # measurements.get_new_anatomu_inter_observer_agreement(out_files_frame,new_anatomy_csv_dir)
 
 anatomy_adc_csv_dir='/workspaces/konwersjaJsonData/explore/mean_adcs_per_anatomy.csv'
+anatomy_adc_csv_dir='/workspaces/konwersjaJsonData/explore/mean_hbvs_per_anatomy.csv'
 # save_mean_anatomy_adc(out_files_frame,anatomic_cols,anatomy_adc_csv_dir)
+save_mean_anatomy_hbv(out_files_frame,anatomic_cols,anatomy_adc_csv_dir)
 
 # circ_frame_csv_dir='/workspaces/konwersjaJsonData/explore/max_circs.csv'
 # save_max_paerimeter(out_files_frame,anatomic_cols,circ_frame_csv_dir)
