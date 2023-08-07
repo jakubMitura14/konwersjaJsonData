@@ -106,6 +106,10 @@ def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
     we have some inferred anatomical segmentations done by previous 
     models now we want to take the folder with 
     """
+    path_temp='/workspaces/konwersjaJsonData/explore/inferredd.csv'
+    if(pathOs.exists(path_temp)):
+        return pd.read_csv(path_temp) 
+    
     list_files= os.listdir(dir_inferred_prost)
     list_files= list(filter(lambda el : el[0]=='9' ,list_files ))
     list_ids= list(map(get_id_from_file_name,list_files))
@@ -116,6 +120,7 @@ def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
     new_col_dat= list(map(add_t2w_to_name,new_col_dat))
 
     df[new_col_name]=new_col_dat
+    df.to_csv(path_temp) 
     return df
 
 
@@ -361,6 +366,70 @@ def get_from_arr(zeroArray,image3D):
 
 
 
+def augment_two_channel(dat_curr,target_curr):
+    """
+    adding in random spots (but not where already some labels are) lesions that are 
+    either low or high on both adc and hbv (they should be high hbv low adc)
+    function is not batched
+    """
+    img_shape= (dat_curr.shape[1],dat_curr.shape[2],dat_curr.shape[3])
+    #checked mean adc is 1094.62154301315 var 232305.190303674 stdev 481.980487471925
+    #hbv mean 19.4776261112059 var 22.5644954467697 std 4.75021004238441
+    gauss_vals=np.array([[1094.62154301315,481.980487471925],[19.4776261112059,4.7502100423844]  ])
+    #n - controlling how big the pseudo lesion will be
+    n=np.random.randint(1,4)
+    #k - controlling the numebr of pseudo lesions
+    k=np.random.randint(0,102) 
+    #1) get the target and dilatate it n+1 times (if its sum is above 0)
+    target_big= ndimage.binary_dilation((target_curr>0),iterations=n)
+    #2) get indicies where dilatated target is still zero and choose random k indicies from it
+    target_big=np.argwhere(np.logical_not(target_big))
+    rng = np.random.default_rng()
+    rng.shuffle(target_big,axis=0)
+    target_big=target_big[0:k,:]
+    #3) create new zero bool array of original size 
+    res_bool= np.zeros(img_shape).astype(bool)
+    #4) in a neww array set chosen points to True
+    res_bool[target_big[:,0],target_big[:,1],target_big[:,2]]=True
+    #5) perform binary dilatation n-1 times and save
+    res_bool_a= ndimage.binary_dilation(res_bool,iterations=n-1)
+    #6) perform last dilatation - and find indicies that were added in last dilatation
+    res_bool_b= ndimage.binary_dilation(res_bool_a,iterations=1)
+    diff= np.argwhere(np.logical_and(np.logical_not(res_bool_a), res_bool_b))
+    #7) set randomly 60% of them to false so we will have more realistic border
+    rng = np.random.default_rng()
+    rng.shuffle(diff,axis=0)
+    len= diff.shape[0]
+    diff=diff[0:len,:]
+    res_bool_b[diff[:,0],diff[:,1],diff[:,2]]=False
+    #8) we get resulting boolean array calling it res_bool
+    res_bool=res_bool_b
+    #9) we index image (both channels) with res bool and set it to 0
+    data_a=dat_curr[0,:,:,:]
+    data_b=dat_curr[1,:,:,:]
+    data_a[res_bool]=0
+    data_b[res_bool]=0
+    # dat_curr=np.stack([data_a,data_b])
+
+    #10) we create new float array of the size like image
+    #11) we set it with either mean and variance typical for lesions on hbv or adc and we set the same values 
+        # for both channels
+    rng = np.random.default_rng()    
+    rng.shuffle(gauss_vals,axis=0)
+    noise=np.random.normal(gauss_vals[0,0], gauss_vals[0,1], size=img_shape)
+    #12) we set evrything outside of res_bool to false    
+    noise[np.logical_not(res_bool)]=0.0
+    noise= np.stack([noise,noise])
+    #13)we add image (with zeroad indexes) to array we got in previous step
+    dat_curr=np.stack([data_a,data_b])
+    dat_curr=dat_curr+noise
+    return dat_curr
+
+            #     dat_curr= data[bi,:,:,:,:]
+            # target_curr= data[bi,:,:,:]
+
+
+
 def visualize_range(group,main_modality,modalities_of_intrest,non_mri_inputs,out_folder):
 
     modalit_path_add= list(map( lambda el:(group[1][el]) ,non_mri_inputs))
@@ -476,6 +545,11 @@ def visualize_range(group,main_modality,modalities_of_intrest,non_mri_inputs,out
     adc_arr=sitk.GetArrayFromImage(adc_image)
     hbv_arr=sitk.GetArrayFromImage(hbv_image)
     labRes=sitk.GetArrayFromImage(label_image)
+
+    stacked =np.stack([adc_arr,hbv_arr])
+    dat=augment_two_channel(stacked,labRes)
+    adc_arr=dat[0,:,:,:]
+    hbv_arr=dat[1,:,:,:]
 
     # adc_arr=adc_arr[min_z:max_z,min_x:max_x,min_y:max_y]
     # hbv_arr=hbv_arr[min_z:max_z,min_x:max_x,min_y:max_y]

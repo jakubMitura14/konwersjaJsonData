@@ -175,9 +175,10 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
 
         labRes=reduced_sum#(reduced_sum>0).astype(int)
+        labRes=labRes+(reduced_common.astype(int))
+
         print(f"reduced_sum {np.sum(reduced_sum.flatten())}  reduced_common {np.sum(reduced_common.flatten())} labRes 2 {np.sum((labRes==2).flatten())}")
 
-        labRes=labRes+(reduced_common.astype(int))
 
 
 

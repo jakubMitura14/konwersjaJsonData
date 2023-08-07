@@ -97,7 +97,7 @@ def mean_adc_of_adc_lesions(current_row,adc_lesion_cols):
 
 
 
-def get_volumes_frames(preprocessed_df,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLabelName,anatomic_cols,adc_means_csv_dir):
+def get_volumes_frames(preprocessed_df,prost_volumes_csv_dir,lesion_volumes_csv_dir,prostateLabelName,anatomic_cols,adc_means_csv_dir,hbv_means_csv_dir):
     """
     reads the data from associated data frame and creates new dataframe
     with data about volume of prostate
@@ -158,11 +158,33 @@ def get_volumes_frames(preprocessed_df,prost_volumes_csv_dir,lesion_volumes_csv_
     adc_means_frame['lesion_name']=list(map(lambda el: el[4].replace(f"_{el[4].split('_')[-4]}_{el[4].split('_')[-3]}_{el[4].split('_')[-2]}_{el[4].split('_')[-1]}",""),lesion_mean_adc_data )) 
     adc_means_frame['annotator_id']=list(map(lambda el: f"{el[4].split('_')[-4]}_{el[4].split('_')[-3]}",lesion_mean_adc_data )) 
 
+    adc_means_frame.to_csv(adc_means_csv_dir) 
+
+    ##################
+
+
+    cols=preprocessed_df.columns
+    cols=list(filter(lambda el: 'lesion' in el or 'bladder_lumen' in el or 'bladder_wall' in el or 'rec_abd_L' in el or 'rec_abd_R' in el ,cols))
+    adc_lesion_cols=list(filter(lambda el: 'hbv_noSeg' in el ,cols))
+
+    lesion_mean_adc_data= list(map( partial(mean_adc_of_adc_lesions,adc_lesion_cols=adc_lesion_cols), preprocessed_df.iterrows()))
+    lesion_mean_adc_data=list(itertools.chain(*lesion_mean_adc_data))
+
+    hbv_means_frame= pd.DataFrame()
+
+    # adc_means_frame['study_id']=list(map(lambda el: el[1],lesion_mean_adc_data )) 
+    hbv_means_frame['number']=list(map(lambda el: el[2],lesion_mean_adc_data )) 
+    hbv_means_frame['modality']=list(map(lambda el: el[3],lesion_mean_adc_data )) 
+    hbv_means_frame['mean_adc']=list(map(lambda el: el[0],lesion_mean_adc_data )) 
+    hbv_means_frame['min_adc']=list(map(lambda el: el[5],lesion_mean_adc_data )) 
+    hbv_means_frame['lesion_name']=list(map(lambda el: el[4].replace(f"_{el[4].split('_')[-4]}_{el[4].split('_')[-3]}_{el[4].split('_')[-2]}_{el[4].split('_')[-1]}",""),lesion_mean_adc_data )) 
+    hbv_means_frame['annotator_id']=list(map(lambda el: f"{el[4].split('_')[-4]}_{el[4].split('_')[-3]}",lesion_mean_adc_data )) 
+
 
 
     prostate_volumes_frame.to_csv(prost_volumes_csv_dir) 
     lesion_volumes_frame.to_csv(lesion_volumes_csv_dir) 
-    adc_means_frame.to_csv(adc_means_csv_dir) 
+    hbv_means_frame.to_csv(hbv_means_csv_dir) 
 
 
 

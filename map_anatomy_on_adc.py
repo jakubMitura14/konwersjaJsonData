@@ -91,6 +91,7 @@ def iterGroups(groupTuple,adc_lesion_cols,anatomy_cols ):
     # now we need a path to t2w and adc
     return (masterOlds,adc[1],t2w[1],list(zip(anatomy_cols,anatomy_paths)),list(zip(adc_lesion_cols,lesion_paths )))
 
+
 def remove_lesions_from_anatomy(anatomy_bool,lesion_bools ):
     """ 
     removes all areas of lesions from each anatomic area
@@ -258,6 +259,9 @@ def save_mean_anatomy_adc(sourceFrame,anatomy_cols,anatomy_adc_csv_dir):
     means_frame.to_csv(anatomy_adc_csv_dir) 
     shutil.rmtree(temp_dir, ignore_errors=True)  
     return means_frame
+
+
+
 
 # (masterOlds,dict(list(zip(anatomy_names, mean_adcs))))
 
