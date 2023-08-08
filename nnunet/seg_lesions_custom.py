@@ -347,7 +347,7 @@ channel_names={
 data = { 
     "channel_names": channel_names, 
     "labels": label_names,  
-    "regions_class_order": [0],  
+    "regions_class_order": [2,1],  
     "file_ending": ".nii.gz",
     # "normalization_schemes" : ["noNorm","noNorm"],
     "numTraining" : len(ids),
