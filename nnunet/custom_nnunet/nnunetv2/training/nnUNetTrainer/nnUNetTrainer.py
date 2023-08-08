@@ -1076,8 +1076,8 @@ class nnUNetTrainer(object):
             bigger_mask=bigger_mask.detach().cpu().numpy()
 
             with mp.Pool(processes = mp.cpu_count()) as pool:
-                my_sensitivity=pool.map(partial(get_my_sensitivity,bi=bi,inn=inn,twos=twos,curr=curr,epoch=epoch,folder_path=folder_path,batch_id=batch_id,bigger_mask=bigger_mask),range(shapp[0]))
-                my_specificity=pool.map(partial(get_my_specifity,bi=bi,inn=inn,twos=twos,curr=curr,epoch=epoch,folder_path=folder_path,batch_id=batch_id,bigger_mask=bigger_mask),range(shapp[0]))
+                my_sensitivity=pool.map(partial(get_my_sensitivity,inn=inn,twos=twos,curr=curr,epoch=epoch,folder_path=folder_path,batch_id=batch_id,bigger_mask=bigger_mask),range(shapp[0]))
+                my_specificity=pool.map(partial(get_my_specifity,inn=inn,twos=twos,curr=curr,epoch=epoch,folder_path=folder_path,batch_id=batch_id,bigger_mask=bigger_mask),range(shapp[0]))
             # print(f"rrrrrrr {res}")
             my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
             if(len(my_sensitivity)>0):
