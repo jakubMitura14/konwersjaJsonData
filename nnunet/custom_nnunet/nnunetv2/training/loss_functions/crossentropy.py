@@ -3,7 +3,7 @@ import torch
 import torchvision
 
 from focal_loss.focal_loss import FocalLoss
-
+from nnunet.training.network_training.nnUNet_variants.loss_function.nnUNetTrainerV2_focalLoss import FocalLoss
 
 class RobustCrossEntropyLoss(nn.CrossEntropyLoss):
     """

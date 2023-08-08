@@ -169,7 +169,7 @@ class nnUNetTrainer(object):
             project_name=os.getenv('my_proj_name')
             )
         self.experiment.log_text(os.getenv('my_proj_desc'))
-        self.experiment.add_tag("l4d")
+        self.experiment.add_tag(os.getenv('tag'))
 
         # print what device we are using
         if self.is_ddp:  # implicitly it's clear that we use cuda in this case
