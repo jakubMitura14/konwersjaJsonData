@@ -75,13 +75,15 @@ def get_is_correct(bi,inn,twos):
     curr_percent_in=torch.zeros(1)
     curr_percent_covered=torch.zeros(1)
 
-    if(total.item()>0):
-        curr_percent_in=curr_in.sum()/(total)
-    if(curr_twos.sum().item()>0):
-        curr_percent_covered=  ((curr_in) & (curr_twos)).sum()/ curr_twos.sum()
+    if(total.item()==0 or curr_twos.sum().item()==0):
+        return -1
+    
+    curr_percent_in=curr_in.sum()/(total)
+    curr_percent_covered=  ((curr_in) & (curr_twos)).sum()/ curr_twos.sum()
     curr_percent_in=curr_percent_in.detach().cpu().numpy()
     curr_percent_covered=curr_percent_covered.detach().cpu().numpy()
-    return (curr_percent_in[0]>0.8 and curr_percent_covered[0]>0.5)
+    
+    return (np.logical_and(np.array(curr_percent_in)>0.6 , np.array(curr_percent_covered)>0.5))
 
 class nnUNetTrainer(object):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict, unpack_dataset: bool = True,
@@ -111,6 +113,7 @@ class nnUNetTrainer(object):
             project_name=os.getenv('my_proj_name')
             )
         self.experiment.log_text(os.getenv('my_proj_desc'))
+        self.experiment.add_tag("l4b")
 
         # print what device we are using
         if self.is_ddp:  # implicitly it's clear that we use cuda in this case
@@ -723,7 +726,7 @@ class nnUNetTrainer(object):
             tr_transforms.append(Convert2DTo3DTransform())
 
         tr_transforms.append(RicianNoiseTransform(p_per_sample=0.1))
-        # tr_transforms.append(My_PseudoLesion_adder())
+        tr_transforms.append(My_PseudoLesion_adder())
         tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=0.2,
                                                    p_per_channel=0.5))
         # tr_transforms.append(BrightnessMultiplicativeTransform(multiplier_range=(0.75, 1.25), p_per_sample=0.15))
@@ -1003,14 +1006,19 @@ class nnUNetTrainer(object):
         #         curr_percent_covered=  ((curr_in) & (curr_twos)).sum()/ curr_twos.sum()
         # krowa
         res=list(map(lambda bi : get_is_correct(bi,inn,twos),range(shapp[0])))
-        is_correct= np.array([np.mean(np.array(res).astype(float))])
+        # print(f"rrrrrrr {res}")
+        res=list(filter(lambda el: np.array(el).flatten()[0]>-1,res  ))
+        is_correct=np.zeros(1)
+        if(len(res)>0):
+            res= list(map(lambda el : np.array(np.mean(el)).flatten(),res))
+            is_correct= np.mean(np.array(res))
+        
         # print(f"inn.sum()/ {inn.sum()}  curr.sum() {curr.sum()} bigger_mask {bigger_mask.sum()} |0| {predicted_segmentation_onehot.round().bool()[:,0,:,:,:].sum()} |1|   {predicted_segmentation_onehot.round().bool()[:,1,:,:,:].sum()}")
         total = curr.sum()
         percent_in= torch.zeros(1)
         if(total.item()>0):
             percent_in=inn.sum()/(total)
 
-        percent_in=percent_in.detach().cpu().numpy()
 
         percent_out=torch.zeros(1)
         total_mask = bigger_mask.sum()
@@ -1023,7 +1031,9 @@ class nnUNetTrainer(object):
         if(twos.sum().item()>0):
             percent_covered=  ((curr) & (twos)).sum()/ twos.sum()
         
-
+        # print(f"tttttt is_correct {is_correct} total {total} ((curr) & (twos)).sum() {((curr) & (twos)).sum()}  (curr) & (~bigger_mask) {((curr) & (~bigger_mask)).sum()}")
+        is_correct=np.array([is_correct])
+        percent_in=percent_in.detach().cpu().numpy()
         percent_out=percent_out.detach().cpu().numpy()
         percent_covered=percent_covered.detach().cpu().numpy()
         
