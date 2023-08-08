@@ -67,7 +67,7 @@ channel_names={
 label_names= {  
     "background": 0,
     "bigger": 1,
-    "common": 2,
+    "ignore": 2,
     }
 
 def my_crop(image,min_z,min_y,min_x,max_z,max_x,max_y):

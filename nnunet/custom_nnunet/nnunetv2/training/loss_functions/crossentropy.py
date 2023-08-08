@@ -5,6 +5,18 @@ import torchvision
 from focal_loss.focal_loss import FocalLoss
 
 
+class RobustCrossEntropyLoss(nn.CrossEntropyLoss):
+    """
+    this is just a compatibility layer because my target tensor is float and has an extra dimension
+
+    input must be logits, not probabilities!
+    """
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        if len(target.shape) == len(input.shape):
+            assert target.shape[1] == 1
+            target = target[:, 0]
+        return super().forward(input, target.long())
+
 
 class RobustCrossEntropyLosss(nn.Module):
     """
@@ -26,3 +38,26 @@ class RobustCrossEntropyLosss(nn.Module):
         cross_loss=  nn.functional.binary_cross_entropy_with_logits(input, target_a, weight=weight)
         return cross_loss+focal_loss
 
+
+
+class Picai_FL_and_CE_loss(nn.Module):
+    def __init__(self, fl_kwargs=None, ce_kwargs=None, alpha=0.5, aggregate="sum"):
+        super(Picai_FL_and_CE_loss, self).__init__()
+        if fl_kwargs is None:
+            fl_kwargs = {}
+        if ce_kwargs is None:
+            ce_kwargs = {}
+
+        self.aggregate = aggregate
+        self.fl = FocalLoss(apply_nonlin=nn.Softmax(), **fl_kwargs)
+        self.ce = RobustCrossEntropyLoss(**ce_kwargs)
+        self.alpha = alpha
+
+    def forward(self, net_output, target):
+        fl_loss = self.fl(net_output, target)
+        ce_loss = self.ce(net_output, target)
+        if self.aggregate == "sum":
+            result = self.alpha*fl_loss + (1-self.alpha)*ce_loss
+        else:
+            raise NotImplementedError("nah son")
+        return result
