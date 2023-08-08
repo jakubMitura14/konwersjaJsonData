@@ -156,7 +156,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
         reduced_common= (np.sum(grouped_by_lesion_num_arrs,axis=0)>1).astype(int)
 
         reduced_sum = np.array(functools.reduce(get_bool_or, labels)).astype(bool)
-        reduced_sum= ndimage.binary_dilation(reduced_sum,iterations=3)
+        reduced_sum= ndimage.binary_dilation(reduced_sum,iterations=2)
 
         reduced_common_eroded= ndimage.binary_erosion(reduced_common,iterations=1)
         summ=np.sum(reduced_common.flatten())
@@ -177,7 +177,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
         labRes=reduced_sum#(reduced_sum>0).astype(int)
         labRes=labRes+(reduced_common.astype(int))
 
-        print(f"reduced_sum {np.sum(reduced_sum.flatten())}  reduced_common {np.sum(reduced_common.flatten())} labRes 2 {np.sum((labRes==2).flatten())}")
+        # print(f"reduced_sum {np.sum(reduced_sum.flatten())}  reduced_common {np.sum(reduced_common.flatten())} labRes 2 {np.sum((labRes==2).flatten())}")
 
 
 
@@ -359,7 +359,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 1"  my_proj_desc="added pseudo label transform" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 1"  my_proj_desc="added pseudo label transform reduced dilatations of 1s to 2" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits
