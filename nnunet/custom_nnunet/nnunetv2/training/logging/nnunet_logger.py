@@ -4,7 +4,7 @@ from batchgenerators.utilities.file_and_folder_operations import join
 matplotlib.use('agg')
 import seaborn as sns
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 class nnUNetLogger(object):
     """
@@ -51,7 +51,7 @@ class nnUNetLogger(object):
 
         # handle the ema_fg_percent special case! It is automatically logged when we add a new mean_fg_dice
         if key == 'is_correct':
-            new_ema_pseudo_dice = self.my_fantastic_logging['ema_fg_percent'][epoch - 1] * 0.9 + 0.1 * value \
+            new_ema_pseudo_dice = np.array(self.my_fantastic_logging['ema_fg_percent'])[-1] * 0.9 + 0.1 * value \
                 if len(self.my_fantastic_logging['ema_fg_percent']) > 0 else value
             self.log('ema_fg_percent', new_ema_pseudo_dice, epoch)
 

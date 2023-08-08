@@ -67,21 +67,31 @@ from nnunetv2.training.loss_functions.focal_loss import FocalLoss
 from nnunetv2.training.nnUNetTrainer.my_transform import My_PseudoLesion_adder
 from comet_ml import Experiment
 import comet_ml
+import SimpleITK as sitk
 
-def get_is_correct(bi,inn,twos):
+def get_is_correct(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     curr_in= inn[bi,:,:,:]
     curr_twos= twos[bi,:,:,:]
+    curr_curr=curr[bi,:,:,:]
+    curr_bigger_mask=bigger_mask[bi,:,:,:]
+
+    
     total = curr_in.sum()
     curr_percent_in=torch.zeros(1)
     curr_percent_covered=torch.zeros(1)
 
     if(total.item()==0 or curr_twos.sum().item()==0):
-        return -1
+        return np.array([-1])
     
     curr_percent_in=curr_in.sum()/(total)
     curr_percent_covered=  ((curr_in) & (curr_twos)).sum()/ curr_twos.sum()
     curr_percent_in=curr_percent_in.detach().cpu().numpy()
     curr_percent_covered=curr_percent_covered.detach().cpu().numpy()
+   
+    curr_num=bi*100+batch_id
+    sitk.WriteImage(sitk.GetImageFromArray(curr_curr.detach().cpu().numpy().astype(np.uint8)), f"{folder_path}/{curr_num}_inferred.nii.gz")
+    sitk.WriteImage(sitk.GetImageFromArray(curr_bigger_mask.detach().cpu().numpy().astype(np.uint8)), f"{folder_path}/{curr_num}_big_mask.nii.gz")
+    sitk.WriteImage(sitk.GetImageFromArray(curr_twos.detach().cpu().numpy().astype(np.uint8)), f"{folder_path}/{curr_num}_centers.nii.gz")
     
     return (np.logical_and(np.array(curr_percent_in)>0.6 , np.array(curr_percent_covered)>0.5))
 
@@ -221,6 +231,13 @@ class nnUNetTrainer(object):
                                "Nature methods, 18(2), 203-211.\n"
                                "#######################################################################\n",
                                also_print_to_console=True, add_timestamp=False)
+        
+        
+        base='/workspaces/konwersjaJsonData/explore/validation_to_look_into'
+        os.makedirs(base ,exist_ok = True)
+        shutil.rmtree(base)
+        os.makedirs(base ,exist_ok = True)
+
 
     def initialize(self):
         if not self.was_initialized:
@@ -935,7 +952,7 @@ class nnUNetTrainer(object):
     def on_validation_epoch_start(self):
         self.network.eval()
 
-    def validation_step(self, batch: dict) -> dict:
+    def validation_step(self, batch: dict,batch_id) -> dict:
         data = batch['data']
         target = batch['target']
 
@@ -1005,13 +1022,23 @@ class nnUNetTrainer(object):
         #     if(curr_twos.sum().item()>0):
         #         curr_percent_covered=  ((curr_in) & (curr_twos)).sum()/ curr_twos.sum()
         # krowa
-        res=list(map(lambda bi : get_is_correct(bi,inn,twos),range(shapp[0])))
-        # print(f"rrrrrrr {res}")
-        res=list(filter(lambda el: np.array(el).flatten()[0]>-1,res  ))
+        
         is_correct=np.zeros(1)
-        if(len(res)>0):
-            res= list(map(lambda el : np.array(np.mean(el)).flatten(),res))
-            is_correct= np.mean(np.array(res))
+
+        epoch=self.current_epoch
+        
+        if(epoch%5==0):
+            base='/workspaces/konwersjaJsonData/explore/validation_to_look_into'
+            folder_path=f"{base}/{epoch}"
+            os.makedirs(folder_path,exist_ok=True)
+            res=list(map(lambda bi : get_is_correct(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask),range(shapp[0])))
+            # print(f"rrrrrrr {res}")
+            res=list(filter(lambda el: np.array(el).flatten()[0]>-1,res  ))      
+            if(len(res)>0):
+                res= list(map(lambda el : np.array(np.mean(el)).flatten(),res))
+                is_correct= np.array(np.mean(np.array(res)))
+            
+            
         
         # print(f"inn.sum()/ {inn.sum()}  curr.sum() {curr.sum()} bigger_mask {bigger_mask.sum()} |0| {predicted_segmentation_onehot.round().bool()[:,0,:,:,:].sum()} |1|   {predicted_segmentation_onehot.round().bool()[:,1,:,:,:].sum()}")
         total = curr.sum()
@@ -1032,7 +1059,7 @@ class nnUNetTrainer(object):
             percent_covered=  ((curr) & (twos)).sum()/ twos.sum()
         
         # print(f"tttttt is_correct {is_correct} total {total} ((curr) & (twos)).sum() {((curr) & (twos)).sum()}  (curr) & (~bigger_mask) {((curr) & (~bigger_mask)).sum()}")
-        is_correct=np.array([is_correct])
+        is_correct=np.array(is_correct).flatten()
         percent_in=percent_in.detach().cpu().numpy()
         percent_out=percent_out.detach().cpu().numpy()
         percent_covered=percent_covered.detach().cpu().numpy()
@@ -1098,7 +1125,8 @@ class nnUNetTrainer(object):
         self.logger.log('percent_in', percent_in, self.current_epoch)
         self.logger.log('percent_covered', percent_covered, self.current_epoch)
         self.logger.log('percent_out', percent_out, self.current_epoch)
-        self.logger.log('is_correct', is_correct, self.current_epoch)
+        if(self.current_epoch%5==0):
+            self.logger.log('is_correct', is_correct, self.current_epoch)
 
     def on_epoch_start(self):
         self.logger.log('epoch_start_timestamps', time(), self.current_epoch)
@@ -1347,7 +1375,7 @@ class nnUNetTrainer(object):
                 self.on_validation_epoch_start()
                 val_outputs = []
                 for batch_id in range(self.num_val_iterations_per_epoch):
-                    val_outputs.append(self.validation_step(next(self.dataloader_val)))
+                    val_outputs.append(self.validation_step(next(self.dataloader_val),batch_id=batch_id))
                 self.on_validation_epoch_end(val_outputs)
 
             self.on_epoch_end()
