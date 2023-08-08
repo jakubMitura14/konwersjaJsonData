@@ -68,13 +68,61 @@ from nnunetv2.training.nnUNetTrainer.my_transform import My_PseudoLesion_adder
 from comet_ml import Experiment
 import comet_ml
 import SimpleITK as sitk
+import glob
+import monai
+import os
+from os.path import basename, dirname, exists, isdir, join, split
+from pathlib import Path
+import functools
+import multiprocessing as mp
+import os
+from functools import partial
+import numpy as np
+import pandas as pd
+from toolz.itertoolz import groupby
+import SimpleITK as sitk
 
-def get_is_correct(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
+
+
+def analyze_single_label(uniq_num,centers, big_mask, connected,in_min):
+    infered=(connected==uniq_num)
+    total=np.sum(infered.flatten())
+    inn= np.sum(np.logical_and(infered,big_mask).flatten())/total
+    cov= np.sum(np.logical_and(infered,centers).flatten())/np.sum(centers.flatten())
+    res= (inn>in_min) #and (cov>cover_min)
+    return res
+
+def get_my_specifity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
+    centers= twos[bi,:,:,:].detach().cpu().numpy()
+    inferred=curr[bi,:,:,:].detach().cpu().numpy()
+    big_mask=bigger_mask[bi,:,:,:].detach().cpu().numpy()
+
+    if(np.sum(inferred.flatten())==0):
+        return 1.0
+
+    connected=sitk.GetArrayFromImage(sitk.ConnectedComponent(inferred))
+    uniqq=np.unique(connected)
+    uniqq= list(filter(lambda el:el>0,uniqq))
+    in_min=0.7
+    res= list(map(lambda uniq_num: analyze_single_label(uniq_num,centers, big_mask, connected,in_min), uniqq))
+    res= np.mean(np.array(res).astype(int))
+    return res
+
+
+
+
+def get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     curr_in= inn[bi,:,:,:]
     curr_twos= twos[bi,:,:,:]
     curr_curr=curr[bi,:,:,:]
     curr_bigger_mask=bigger_mask[bi,:,:,:]
 
+
+    curr_num=bi*100+batch_id
+    sitk.WriteImage(sitk.GetImageFromArray(curr_curr.detach().cpu().numpy().astype(np.uint8)), f"{folder_path}/{curr_num}_inferred.nii.gz")
+    sitk.WriteImage(sitk.GetImageFromArray(curr_bigger_mask.detach().cpu().numpy().astype(np.uint8)), f"{folder_path}/{curr_num}_big_mask.nii.gz")
+    sitk.WriteImage(sitk.GetImageFromArray(curr_twos.detach().cpu().numpy().astype(np.uint8)), f"{folder_path}/{curr_num}_centers.nii.gz")
+    
     
     total = curr_in.sum()
     curr_percent_in=torch.zeros(1)
@@ -88,12 +136,10 @@ def get_is_correct(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     curr_percent_in=curr_percent_in.detach().cpu().numpy()
     curr_percent_covered=curr_percent_covered.detach().cpu().numpy()
    
-    curr_num=bi*100+batch_id
-    sitk.WriteImage(sitk.GetImageFromArray(curr_curr.detach().cpu().numpy().astype(np.uint8)), f"{folder_path}/{curr_num}_inferred.nii.gz")
-    sitk.WriteImage(sitk.GetImageFromArray(curr_bigger_mask.detach().cpu().numpy().astype(np.uint8)), f"{folder_path}/{curr_num}_big_mask.nii.gz")
-    sitk.WriteImage(sitk.GetImageFromArray(curr_twos.detach().cpu().numpy().astype(np.uint8)), f"{folder_path}/{curr_num}_centers.nii.gz")
-    
-    return (np.logical_and(np.array(curr_percent_in)>0.6 , np.array(curr_percent_covered)>0.5))
+
+    return (np.logical_and(np.array(curr_percent_in)>0.7 , np.array(curr_percent_covered)>0.4))
+
+
 
 class nnUNetTrainer(object):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict, unpack_dataset: bool = True,
@@ -1009,38 +1055,32 @@ class nnUNetTrainer(object):
         twos= (target==2)[:,0,:,:,:]
         shapp= target.shape
 
-        #we work on a single image
-        # for bi in range(shapp[0]):
-        #     curr_in= inn[bi,:,:,:]
-        #     curr_twos= twos[bi,:,:,:]
-        #     total = curr_in.sum()
-        #     curr_percent_in=torch.zeros(1)
-        #     curr_percent_covered=torch.zeros(1)
-
-        #     if(total.item()>0):
-        #         curr_percent_in=curr_in.sum()/(total)
-        #     if(curr_twos.sum().item()>0):
-        #         curr_percent_covered=  ((curr_in) & (curr_twos)).sum()/ curr_twos.sum()
-        # krowa
         
         is_correct=np.zeros(1)
+        my_sensitivity=np.zeros(1)
+        my_specificity=np.zeros(1)
 
         epoch=self.current_epoch
         
+
+
         if(epoch%5==0):
             base='/workspaces/konwersjaJsonData/explore/validation_to_look_into'
             folder_path=f"{base}/{epoch}"
             os.makedirs(folder_path,exist_ok=True)
-            res=list(map(lambda bi : get_is_correct(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask),range(shapp[0])))
+            my_sensitivity=list(map(lambda bi : get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask),range(shapp[0])))
+            my_specificity=list(map(lambda bi : get_my_specifity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask),range(shapp[0])))
             # print(f"rrrrrrr {res}")
-            res=list(filter(lambda el: np.array(el).flatten()[0]>-1,res  ))      
-            if(len(res)>0):
-                res= list(map(lambda el : np.array(np.mean(el)).flatten(),res))
-                is_correct= np.array(np.mean(np.array(res)))
+            my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
+            if(len(my_sensitivity)>0):
+                my_sensitivity= np.mean(np.array(list(map(lambda el : np.array(np.mean(el)).flatten(),my_sensitivity))))
+                my_specificity= np.mean(np.array(list(map(lambda el : np.array(np.mean(el)).flatten(),my_specificity))))
+
+                is_correct= (my_sensitivity+my_specificity)/2
             
             
-        
-        # print(f"inn.sum()/ {inn.sum()}  curr.sum() {curr.sum()} bigger_mask {bigger_mask.sum()} |0| {predicted_segmentation_onehot.round().bool()[:,0,:,:,:].sum()} |1|   {predicted_segmentation_onehot.round().bool()[:,1,:,:,:].sum()}")
+
+
         total = curr.sum()
         percent_in= torch.zeros(1)
         if(total.item()>0):
@@ -1060,6 +1100,10 @@ class nnUNetTrainer(object):
         
         # print(f"tttttt is_correct {is_correct} total {total} ((curr) & (twos)).sum() {((curr) & (twos)).sum()}  (curr) & (~bigger_mask) {((curr) & (~bigger_mask)).sum()}")
         is_correct=np.array(is_correct).flatten()
+
+        my_sensitivity=np.array(my_sensitivity).flatten()
+        my_specificity=np.array(my_specificity).flatten()
+
         percent_in=percent_in.detach().cpu().numpy()
         percent_out=percent_out.detach().cpu().numpy()
         percent_covered=percent_covered.detach().cpu().numpy()
@@ -1077,7 +1121,9 @@ class nnUNetTrainer(object):
             fp_hard = fp_hard[1:]
             fn_hard = fn_hard[1:]
 
-        return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard, 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered,'is_correct':is_correct }
+        return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard
+                , 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered,'is_correct':is_correct
+                ,'my_sensitivity':my_sensitivity,'my_specificity':my_specificity   }
 
     def on_validation_epoch_end(self, val_outputs: List[dict]):
         outputs_collated = collate_outputs(val_outputs)
@@ -1085,6 +1131,8 @@ class nnUNetTrainer(object):
         fp = np.sum(outputs_collated['fp_hard'], 0)
         fn = np.sum(outputs_collated['fn_hard'], 0)
         percent_in = np.mean(outputs_collated['percent_in'], 0)
+        my_sensitivity = np.mean(outputs_collated['my_sensitivity'], 0)
+        my_specificity = np.mean(outputs_collated['my_specificity'], 0)
         percent_covered = np.mean(outputs_collated['percent_covered'], 0)
         percent_out = np.mean(outputs_collated['percent_out'], 0)
         is_correct = np.mean(outputs_collated['is_correct'], 0)
@@ -1119,13 +1167,19 @@ class nnUNetTrainer(object):
         
 
         mean_fg_dice = np.nanmean(global_dc_per_class)
-        self.logger.log('mean_fg_dice', mean_fg_dice, self.current_epoch)
-        self.logger.log('dice_per_class_or_region', global_dc_per_class, self.current_epoch)
-        self.logger.log('val_losses', loss_here, self.current_epoch)
-        self.logger.log('percent_in', percent_in, self.current_epoch)
-        self.logger.log('percent_covered', percent_covered, self.current_epoch)
-        self.logger.log('percent_out', percent_out, self.current_epoch)
+
+        my_sensitivity = np.mean(outputs_collated['my_sensitivity'], 0)
+        my_specificity = np.mean(outputs_collated['my_specificity'], 0)
+
         if(self.current_epoch%5==0):
+            self.logger.log('mean_fg_dice', mean_fg_dice, self.current_epoch)
+            self.logger.log('dice_per_class_or_region', global_dc_per_class, self.current_epoch)
+            self.logger.log('val_losses', loss_here, self.current_epoch)
+            self.logger.log('my_sensitivity', my_sensitivity, self.current_epoch)
+            self.logger.log('percent_in', percent_in, self.current_epoch)
+            self.logger.log('my_specificity', my_specificity, self.current_epoch)
+            self.logger.log('percent_covered', percent_covered, self.current_epoch)
+            self.logger.log('percent_out', percent_out, self.current_epoch)        
             self.logger.log('is_correct', is_correct, self.current_epoch)
 
     def on_epoch_start(self):
@@ -1148,6 +1202,11 @@ class nnUNetTrainer(object):
         self.print_to_log_file('is correct', [np.round(i, decimals=2) for i in
                                                self.logger.my_fantastic_logging['is_correct'][-1]])
 
+        self.print_to_log_file('my_sensitivity', [np.round(i, decimals=2) for i in
+                                               self.logger.my_fantastic_logging['my_sensitivity'][-1]])
+        self.print_to_log_file('my_specificity', [np.round(i, decimals=2) for i in
+                                               self.logger.my_fantastic_logging['my_specificity'][-1]])
+        
         self.print_to_log_file(
             f"Epoch time: {np.round(self.logger.my_fantastic_logging['epoch_end_timestamps'][-1] - self.logger.my_fantastic_logging['epoch_start_timestamps'][-1], decimals=2)} s")
 

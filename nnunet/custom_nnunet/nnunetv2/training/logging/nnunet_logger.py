@@ -27,7 +27,9 @@ class nnUNetLogger(object):
             'percent_out': list(),
             'percent_in': list(),
             'percent_covered': list(),
+            'my_sensitivity': list(),
             'is_correct': list(),
+            'my_specificity': list()
         }
         self.verbose = verbose
         # shut up, this logging is great
