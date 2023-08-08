@@ -64,15 +64,16 @@ channel_names={
     "2": "t2w",
     "3": "inferred_pg",
     }
-label_names= {  
-    "background": 0,
-    "all": [1,2],
-    }
 # label_names= {  
 #     "background": 0,
-#     "bigger": 1,
-#     "center": 2,
+#     "all": [1,2],
 #     }
+label_names= {  
+    "background": 0,
+    "bigger": 1,
+    "center": 2,
+    "all": [1,2]
+    }
 
 def my_crop(image,min_z,min_y,min_x,max_z,max_x,max_y):
     size=[int(max_y-min_y)-1,int(max_x-min_x)-1,int(max_z-min_z)-1]
