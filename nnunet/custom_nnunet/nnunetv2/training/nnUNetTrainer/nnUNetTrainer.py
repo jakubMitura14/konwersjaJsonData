@@ -93,9 +93,9 @@ def analyze_single_label(uniq_num,centers, big_mask, connected,in_min):
     return res
 
 def get_my_specifity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
-    centers= twos[bi,:,:,:].detach().cpu().numpy()
-    inferred=curr[bi,:,:,:].detach().cpu().numpy()
-    big_mask=bigger_mask[bi,:,:,:].detach().cpu().numpy()
+    centers= twos[bi,:,:,:]
+    inferred=curr[bi,:,:,:]
+    big_mask=bigger_mask[bi,:,:,:]
 
     if(np.sum(inferred.flatten())==0):
         return 1.0
