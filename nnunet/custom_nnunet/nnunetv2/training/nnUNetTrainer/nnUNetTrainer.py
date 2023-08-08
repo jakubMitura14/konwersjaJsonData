@@ -1065,7 +1065,7 @@ class nnUNetTrainer(object):
         
 
 
-        if(epoch%5==0):
+        if(epoch%1==0):
             base='/workspaces/konwersjaJsonData/explore/validation_to_look_into'
             folder_path=f"{base}/{epoch}"
             os.makedirs(folder_path,exist_ok=True)
@@ -1076,8 +1076,8 @@ class nnUNetTrainer(object):
             bigger_mask=bigger_mask.detach().cpu().numpy()
 
             with mp.Pool(processes = mp.cpu_count()) as pool:
-                my_sensitivity=pool.map(lambda bi : get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask),range(shapp[0]))
-                my_specificity=pool.map(lambda bi : get_my_specifity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask),range(shapp[0]))
+                my_sensitivity=pool.map(partial(get_my_sensitivity,bi=bi,inn=inn,twos=twos,curr=curr,epoch=epoch,folder_path=folder_path,batch_id=batch_id,bigger_mask=bigger_mask),range(shapp[0]))
+                my_specificity=pool.map(partial(get_my_specifity,bi=bi,inn=inn,twos=twos,curr=curr,epoch=epoch,folder_path=folder_path,batch_id=batch_id,bigger_mask=bigger_mask),range(shapp[0]))
             # print(f"rrrrrrr {res}")
             my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
             if(len(my_sensitivity)>0):
