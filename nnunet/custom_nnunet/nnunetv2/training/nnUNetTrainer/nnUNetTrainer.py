@@ -440,8 +440,8 @@ class nnUNetTrainer(object):
         #     loss = DC_and_CE_loss({'batch_dice': self.configuration_manager.batch_dice,
         #                            'smooth': 1e-5, 'do_bg': False, 'ddp': self.is_ddp}, {}, weight_ce=1, weight_dice=1,
         #                           ignore_label=self.label_manager.ignore_label, dice_class=MemoryEfficientSoftDiceLoss)
-        loss= RobustCrossEntropyLosss()
-        # loss= Picai_FL_and_CE_loss()
+        #loss= RobustCrossEntropyLosss()
+        loss= Picai_FL_and_CE_loss()
         # loss= FocalLoss()
 
         deep_supervision_scales = self._get_deep_supervision_scales()   
