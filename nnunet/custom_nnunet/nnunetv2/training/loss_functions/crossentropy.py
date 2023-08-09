@@ -139,7 +139,8 @@ class Picai_FL_and_CE_loss(nn.Module):
         self.alpha = alpha
 
     def forward(self, net_output, target):
-        net_output=torch.stack([net_output[:,0,:,:,:],net_output[:,2,:,:,:] ] , dim=1) 
+        # print(f"nnnnnn net_output {net_output.shape} target {target.shape} ") #nnnnnn net_output torch.Size([19, 3, 28, 48, 56]) target torch.Size([19, 1, 28, 48, 56]) 
+        net_output=net_output[:,0:2,:,:,:]#torch.stack([net_output[:,0,:,:,:],net_output[:,2,:,:,:] ] , dim=1) 
         
         target=(target>0).float()
         
