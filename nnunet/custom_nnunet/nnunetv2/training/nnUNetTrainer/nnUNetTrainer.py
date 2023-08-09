@@ -100,7 +100,7 @@ def get_my_specifity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     if(np.sum(inferred.flatten())==0):
         return 1.0
 
-    connected=sitk.GetArrayFromImage(sitk.ConnectedComponent(sitk.GetImageFromArray(inferred)))
+    connected=sitk.GetArrayFromImage(sitk.ConnectedComponent(sitk.GetImageFromArray(inferred.astype(int))))
     uniqq=np.unique(connected)
     uniqq= list(filter(lambda el:el>0,uniqq))
     in_min=0.7
@@ -440,8 +440,8 @@ class nnUNetTrainer(object):
         #     loss = DC_and_CE_loss({'batch_dice': self.configuration_manager.batch_dice,
         #                            'smooth': 1e-5, 'do_bg': False, 'ddp': self.is_ddp}, {}, weight_ce=1, weight_dice=1,
         #                           ignore_label=self.label_manager.ignore_label, dice_class=MemoryEfficientSoftDiceLoss)
-        # loss= RobustCrossEntropyLosss()
-        loss= Picai_FL_and_CE_loss()
+        loss= RobustCrossEntropyLosss()
+        # loss= Picai_FL_and_CE_loss()
         # loss= FocalLoss()
 
         deep_supervision_scales = self._get_deep_supervision_scales()   
@@ -1063,21 +1063,24 @@ class nnUNetTrainer(object):
 
         epoch=self.current_epoch
         
+        inn=inn.detach().cpu().numpy()
+        twos=twos.detach().cpu().numpy()
+        curr=curr.detach().cpu().numpy()
+        bigger_mask=bigger_mask.detach().cpu().numpy()
 
-
-        if(epoch%1==0):
+        if(epoch%5==0):
             base='/workspaces/konwersjaJsonData/explore/validation_to_look_into'
             folder_path=f"{base}/{epoch}"
             os.makedirs(folder_path,exist_ok=True)
             
-            inn=inn.detach().cpu().numpy()
-            twos=twos.detach().cpu().numpy()
-            curr=curr.detach().cpu().numpy()
-            bigger_mask=bigger_mask.detach().cpu().numpy()
-
             with mp.Pool(processes = mp.cpu_count()) as pool:
                 my_sensitivity=pool.map(partial(get_my_sensitivity,inn=inn,twos=twos,curr=curr,epoch=epoch,folder_path=folder_path,batch_id=batch_id,bigger_mask=bigger_mask),range(shapp[0]))
+            
+            with mp.Pool(processes = mp.cpu_count()) as pool:
                 my_specificity=pool.map(partial(get_my_specifity,inn=inn,twos=twos,curr=curr,epoch=epoch,folder_path=folder_path,batch_id=batch_id,bigger_mask=bigger_mask),range(shapp[0]))
+            
+            my_specificity=list(map(partial(get_my_specifity,inn=inn,twos=twos,curr=curr,epoch=epoch,folder_path=folder_path,batch_id=batch_id,bigger_mask=bigger_mask),range(shapp[0])))
+  
             # print(f"rrrrrrr {res}")
             my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
             if(len(my_sensitivity)>0):
@@ -1089,22 +1092,23 @@ class nnUNetTrainer(object):
             
 
 
-        total = curr.sum()
-        percent_in= torch.zeros(1)
-        if(total.item()>0):
-            percent_in=inn.sum()/(total)
+        total = np.sum(curr.flatten())
+        percent_in= np.zeros(1)
+        if(total>0):
+            percent_in=np.sum(inn.flatten())/(total)
 
 
-        percent_out=torch.zeros(1)
-        total_mask = bigger_mask.sum()
+        percent_out=np.zeros(1)
+        total_mask = np.sum(bigger_mask.flatten())
 
-        if(total.item()>0):
+        if(total>0):
             out = (curr) & (~bigger_mask)
-            percent_out= out.sum()/total
+            percent_out= np.sum(out.flatten())/total
 
-        percent_covered=torch.zeros(1)
-        if(twos.sum().item()>0):
-            percent_covered=  ((curr) & (twos)).sum()/ twos.sum()
+        percent_covered=np.zeros(1)
+        two_sum=np.sum(twos.flatten())
+        if(two_sum>0):
+            percent_covered=  np.sum(((curr) & (twos)).flatten())/two_sum
         
         # print(f"tttttt is_correct {is_correct} total {total} ((curr) & (twos)).sum() {((curr) & (twos)).sum()}  (curr) & (~bigger_mask) {((curr) & (~bigger_mask)).sum()}")
         is_correct=np.array(is_correct).flatten()
@@ -1112,9 +1116,9 @@ class nnUNetTrainer(object):
         my_sensitivity=np.array(np.mean(np.array(my_sensitivity).flatten()))
         my_specificity=np.array(np.mean(np.array(my_specificity).flatten()))
 
-        percent_in=percent_in.detach().cpu().numpy()
-        percent_out=percent_out.detach().cpu().numpy()
-        percent_covered=percent_covered.detach().cpu().numpy()
+        percent_in=np.array([percent_in]).flatten()
+        percent_out=np.array([percent_out]).flatten()
+        percent_covered=np.array([percent_covered]).flatten()
         
         tp_hard = tp.detach().cpu().numpy()
         fp_hard = fp.detach().cpu().numpy()

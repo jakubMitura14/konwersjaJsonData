@@ -1,7 +1,7 @@
 from torch import nn, Tensor
 import torch
 import torchvision
-
+import numpy as np
 # from nnunet.training.network_training.nnUNet_variants.loss_function.nnUNetTrainerV2_focalLoss import FocalLoss
 class FocalLossV2(nn.Module):
     """
@@ -139,8 +139,9 @@ class Picai_FL_and_CE_loss(nn.Module):
         self.alpha = alpha
 
     def forward(self, net_output, target):
-        fl_loss = self.fl(net_output, target)
         ce_loss = self.ce(net_output, target)
+        fl_loss = self.fl(net_output, target)
+        
         if self.aggregate == "sum":
             result = self.alpha*fl_loss + (1-self.alpha)*ce_loss
         else:

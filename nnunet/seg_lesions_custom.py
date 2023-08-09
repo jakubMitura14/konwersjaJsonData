@@ -71,8 +71,8 @@ channel_names={
 label_names= {  
     "background": 0,
     "bigger": 1,
-    "center": 2,
-    "all": [1,2]
+    "center": 2
+    # "all": [1,2]
     }
 
 def my_crop(image,min_z,min_y,min_x,max_z,max_x,max_y):
@@ -347,7 +347,7 @@ channel_names={
 data = { 
     "channel_names": channel_names, 
     "labels": label_names,  
-    "regions_class_order": [2,1],  
+    # "regions_class_order": [2,1,0],  
     "file_ending": ".nii.gz",
     # "normalization_schemes" : ["noNorm","noNorm"],
     "numTraining" : len(ids),
@@ -365,7 +365,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 1"  my_proj_desc="added pseudo label transform no dilatations single erosion" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 1"  my_proj_desc="taken loss from picai with no masking" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits
