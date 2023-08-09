@@ -105,7 +105,7 @@ def get_my_specifity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     uniqq= list(filter(lambda el:el>0,uniqq))
     in_min=0.7
     res= list(map(lambda uniq_num: analyze_single_label(uniq_num,centers, big_mask, connected,in_min), uniqq))
-    res= np.mean(np.array(res).astype(int))
+    res= np.nanmean(np.array(res).astype(int))
     return res
 
 def get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
@@ -989,7 +989,7 @@ class nnUNetTrainer(object):
             dist.all_gather_object(losses_tr, outputs['loss'])
             loss_here = np.vstack(losses_tr).mean()
         else:
-            loss_here = np.mean(outputs['loss'])
+            loss_here = np.nanmean(outputs['loss'])
 
         self.logger.log('train_losses', loss_here, self.current_epoch)
 
@@ -1052,7 +1052,7 @@ class nnUNetTrainer(object):
         my_specificity=np.zeros(1)
 
         epoch=self.current_epoch
-        if(epoch%1==0):
+        if(epoch%10==0):
             bigger_mask= (target>0)[:,0,:,:,:]
             curr=predicted_segmentation_onehot.round().bool()[:,2,:,:,:]
             
@@ -1086,8 +1086,8 @@ class nnUNetTrainer(object):
             # print(f"rrrrrrr {res}")
             my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
             if(len(my_sensitivity)>0):
-                my_sensitivity= np.mean(np.array(list(map(lambda el : np.array(np.mean(el)).flatten(),my_sensitivity))))
-                my_specificity= np.mean(np.array(list(map(lambda el : np.array(np.mean(el)).flatten(),my_specificity))))
+                my_sensitivity= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_sensitivity))))
+                my_specificity= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_specificity))))
                 is_correct= (my_sensitivity+my_specificity)/2
             
             total = np.sum(curr.flatten())
@@ -1106,8 +1106,8 @@ class nnUNetTrainer(object):
             # print(f"tttttt is_correct {is_correct} total {total} ((curr) & (twos)).sum() {((curr) & (twos)).sum()}  (curr) & (~bigger_mask) {((curr) & (~bigger_mask)).sum()}")
             is_correct=np.array(is_correct).flatten()
 
-            my_sensitivity=np.array(np.mean(np.array(my_sensitivity).flatten()))
-            my_specificity=np.array(np.mean(np.array(my_specificity).flatten()))
+            my_sensitivity=np.array(np.nanmean(np.array(my_sensitivity).flatten()))
+            my_specificity=np.array(np.nanmean(np.array(my_specificity).flatten()))
 
             percent_in=np.array([percent_in]).flatten()
             percent_out=np.array([percent_out]).flatten()
@@ -1135,12 +1135,12 @@ class nnUNetTrainer(object):
         tp = np.sum(outputs_collated['tp_hard'], 0)
         fp = np.sum(outputs_collated['fp_hard'], 0)
         fn = np.sum(outputs_collated['fn_hard'], 0)
-        percent_in = np.mean(outputs_collated['percent_in'], 0)
-        my_sensitivity = np.mean(outputs_collated['my_sensitivity'], 0)
-        my_specificity = np.mean(outputs_collated['my_specificity'], 0)
-        percent_covered = np.mean(outputs_collated['percent_covered'], 0)
-        percent_out = np.mean(outputs_collated['percent_out'], 0)
-        is_correct = np.mean(outputs_collated['is_correct'], 0)
+        percent_in = np.nanmean(outputs_collated['percent_in'], 0)
+        my_sensitivity = np.nanmean(outputs_collated['my_sensitivity'], 0)
+        my_specificity = np.nanmean(outputs_collated['my_specificity'], 0)
+        percent_covered = np.nanmean(outputs_collated['percent_covered'], 0)
+        percent_out = np.nanmean(outputs_collated['percent_out'], 0)
+        is_correct = np.nanmean(outputs_collated['is_correct'], 0)
 
         self.experiment.log_metric("percent in", percent_in)
         self.experiment.log_metric("percent covered", percent_covered)
@@ -1165,16 +1165,16 @@ class nnUNetTrainer(object):
             dist.all_gather_object(losses_val, outputs_collated['loss'])
             loss_here = np.vstack(losses_val).mean()
         else:
-            loss_here = np.mean(outputs_collated['loss'])
+            loss_here = np.nanmean(outputs_collated['loss'])
 
         global_dc_per_class = [i for i in [2 * i / (2 * i + j + k) for i, j, k in
                                            zip(tp, fp, fn)]]
         
 
-        mean_fg_dice = np.mean(global_dc_per_class)
+        mean_fg_dice = np.nanmean(global_dc_per_class)
 
-        my_sensitivity = np.mean(outputs_collated['my_sensitivity'], 0)
-        my_specificity = np.mean(outputs_collated['my_specificity'], 0)
+        my_sensitivity = np.nanmean(outputs_collated['my_sensitivity'], 0)
+        my_specificity = np.nanmean(outputs_collated['my_specificity'], 0)
 
         if(self.current_epoch%5==0):
             self.logger.log('mean_fg_dice', mean_fg_dice, self.current_epoch)
