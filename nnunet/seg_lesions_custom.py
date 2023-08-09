@@ -365,7 +365,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 1"  my_proj_desc="taken loss from picai with no masking" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 2"  my_proj_desc="taken loss from picai with no masking" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits
