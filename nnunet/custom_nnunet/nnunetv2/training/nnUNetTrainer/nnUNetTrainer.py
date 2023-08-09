@@ -88,7 +88,7 @@ def analyze_single_label(uniq_num,centers, big_mask, connected,in_min):
     infered=(connected==uniq_num)
     total=np.sum(infered.flatten())
     inn= np.sum(np.logical_and(infered,big_mask).flatten())/total
-    cov= np.sum(np.logical_and(infered,centers).flatten())/np.sum(centers.flatten())
+    # cov= np.sum(np.logical_and(infered,centers).flatten())/np.sum(centers.flatten())
     res= (inn>in_min) #and (cov>cover_min)
     return res
 
@@ -108,14 +108,11 @@ def get_my_specifity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     res= np.mean(np.array(res).astype(int))
     return res
 
-
-
-
 def get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     curr_in= inn[bi,:,:,:]
     curr_twos= twos[bi,:,:,:]
-    curr_curr=curr[bi,:,:,:]
-    curr_bigger_mask=bigger_mask[bi,:,:,:]
+    curr_curr= curr[bi,:,:,:]
+    curr_bigger_mask= bigger_mask[bi,:,:,:]
 
     if(epoch%10==0):
         curr_num=bi*100+batch_id
@@ -124,22 +121,22 @@ def get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
         sitk.WriteImage(sitk.GetImageFromArray(curr_twos.astype(np.uint8)), f"{folder_path}/{curr_num}_centers.nii.gz")
         
     
-    total = curr_in.sum()
-    curr_percent_in=torch.zeros(1)
-    curr_percent_covered=torch.zeros(1)
+    total = np.sum(curr_in.flatten())
+    total_twos = np.sum(curr_twos.flatten())
+    curr_percent_in=np.zeros(1)
+    curr_percent_covered=np.zeros(1)
 
-    if(total.item()==0 or curr_twos.sum().item()==0):
-        return np.array([-1])
+    if(total_twos==0):
+        return -1.0
+    if(total==0):
+        return 0.0
     
-    curr_percent_in=curr_in.sum()/(total)
-    curr_percent_covered=  ((curr_in) & (curr_twos)).sum()/ curr_twos.sum()
-    curr_percent_in=curr_percent_in
-    curr_percent_covered=curr_percent_covered
+
+    curr_percent_in=np.sum(curr_in.flatten())/(total)
+    curr_percent_covered=  np.sum(((curr_in) & (curr_twos)).flatten())/ total_twos
+
+    return (curr_percent_in>0.8 and curr_percent_covered>0.4).astype(float)
    
-
-    return (np.logical_and(np.array(curr_percent_in)>0.7 , np.array(curr_percent_covered)>0.4))
-
-
 
 class nnUNetTrainer(object):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict, unpack_dataset: bool = True,
@@ -1055,7 +1052,7 @@ class nnUNetTrainer(object):
         my_specificity=np.zeros(1)
 
         epoch=self.current_epoch
-        if(epoch%5==0):
+        if(epoch%1==0):
             bigger_mask= (target>0)[:,0,:,:,:]
             curr=predicted_segmentation_onehot.round().bool()[:,2,:,:,:]
             
@@ -1064,11 +1061,9 @@ class nnUNetTrainer(object):
             twos= (target==2)[:,0,:,:,:]
             shapp= target.shape
 
-            
 
 
-            
-            
+
             inn=inn.detach().cpu().numpy()
             twos=twos.detach().cpu().numpy()
             curr=curr.detach().cpu().numpy()
