@@ -1176,7 +1176,7 @@ class nnUNetTrainer(object):
         my_sensitivity = np.nanmean(outputs_collated['my_sensitivity'], 0)
         my_specificity = np.nanmean(outputs_collated['my_specificity'], 0)
 
-        if(self.current_epoch%5==0):
+        if(self.current_epoch%10==0):
             self.logger.log('mean_fg_dice', mean_fg_dice, self.current_epoch)
             self.logger.log('dice_per_class_or_region', global_dc_per_class, self.current_epoch)
             self.logger.log('val_losses', loss_here, self.current_epoch)
