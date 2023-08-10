@@ -1149,6 +1149,14 @@ class nnUNetTrainer(object):
             self.experiment.log_metric("my_specificity", my_specificity, epoch=self.current_epoch)
             self.experiment.log_metric("my_sensitivity", my_sensitivity, epoch=self.current_epoch)
 
+        if(self.current_epoch%10==0):
+            self.experiment.log_metric("percent in", percent_in, epoch=self.current_epoch)
+            self.experiment.log_metric("percent covered", percent_covered, epoch=self.current_epoch)
+            self.experiment.log_metric("is correct", is_correct, epoch=self.current_epoch)
+            
+            self.experiment.log_metric("my_specificity", my_specificity, epoch=self.current_epoch)
+            self.experiment.log_metric("my_sensitivity", my_sensitivity, epoch=self.current_epoch)
+
 
         if self.is_ddp:
             world_size = dist.get_world_size()
