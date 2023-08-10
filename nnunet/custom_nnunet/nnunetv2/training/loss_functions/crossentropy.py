@@ -31,7 +31,7 @@ class FocalLossV2(nn.Module):
             if self.smooth < 0 or self.smooth > 1.0:
                 raise ValueError('smooth value should be in [0,1]')
 
-    def forward(self, logit, target):
+    def forward(self, logit, target,weight):
         if self.apply_nonlin is not None:
             logit = self.apply_nonlin(logit)
         num_class = logit.shape[1]
@@ -63,6 +63,9 @@ class FocalLossV2(nn.Module):
 
         if alpha.device != logit.device:
             alpha = alpha.to(logit.device)
+        if weight.device != logit.device:
+            weight = weight.to(logit.device)
+
 
         idx = target.cpu().long()
 
@@ -74,7 +77,14 @@ class FocalLossV2(nn.Module):
         if self.smooth:
             one_hot_key = torch.clamp(
                 one_hot_key, self.smooth / (num_class - 1), 1.0 - self.smooth)
-        pt = (one_hot_key * logit).sum(1) + self.smooth
+            
+        # pt = ((one_hot_key * logit)).sum(1) + self.smooth 
+        # print(f"one_hot_key {one_hot_key.shape} logit {logit.shape}") #one_hot_key torch.Size([44688, 3]) logit torch.Size([44688, 3] )
+        # print(f" one_hot_key[:,0] {one_hot_key[:,0].shape} logit[:,0] {logit[:,0].shape} weight[0] {weight[0].shape}")
+        # one_hot_key[:,0]*logit[:,0]*weight[0]
+        pt= torch.stack([one_hot_key[:,0]*logit[:,0]*weight[0], one_hot_key[:,1]*logit[:,2]*weight[1]  ,one_hot_key[:,2]*logit[:,2]*weight[2]], dim=1)
+        pt = (pt).sum(1) + self.smooth
+
         logpt = pt.log()
 
         gamma = self.gamma
@@ -135,20 +145,23 @@ class Picai_FL_and_CE_loss(nn.Module):
 
         self.aggregate = aggregate
         self.fl = FocalLossV2(apply_nonlin=nn.Softmax(), **fl_kwargs)
-        self.ce = RobustCrossEntropyLoss(**ce_kwargs)
+        # self.ce = RobustCrossEntropyLoss(**ce_kwargs)
         self.alpha = alpha
 
     def forward(self, net_output, target):
         # print(f"nnnnnn net_output {net_output.shape} target {target.shape} ") #nnnnnn net_output torch.Size([19, 3, 28, 48, 56]) target torch.Size([19, 1, 28, 48, 56]) 
-        net_output=net_output[:,0:2,:,:,:]#torch.stack([net_output[:,0,:,:,:],net_output[:,2,:,:,:] ] , dim=1) 
-        
-        target=(target>0).float()
-        
-        ce_loss = self.ce(net_output, target)
-        fl_loss = self.fl(net_output, target)
-        
-        if self.aggregate == "sum":
-            result = self.alpha*fl_loss + (1-self.alpha)*ce_loss
-        else:
-            raise NotImplementedError("nah son")
-        return result
+        # net_output=net_output[:,0:2,:,:,:]#torch.stack([net_output[:,0,:,:,:],net_output[:,2,:,:,:] ] , dim=1) 
+        # target_mask=torch.abs(((target!=1).float()-0.00000001 ))
+        #         # target_mask=(((target==0).float()*5)+((target==1).float()*0.1)+((target==2).float()*10))/10
+
+        # net_output=net_output*target_mask
+        # target=(target==2).int()
+        weight=torch.tensor([10,1,50])/50
+        # ce_loss = self.ce(net_output, target)
+        fl_loss = self.fl(net_output, target,weight)
+        return fl_loss
+        # if self.aggregate == "sum":
+        #     result = self.alpha*fl_loss + (1-self.alpha)*ce_loss
+        # else:
+        #     raise NotImplementedError("nah son")
+        # return result

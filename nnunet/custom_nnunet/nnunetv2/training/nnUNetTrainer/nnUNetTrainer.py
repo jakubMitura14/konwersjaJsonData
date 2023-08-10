@@ -114,12 +114,11 @@ def get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     curr_curr= curr[bi,:,:,:]
     curr_bigger_mask= bigger_mask[bi,:,:,:]
 
-    if(epoch%10==0):
-        curr_num=bi*100+batch_id
-        sitk.WriteImage(sitk.GetImageFromArray(curr_curr.astype(np.uint8)), f"{folder_path}/{curr_num}_inferred.nii.gz")
-        sitk.WriteImage(sitk.GetImageFromArray(curr_bigger_mask.astype(np.uint8)), f"{folder_path}/{curr_num}_big_mask.nii.gz")
-        sitk.WriteImage(sitk.GetImageFromArray(curr_twos.astype(np.uint8)), f"{folder_path}/{curr_num}_centers.nii.gz")
-        
+    curr_num=bi*100+batch_id
+    sitk.WriteImage(sitk.GetImageFromArray(curr_curr.astype(np.uint8)), f"{folder_path}/{curr_num}_inferred.nii.gz")
+    sitk.WriteImage(sitk.GetImageFromArray(curr_bigger_mask.astype(np.uint8)), f"{folder_path}/{curr_num}_big_mask.nii.gz")
+    sitk.WriteImage(sitk.GetImageFromArray(curr_twos.astype(np.uint8)), f"{folder_path}/{curr_num}_centers.nii.gz")
+    
     
     total = np.sum(curr_in.flatten())
     total_twos = np.sum(curr_twos.flatten())
@@ -135,7 +134,7 @@ def get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     curr_percent_in=np.sum(curr_in.flatten())/(total)
     curr_percent_covered=  np.sum(((curr_in) & (curr_twos)).flatten())/ total_twos
 
-    return (curr_percent_in>0.8 and curr_percent_covered>0.4).astype(float)
+    return (curr_percent_in>0.7 and curr_percent_covered>0.4).astype(float)
    
 
 class nnUNetTrainer(object):
@@ -1052,9 +1051,9 @@ class nnUNetTrainer(object):
         my_specificity=np.zeros(1)
 
         epoch=self.current_epoch
-        if(epoch%10==0):
+        if(epoch%10==0 and epoch>0):
             bigger_mask= (target>0)[:,0,:,:,:]
-            curr=predicted_segmentation_onehot.round().bool()[:,1,:,:,:]
+            curr=predicted_segmentation_onehot.round().bool()[:,2,:,:,:]
             
             # curr= torch.sum(curr,dim=1)
             inn = curr & bigger_mask
@@ -1142,9 +1141,14 @@ class nnUNetTrainer(object):
         percent_out = np.nanmean(outputs_collated['percent_out'], 0)
         is_correct = np.nanmean(outputs_collated['is_correct'], 0)
 
-        self.experiment.log_metric("percent in", percent_in)
-        self.experiment.log_metric("percent covered", percent_covered)
-        self.experiment.log_metric("is correct", is_correct)
+        if(self.current_epoch%10==0  and self.current_epoch>0):
+            self.experiment.log_metric("percent in", percent_in, epoch=self.current_epoch)
+            self.experiment.log_metric("percent covered", percent_covered, epoch=self.current_epoch)
+            self.experiment.log_metric("is correct", is_correct, epoch=self.current_epoch)
+            
+            self.experiment.log_metric("my_specificity", my_specificity, epoch=self.current_epoch)
+            self.experiment.log_metric("my_sensitivity", my_sensitivity, epoch=self.current_epoch)
+
 
         if self.is_ddp:
             world_size = dist.get_world_size()
@@ -1176,16 +1180,16 @@ class nnUNetTrainer(object):
         my_sensitivity = np.nanmean(outputs_collated['my_sensitivity'], 0)
         my_specificity = np.nanmean(outputs_collated['my_specificity'], 0)
 
-        if(self.current_epoch%5==0):
-            self.logger.log('mean_fg_dice', mean_fg_dice, self.current_epoch)
-            self.logger.log('dice_per_class_or_region', global_dc_per_class, self.current_epoch)
-            self.logger.log('val_losses', loss_here, self.current_epoch)
-            self.logger.log('my_sensitivity', my_sensitivity, self.current_epoch)
-            self.logger.log('percent_in', percent_in, self.current_epoch)
-            self.logger.log('my_specificity', my_specificity, self.current_epoch)
-            self.logger.log('percent_covered', percent_covered, self.current_epoch)
-            self.logger.log('percent_out', percent_out, self.current_epoch)        
-            self.logger.log('is_correct', is_correct, self.current_epoch)
+        
+        self.logger.log('mean_fg_dice', mean_fg_dice, self.current_epoch)
+        self.logger.log('dice_per_class_or_region', global_dc_per_class, self.current_epoch)
+        self.logger.log('val_losses', loss_here, self.current_epoch)
+        self.logger.log('my_sensitivity', my_sensitivity, self.current_epoch)
+        self.logger.log('percent_in', percent_in, self.current_epoch)
+        self.logger.log('my_specificity', my_specificity, self.current_epoch)
+        self.logger.log('percent_covered', percent_covered, self.current_epoch)
+        self.logger.log('percent_out', percent_out, self.current_epoch)        
+        self.logger.log('is_correct', is_correct, self.current_epoch)
 
     def on_epoch_start(self):
         self.logger.log('epoch_start_timestamps', time(), self.current_epoch)
