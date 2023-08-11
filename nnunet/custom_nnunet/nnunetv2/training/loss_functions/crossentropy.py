@@ -90,10 +90,11 @@ class FocalLossV2(nn.Module):
         # print(f" one_hot_key[:,0] {one_hot_key[:,0].shape} logit[:,0] {logit[:,0].shape} weight[0] {weight[0].shape}")
         # one_hot_key[:,0]*logit[:,0]*weight[0]
         mask_b= (torch.abs((target_b!=1).float()-0.000000000001))
-        logit= logit*mask_b
-        pt= torch.stack([one_hot_key[:,0]*logit[:,0]*weight[0] 
+        # print(f"mask_b {mask_b.shape} one_hot_key[:,0] {one_hot_key[:,0].shape} logit[:,0] {logit[:,0]}")
+        # logit= logit*mask_b
+        pt= torch.stack([one_hot_key[:,0]*logit[:,0]*weight[0] *mask_b[:,0]
                          , one_hot_key[:,1]*logit[:,2]*weight[1] 
-                         ,one_hot_key[:,2]*logit[:,2]*weight[2]
+                         ,one_hot_key[:,2]*logit[:,2]*weight[2]*mask_b[:,0]
                          ], dim=1)
         pt = (pt).sum(1) + self.smooth
 
