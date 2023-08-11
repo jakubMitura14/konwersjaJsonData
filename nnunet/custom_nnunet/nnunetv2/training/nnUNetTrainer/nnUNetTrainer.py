@@ -85,9 +85,9 @@ import SimpleITK as sitk
 
 
 def analyze_single_label(uniq_num,centers, big_mask, connected,in_min):
-    infered=(connected==uniq_num)
-    total=np.sum(infered.flatten())
-    inn= np.sum(np.logical_and(infered,big_mask).flatten())/total
+    infered_inner=(connected==uniq_num)
+    total=np.sum(infered_inner.flatten())
+    inn= np.sum(np.logical_and(infered_inner,big_mask).flatten())/total
     # cov= np.sum(np.logical_and(infered,centers).flatten())/np.sum(centers.flatten())
     res= (inn>in_min) #and (cov>cover_min)
     return res
@@ -103,22 +103,35 @@ def get_my_specifity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     connected=sitk.GetArrayFromImage(sitk.ConnectedComponent(sitk.GetImageFromArray(inferred.astype(int))))
     uniqq=np.unique(connected)
     uniqq= list(filter(lambda el:el>0,uniqq))
-    in_min=0.7
+    in_min=0.5
     res= list(map(lambda uniq_num: analyze_single_label(uniq_num,centers, big_mask, connected,in_min), uniqq))
-    res= np.nanmean(np.array(res).astype(int))
+    res= np.mean(np.array(res).astype(int))
     return res
+
+def is_sth_in_areas(uniq_num,arr,inferred):
+
+    bool_arr=(arr.copy()==uniq_num)
+    summ=np.sum(inferred[bool_arr].flatten())
+    res= summ>0
+    return res
+
+def get_connected_components_num(arr):
+    connected=sitk.GetArrayFromImage(sitk.ConnectedComponent(sitk.GetImageFromArray(arr.astype(int))))
+    uniqq=np.unique(connected)
+    uniqq= list(filter(lambda el:el>0,uniqq))
+    return len(uniqq)    
 
 def get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     curr_in= inn[bi,:,:,:]
     curr_twos= twos[bi,:,:,:]
-    curr_curr= curr[bi,:,:,:]
-    curr_bigger_mask= bigger_mask[bi,:,:,:]
-
-    curr_num=bi*100+batch_id
-    sitk.WriteImage(sitk.GetImageFromArray(curr_curr.astype(np.uint8)), f"{folder_path}/{curr_num}_inferred.nii.gz")
-    sitk.WriteImage(sitk.GetImageFromArray(curr_bigger_mask.astype(np.uint8)), f"{folder_path}/{curr_num}_big_mask.nii.gz")
-    sitk.WriteImage(sitk.GetImageFromArray(curr_twos.astype(np.uint8)), f"{folder_path}/{curr_num}_centers.nii.gz")
-    
+    inferred=curr[bi,:,:,:]
+    curr_bigger_mask=bigger_mask[bi,:,:,:]
+    if(epoch%10==0):
+        curr_num=bi*100+batch_id
+        sitk.WriteImage(sitk.GetImageFromArray(curr_curr.astype(np.uint8)), f"{folder_path}/{curr_num}_inferred.nii.gz")
+        sitk.WriteImage(sitk.GetImageFromArray(curr_bigger_mask.astype(np.uint8)), f"{folder_path}/{curr_num}_big_mask.nii.gz")
+        sitk.WriteImage(sitk.GetImageFromArray(curr_twos.astype(np.uint8)), f"{folder_path}/{curr_num}_centers.nii.gz")
+        
     
     total = np.sum(curr_in.flatten())
     total_twos = np.sum(curr_twos.flatten())
@@ -130,12 +143,22 @@ def get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     if(total==0):
         return 0.0
     
+    components_ones = get_connected_components_num(curr_bigger_mask)
+    components_twos = get_connected_components_num(curr_twos)
 
-    curr_percent_in=np.sum(curr_in.flatten())/(total)
-    curr_percent_covered=  np.sum(((curr_in) & (curr_twos)).flatten())/ total_twos
+    arr=curr_bigger_mask
+    if(components_twos>components_ones):
+        print(f"ones are mergeddd")
+        arr=curr_twos
 
-    return (curr_percent_in>0.7 and curr_percent_covered>0.4).astype(float)
-   
+    connected=sitk.GetArrayFromImage(sitk.ConnectedComponent(sitk.GetImageFromArray(arr.astype(int))))
+    uniqq=np.unique(connected)
+    uniqq= list(filter(lambda el:el>0,uniqq))
+
+
+    res=np.array(list(map(lambda uniq_num: is_sth_in_areas(uniq_num,connected,inferred),uniqq)))
+    res=res.astype(int)
+    return np.mean(res.flatten())
 
 class nnUNetTrainer(object):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict, unpack_dataset: bool = True,
@@ -1050,10 +1073,21 @@ class nnUNetTrainer(object):
         my_sensitivity=np.zeros(1)
         my_specificity=np.zeros(1)
 
+
         epoch=self.current_epoch
         if(epoch%10==0 and epoch>0):
+
+            #important ! we are purposfully ignoring the channel 1 in argmax !
+            output=torch.stack([output[:,0,:,:,:],output[:,2,:,:,:]],dim=1)
+            output_seg = output.argmax(1)[:, None]
+            predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
+            predicted_segmentation_onehot.scatter_(1, output_seg, 1)
+            del output_seg
+
+
+
             bigger_mask= (target>0)[:,0,:,:,:]
-            curr=predicted_segmentation_onehot.round().bool()[:,2,:,:,:]
+            curr=predicted_segmentation_onehot.round().bool()[:,1,:,:,:]
             
             # curr= torch.sum(curr,dim=1)
             inn = curr & bigger_mask
