@@ -128,7 +128,7 @@ def get_my_sensitivity(bi,inn,twos,curr,epoch,folder_path,batch_id,bigger_mask):
     curr_bigger_mask=bigger_mask[bi,:,:,:]
     if(epoch%10==0):
         curr_num=bi*100+batch_id
-        sitk.WriteImage(sitk.GetImageFromArray(curr_curr.astype(np.uint8)), f"{folder_path}/{curr_num}_inferred.nii.gz")
+        sitk.WriteImage(sitk.GetImageFromArray(inferred.astype(np.uint8)), f"{folder_path}/{curr_num}_inferred.nii.gz")
         sitk.WriteImage(sitk.GetImageFromArray(curr_bigger_mask.astype(np.uint8)), f"{folder_path}/{curr_num}_big_mask.nii.gz")
         sitk.WriteImage(sitk.GetImageFromArray(curr_twos.astype(np.uint8)), f"{folder_path}/{curr_num}_centers.nii.gz")
         
@@ -1075,7 +1075,7 @@ class nnUNetTrainer(object):
 
 
         epoch=self.current_epoch
-        if(epoch%10==0 and epoch>0):
+        if(epoch%10==0 and epoch>0): 
 
             #important ! we are purposfully ignoring the channel 1 in argmax !
             output=torch.stack([output[:,0,:,:,:],output[:,2,:,:,:]],dim=1)
