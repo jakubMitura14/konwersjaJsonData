@@ -1075,7 +1075,7 @@ class nnUNetTrainer(object):
 
 
         epoch=self.current_epoch
-        if(epoch%10==0 and epoch>0): 
+        if(epoch%10==0 and epoch>0 ): #and epoch>0
 
             #important ! we are purposfully ignoring the channel 1 in argmax !
             output=torch.stack([output[:,0,:,:,:],output[:,2,:,:,:]],dim=1)
