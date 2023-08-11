@@ -365,7 +365,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 2" tag="l4c ([10,1,50])/50 "  my_proj_desc=" only focal loss weights as in tag" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 2" tag="l4e 15,8,25])/25 "  my_proj_desc=" only focal loss weights as in tag added additional (like old) mask" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits

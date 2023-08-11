@@ -36,11 +36,18 @@ class FocalLossV2(nn.Module):
             logit = self.apply_nonlin(logit)
         num_class = logit.shape[1]
 
+        target_b=torch.clone(target)
         if logit.dim() > 2:
             # N,C,d1,d2 -> N,C,m (m=d1*d2*...)
             logit = logit.view(logit.size(0), logit.size(1), -1)
             logit = logit.permute(0, 2, 1).contiguous()
-            logit = logit.view(-1, logit.size(-1))
+            logit = logit.view(-1, logit.size(-1))                     
+            
+            target_b = target_b.view(target_b.size(0), target_b.size(1), -1)
+            target_b = target_b.permute(0, 2, 1).contiguous()
+            target_b = target_b.view(-1, target_b.size(-1))
+            
+            
         target = torch.squeeze(target, 1)
         target = target.view(-1, 1)
         # print(logit.shape, target.shape)
@@ -82,7 +89,12 @@ class FocalLossV2(nn.Module):
         # print(f"one_hot_key {one_hot_key.shape} logit {logit.shape}") #one_hot_key torch.Size([44688, 3]) logit torch.Size([44688, 3] )
         # print(f" one_hot_key[:,0] {one_hot_key[:,0].shape} logit[:,0] {logit[:,0].shape} weight[0] {weight[0].shape}")
         # one_hot_key[:,0]*logit[:,0]*weight[0]
-        pt= torch.stack([one_hot_key[:,0]*logit[:,0]*weight[0], one_hot_key[:,1]*logit[:,2]*weight[1]  ,one_hot_key[:,2]*logit[:,2]*weight[2]], dim=1)
+        mask_b= (torch.abs((target_b!=1).float()-0.000000000001))
+        logit= logit*mask_b
+        pt= torch.stack([one_hot_key[:,0]*logit[:,0]*weight[0] 
+                         , one_hot_key[:,1]*logit[:,2]*weight[1] 
+                         ,one_hot_key[:,2]*logit[:,2]*weight[2]
+                         ], dim=1)
         pt = (pt).sum(1) + self.smooth
 
         logpt = pt.log()
@@ -156,7 +168,7 @@ class Picai_FL_and_CE_loss(nn.Module):
 
         # net_output=net_output*target_mask
         # target=(target==2).int()
-        weight=torch.tensor([10,1,50])/50
+        weight=torch.tensor([15,8,25])/25
         # ce_loss = self.ce(net_output, target)
         fl_loss = self.fl(net_output, target,weight)
         return fl_loss
