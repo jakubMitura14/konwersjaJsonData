@@ -45,9 +45,9 @@ def augment_two_channel(dat_curr,target_curr):
     gauss_vals=np.array([ [[1094.62154301315,30.0],[13.8230222890104,3.02186134116448 ] ]
                          ,[[1169.06275422957,30.0],[19.4776261112059,4.7502100423844] ] ])
     #n - controlling how big the pseudo lesion will be
-    n=np.random.randint(2,5)
+    n=np.random.randint(2,6)
     #k - controlling the numebr of pseudo lesions
-    k=np.random.randint(0,20) 
+    k=np.random.randint(0,50) 
     #1) get the target and dilatate it n+1 times (if its sum is above 0)
     target_big= ndimage.binary_dilation((target_curr>0),iterations=n)
     #2) get indicies where dilatated target is still zero and choose random k indicies from it

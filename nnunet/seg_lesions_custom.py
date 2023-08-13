@@ -365,7 +365,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="l4c torch.tensor([10,8,10])/10 "  my_proj_desc=" with new masking" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="l4b 6 50 "  my_proj_desc=" aug n 6 k 50" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits
