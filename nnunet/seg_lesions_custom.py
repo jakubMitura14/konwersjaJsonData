@@ -101,14 +101,14 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
         print(f"no prostate! {group[0]}")
         return ' '
 
-    modalities_of_intrest_without_main= ['hbv']
+    modalities_of_intrest_without_main= ['hbv','t2w']
     # modalities_of_intrest_without_main=non_mri_inputs+modalities_of_intrest_without_main
 
     sources_dict=group[1]
     sources_dict[non_mri_inputs[0]]=(modalit_path_add[0][1][0],)
 
-
-    registered_modalities_arrs= list(map(lambda mod: reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[mod][0], sitk.sitkBSpline)                                    
+    #http://insightsoftwareconsortium.github.io/SimpleITK-Notebooks/Python_html/20_Expand_With_Interpolators.html
+    registered_modalities_arrs= list(map(lambda mod: reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[mod][0], sitk.sitkHammingWindowedSinc)                                    
                                                       ,modalities_of_intrest_without_main ))
     registered_prostate= list(map(lambda mod: reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[mod][0], sitk.sitkNearestNeighbor)                                    
                                                       ,non_mri_inputs ))
@@ -116,6 +116,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     adc_arr=sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0]))
     prostate_arr= registered_prostate[0]
     hbv_arr= registered_modalities_arrs[0]
+    t2w_arr= registered_modalities_arrs[1]
 
     ########### manage labels
 
@@ -224,11 +225,14 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     # max_y=adc_arr.shape[2]
     adc_image = sitk.ReadImage(group[1][main_modality][0])
     hbv_image = get_from_arr(hbv_arr,adc_image)
+    t2w_image = get_from_arr(t2w_arr,adc_image)
+    
     label_image = get_from_arr(labRes,adc_image)
-
 
     adc_image=my_crop(adc_image,min_z,min_y,min_x,max_z,max_x,max_y)
     hbv_image=my_crop(hbv_image,min_z,min_y,min_x,max_z,max_x,max_y)
+    t2w_image=my_crop(t2w_image,min_z,min_y,min_x,max_z,max_x,max_y)
+    
     label_image=my_crop(label_image,min_z,min_y,min_x,max_z,max_x,max_y)
 
     
@@ -247,6 +251,11 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     writer = sitk.ImageFileWriter()
     writer.SetFileName(out_pathsDict['hbv'])
     writer.Execute(hbv_image)
+
+    writer = sitk.ImageFileWriter()
+    writer.SetFileName(out_pathsDict['t2w'])
+    writer.Execute(t2w_image)
+
 
 
     return group[0]
@@ -342,7 +351,8 @@ with mp.Pool(processes = mp.cpu_count()) as pool:
 
 channel_names={  
     "0": "noNorm",
-    "1": "noNorm"  }
+    "1": "noNorm",
+    "2": "zscore"}
 
 data = { 
     "channel_names": channel_names, 
@@ -365,7 +375,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="l4b 6 50 "  my_proj_desc=" aug n 6 k 50" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="l4b AdamW "  my_proj_desc=" AdamW" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits
@@ -389,3 +399,9 @@ p.wait()
 # 2023-08-06 00:00:23.129513: Yayy! New best EMA pseudo Dice: [0.629]
 # 2023-08-06 00:00:36.670725: 
 # 2023-08-06 00:00:36.671606: Epoch 88
+
+
+# cd /home/sliceruser/nnunetMainFolder/nnUNet_raw/Dataset101_Prostate/imagesTr
+# cp 9334200_0000.nii.gz /workspaces/konwersjaJsonData/explore/temp/9334200_0000.nii.gz
+# cp 9334200_0001.nii.gz /workspaces/konwersjaJsonData/explore/temp/9334200_0001.nii.gz
+# cp 9334200_0002.nii.gz /workspaces/konwersjaJsonData/explore/temp/9334200_0002.nii.gz
