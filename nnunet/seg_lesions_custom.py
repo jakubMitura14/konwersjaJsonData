@@ -119,8 +119,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     # t2w_arr=sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0]))
         
     prostate_arr= registered_prostate[0]
-    # adc_arr= registered_modalities_arrs[0]
-    # hbv_arr= registered_modalities_arrs[1]
+
 
     ########### manage labels
 
@@ -226,9 +225,9 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
     # min_y=0
     # max_y=adc_arr.shape[2]
-    t2w_image = sitk.ReadImage(group[1][main_modality][0])
-    # hbv_image = get_from_arr(hbv_arr,t2w_image)
-    # adc_image = get_from_arr(adc_arr,t2w_image)
+    adc_image = sitk.ReadImage(group[1][main_modality][0])
+    hbv_image = get_from_arr(hbv_arr,adc_image)
+    t2w_image = get_from_arr(t2w_arr,adc_image)
     
     label_image = get_from_arr(labRes,t2w_image)
 
