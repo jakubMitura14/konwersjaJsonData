@@ -53,13 +53,14 @@ cols=sourceFrame.columns
 # modalities that we want to include in the model
 modalities_of_intrest=['t2w','adc','hbv']
 prostate_col= 'pg_noSeg' # name of the column with segmentaton of whole prostate gland
-
+new_col_name= 'inferred_pg'
+non_mri_inputs=[new_col_name]
 
 channel_names={  
     "0": "adc",
     "1": "hbv",
     "2": "t2w",
-    "3": prostate_col,
+    "3": new_col_name,
     }
 # label_names= {  
 #     "background": 0,
@@ -111,11 +112,11 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     adc_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['adc'][0], sitk.sitkBSpline)                                 
     hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline)                                 
                                                   
-    registered_prostate= reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict[prostate_col][0], sitk.sitkNearestNeighbor)
+    registered_prostate= reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict[new_col_name][0], sitk.sitkNearestNeighbor)
 
     # t2w_arr=sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0]))
         
-    prostate_arr= reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[prostate_col][0], sitk.sitkNearestNeighbor)
+    prostate_arr= reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[new_col_name][0], sitk.sitkNearestNeighbor)
 
 
     ########### manage labels
@@ -256,7 +257,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     writer.Execute(t2w_image)
 
     writer = sitk.ImageFileWriter()
-    writer.SetFileName(out_pathsDict[prostate_col])
+    writer.SetFileName(out_pathsDict[new_col_name])
     writer.Execute(registered_prostate)
 
 
@@ -268,7 +269,7 @@ resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory with inferred prostates
 dir_inferred_prost='/workspaces/konwersjaJsonData/explore/all_prost_segm_full_files/my_prost_infered'
 sourceFrame = pd.read_csv(resCSVDir)
-new_col_name= 'inferred_pg'
+
 
 cols=sourceFrame.columns
 noSegCols=list(filter(lambda el: '_noSeg' in el , cols))+['series_MRI_path']
@@ -286,7 +287,6 @@ lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 main_modality = 't2w'
 dataset_id=101
 
-non_mri_inputs=[prostate_col]
 out_folder='/home/sliceruser/explore/temp'
 # with mp.Pool(processes = mp.cpu_count()) as pool:
 # with mp.Pool(processes = 1) as pool:
@@ -379,7 +379,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="adc to t2w with gold pg l4b"  my_proj_desc="adc to t2w with gold pg l4b" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="adc to t2w with inferred pg l4c"  my_proj_desc="adc to t2w with inferred pg l4c" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits
