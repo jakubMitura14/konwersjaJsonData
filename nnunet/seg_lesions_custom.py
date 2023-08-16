@@ -108,15 +108,19 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     sources_dict[non_mri_inputs[0]]=(modalit_path_add[0][1][0],)
 
     #http://insightsoftwareconsortium.github.io/SimpleITK-Notebooks/Python_html/20_Expand_With_Interpolators.html
-    registered_modalities_arrs= list(map(lambda mod: reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[mod][0], sitk.sitkHammingWindowedSinc)                                    
-                                                      ,modalities_of_intrest_without_main ))
+    # registered_modalities_arrs= list(map(lambda mod: reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[mod][0], sitk.sitkHammingWindowedSinc)                                    
+    #                                                   ,modalities_of_intrest_without_main ))
+    
+    t2w_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['t2w'][0], sitk.sitkBSpline)                                 
+    hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline)   
+    
     registered_prostate= list(map(lambda mod: reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[mod][0], sitk.sitkNearestNeighbor)                                    
                                                       ,non_mri_inputs ))
 
     adc_arr=sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0]))
     prostate_arr= registered_prostate[0]
-    hbv_arr= registered_modalities_arrs[0]
-    t2w_arr= registered_modalities_arrs[1]
+    # hbv_arr= registered_modalities_arrs[0]
+    # t2w_arr= registered_modalities_arrs[1]
 
     ########### manage labels
 
@@ -224,8 +228,8 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     # min_y=0
     # max_y=adc_arr.shape[2]
     adc_image = sitk.ReadImage(group[1][main_modality][0])
-    hbv_image = get_from_arr(hbv_arr,adc_image)
-    t2w_image = get_from_arr(t2w_arr,adc_image)
+    # hbv_image = get_from_arr(hbv_arr,adc_image)
+    # t2w_image = get_from_arr(t2w_arr,adc_image)
     
     label_image = get_from_arr(labRes,adc_image)
 
