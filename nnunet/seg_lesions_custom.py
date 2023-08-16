@@ -111,12 +111,11 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     adc_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['adc'][0], sitk.sitkBSpline)                                 
     hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline)                                 
                                                   
-    registered_prostate= list(map(lambda mod: reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[mod][0], sitk.sitkNearestNeighbor)                                    
-                                                      ,non_mri_inputs ))
+    registered_prostate= reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict[prostate_col][0], sitk.sitkNearestNeighbor)
 
     # t2w_arr=sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0]))
         
-    prostate_arr= registered_prostate[0]
+    prostate_arr= reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[prostate_col][0], sitk.sitkNearestNeighbor)
 
 
     ########### manage labels
@@ -223,10 +222,8 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
     # min_y=0
     # max_y=adc_arr.shape[2]
-    adc_image = sitk.ReadImage(group[1][main_modality][0])
-    hbv_image = get_from_arr(hbv_arr,adc_image)
-    t2w_image = get_from_arr(t2w_arr,adc_image)
-    
+    t2w_image = sitk.ReadImage(group[1][main_modality][0])
+
     label_image = get_from_arr(labRes,t2w_image)
 
     adc_image=my_crop(adc_image,min_z,min_y,min_x,max_z,max_x,max_y)
@@ -357,8 +354,8 @@ with mp.Pool(processes = mp.cpu_count()) as pool:
 channel_names={  
     "1": "noNorm",
     "2": "noNorm",
-    "3": "zscore"
-
+    "3": "zscore",
+    "4": "noNorm"
     }
 
 data = { 
@@ -382,7 +379,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="adc to t2w l4c"  my_proj_desc=" adc to t2w l4c" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="adc to t2w with gold pg l4b"  my_proj_desc="adc to t2w with gold pg l4b" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits
