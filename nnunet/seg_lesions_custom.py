@@ -54,13 +54,16 @@ cols=sourceFrame.columns
 modalities_of_intrest=['t2w','adc','hbv']
 prostate_col= 'pg_noSeg' # name of the column with segmentaton of whole prostate gland
 new_col_name= 'inferred_pg'
-non_mri_inputs=[new_col_name]
+non_mri_inputs=[new_col_name,'pz_noSeg','tz_noSeg']
 
 channel_names={  
     "0": "adc",
     "1": "hbv",
     "2": "t2w",
-    "3": new_col_name,
+    "3": non_mri_inputs[1],
+    "4": non_mri_inputs[2],
+    "5":new_col_name
+    
     }
 # label_names= {  
 #     "background": 0,
@@ -92,6 +95,23 @@ def my_concat(grouped):
 
 def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,labelsTrFolder,imagesTrFolder):
 
+    if('inferred_pg' not in group[1]):
+        print(f"nnnnno inferred_pg")
+        return ' '
+    if('tz_noSeg' not in group[1]):
+        print(f"nnnnno tz_noSeg")
+        return ' '    
+    if('pz_noSeg' not in group[1]):
+        print(f"nnnnno pz_noSeg")
+        return ' '       
+    
+    if(group[1]['tz_noSeg']==' '):
+        print(f"nnnnno tz_noSeg")
+        return ' '    
+    if(group[1]['pz_noSeg']==' '):
+        print(f"nnnnno pz_noSeg")
+        return ' '             
+    
     modalit_path_add= list(map( lambda el:(group[1][el]) ,non_mri_inputs))
     # print(f"ggg group[1] {group[1]}")
     # print(f"modalit_path_add[0][1] {modalit_path_add[0][1]}")
@@ -104,6 +124,11 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
     sources_dict=group[1]
     sources_dict[non_mri_inputs[0]]=(modalit_path_add[0][1][0],)
+    sources_dict[non_mri_inputs[1]]=(modalit_path_add[1][1][0],)
+    sources_dict[non_mri_inputs[2]]=(modalit_path_add[2][1][0],)
+
+    if(sources_dict['tz_noSeg'][0]==" "):
+        return " "
 
     #http://insightsoftwareconsortium.github.io/SimpleITK-Notebooks/Python_html/20_Expand_With_Interpolators.html
     # print(f"aaaaaaa d  main {sources_dict[main_modality][0]} adc {sources_dict['adc'][0]}")
@@ -113,6 +138,8 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline)                                 
                                                   
     registered_prostate= reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict[new_col_name][0], sitk.sitkNearestNeighbor)
+
+
 
     # t2w_arr=sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0]))
         
@@ -224,12 +251,23 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     # min_y=0
     # max_y=adc_arr.shape[2]
     t2w_image = sitk.ReadImage(group[1][main_modality][0])
+    
+    tz_image= sitk.ReadImage(sources_dict['tz_noSeg'][0])
+    pz_image= sitk.ReadImage(sources_dict['pz_noSeg'][0])
+
 
     label_image = get_from_arr(labRes,t2w_image)
 
     adc_image=my_crop(adc_image,min_z,min_y,min_x,max_z,max_x,max_y)
     hbv_image=my_crop(hbv_image,min_z,min_y,min_x,max_z,max_x,max_y)
     t2w_image=my_crop(t2w_image,min_z,min_y,min_x,max_z,max_x,max_y)
+    
+    pz_image=my_crop(pz_image,min_z,min_y,min_x,max_z,max_x,max_y)
+    tz_image=my_crop(tz_image,min_z,min_y,min_x,max_z,max_x,max_y)
+    
+    
+
+    
     registered_prostate=my_crop(registered_prostate,min_z,min_y,min_x,max_z,max_x,max_y)
     
     
@@ -257,9 +295,12 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     writer.Execute(t2w_image)
 
     writer = sitk.ImageFileWriter()
-    writer.SetFileName(out_pathsDict[new_col_name])
-    writer.Execute(registered_prostate)
+    writer.SetFileName(out_pathsDict['pz_noSeg'])
+    writer.Execute(pz_image)
 
+    writer = sitk.ImageFileWriter()
+    writer.SetFileName(out_pathsDict['tz_noSeg'])
+    writer.Execute(tz_image)
 
     return group[0]
 
@@ -355,7 +396,9 @@ channel_names={
     "1": "noNorm",
     "2": "noNorm",
     "3": "zscore",
-    "4": "noNorm"
+    "4": "noNorm",
+    "5": "noNorm"
+
     }
 
 data = { 
@@ -363,10 +406,11 @@ data = {
     "labels": label_names,  
     # "regions_class_order": [2,1,0],  
     "file_ending": ".nii.gz",
-    # "normalization_schemes" : ["noNorm","noNorm"],
     "numTraining" : len(ids),
     "nnUNetPlans" : ['2d','3d_fullres']
 }
+
+print(f"lllllllllllllllllllllllllll {len(ids)}")
 
 json_string = json.dumps(data)
 with open(json_path, 'w') as outfile:
@@ -379,7 +423,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="adc to t2w with inferred pg l4c"  my_proj_desc="adc to t2w with inferred pg l4c" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="adc to t2w with gold pz tz l4d"  my_proj_desc="adc to t2w with gold pz tz l4d" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits

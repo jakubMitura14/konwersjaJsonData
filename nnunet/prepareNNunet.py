@@ -103,6 +103,9 @@ def map_modalities(pathhs,modalities,non_mri_inputs):
                 ,map(partial(getListModality,pathhs=pathhs,non_mri_inputs=non_mri_inputs))
                 ,list
             )
+    is_empty= list(filter(lambda tupl: tupl[0]==' ',res ))
+    if(len(is_empty)>0):
+        return ' '
     # print(f"gggg {res}")
     return res
 
@@ -120,6 +123,7 @@ def iterGroupModalities(groupTuple,modalities_of_intrest,label_cols,non_mri_inpu
                 # ,filter(lambda el : len(el)>2)
                 ,list
                 ,partial(map_modalities,modalities=modalities_of_intrest,non_mri_inputs=non_mri_inputs)
+                ,filter(lambda el: el!= ' ' )
                 ,dict
                 )   
     return (masterOlds,pathhs)
