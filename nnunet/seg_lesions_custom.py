@@ -49,10 +49,9 @@ resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 
 sourceFrame = pd.read_csv(resCSVDir) 
 cols=sourceFrame.columns
-main_modality = 'adc'
 
 # modalities that we want to include in the model
-modalities_of_intrest=['adc','hbv','t2w']
+modalities_of_intrest=['t2w','adc','hbv']
 prostate_col= 'pg_noSeg' # name of the column with segmentaton of whole prostate gland
 
 
@@ -99,42 +98,39 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
         print(f"no prostate! {group[0]}")
         return ' '
 
-    modalities_of_intrest_without_main= ['hbv','t2w']
+
     # modalities_of_intrest_without_main=non_mri_inputs+modalities_of_intrest_without_main
 
     sources_dict=group[1]
     sources_dict[non_mri_inputs[0]]=(modalit_path_add[0][1][0],)
 
     #http://insightsoftwareconsortium.github.io/SimpleITK-Notebooks/Python_html/20_Expand_With_Interpolators.html
-    # registered_modalities_arrs= list(map(lambda mod: reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[mod][0], sitk.sitkHammingWindowedSinc)                                    
-    #                                                   ,modalities_of_intrest_without_main ))
-    
-    t2w_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['t2w'][0], sitk.sitkBSpline)                                 
-    hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline)   
-    registered_prostate =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict[prostate_col][0], sitk.sitkNearestNeighbor)   
-    
-    
-    
-    prostate_arr= reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[prostate_col][0], sitk.sitkNearestNeighbor)
+    # print(f"aaaaaaa d  main {sources_dict[main_modality][0]} adc {sources_dict['adc'][0]}")
 
-    adc_arr=sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0]))
-    # prostate_arr= registered_prostate
-    # hbv_arr= registered_modalities_arrs[0]
-    # t2w_arr= registered_modalities_arrs[1]
+   
+    adc_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['adc'][0], sitk.sitkBSpline)                                 
+    hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline)                                 
+                                                  
+    registered_prostate= list(map(lambda mod: reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[mod][0], sitk.sitkNearestNeighbor)                                    
+                                                      ,non_mri_inputs ))
+
+    # t2w_arr=sitk.GetArrayFromImage(sitk.ReadImage(group[1][main_modality][0]))
+        
+    prostate_arr= registered_prostate[0]
+
 
     ########### manage labels
 
     labels_hbv=group[1]['hbv'][1]
-    labels_adc=group[1][main_modality][1]
-
-
+    labels_adc=group[1]['adc'][1]
 
 
     labels_hbv=list(map(lambda pathh_moving: reg_a_to_b_by_metadata_single_b(sources_dict[main_modality][0],pathh_moving,out_folder,sitk.sitkNearestNeighbor)                                    
                                                       ,labels_hbv ))
-
+    labels_adc=list(map(lambda pathh_moving: reg_a_to_b_by_metadata_single_b(sources_dict[main_modality][0],pathh_moving,out_folder,sitk.sitkNearestNeighbor)                                    
+                                                      ,labels_adc ))
     labels= labels_adc+labels_hbv
-    labRes= np.zeros_like(adc_arr)
+    labRes= np.zeros_like(prostate_arr)
     if(len(labels)>0):
 
         label_names=list(map(lambda pathh:  
@@ -228,10 +224,10 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     # min_y=0
     # max_y=adc_arr.shape[2]
     adc_image = sitk.ReadImage(group[1][main_modality][0])
-    # hbv_image = get_from_arr(hbv_arr,adc_image)
-    # t2w_image = get_from_arr(t2w_arr,adc_image)
+    hbv_image = get_from_arr(hbv_arr,adc_image)
+    t2w_image = get_from_arr(t2w_arr,adc_image)
     
-    label_image = get_from_arr(labRes,adc_image)
+    label_image = get_from_arr(labRes,t2w_image)
 
     adc_image=my_crop(adc_image,min_z,min_y,min_x,max_z,max_x,max_y)
     hbv_image=my_crop(hbv_image,min_z,min_y,min_x,max_z,max_x,max_y)
@@ -290,7 +286,7 @@ filter_ids=lambda row: str(row[1]['masterolds']).strip() not in test_ids
 cols=sourceFrame.columns
 noSegCols=list(filter(lambda el: '_noSeg' in el , cols))+['series_MRI_path']
 lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
-main_modality = 'adc'
+main_modality = 't2w'
 dataset_id=101
 
 non_mri_inputs=[prostate_col]
@@ -359,10 +355,11 @@ with mp.Pool(processes = mp.cpu_count()) as pool:
                                     ,list)
 
 channel_names={  
-    "0": "noNorm",
     "1": "noNorm",
-    "2": "zscore"
-    ,"3": "noNorm"}
+    "2": "noNorm",
+    "3": "zscore"
+
+    }
 
 data = { 
     "channel_names": channel_names, 
@@ -385,7 +382,7 @@ p.wait()
 
 
     
-#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="l4d t2w plus gold pg"  my_proj_desc="t2w resampled to adc plus gold pg" nnUNetv2_train 101 3d_fullres 0 
+#CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="adc to t2w l4c"  my_proj_desc=" adc to t2w l4c" nnUNetv2_train 101 3d_fullres 0 
 
 
 #with masked binary_cross_entropy_with_logits
