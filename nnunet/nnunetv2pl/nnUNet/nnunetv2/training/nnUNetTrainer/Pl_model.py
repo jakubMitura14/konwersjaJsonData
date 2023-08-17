@@ -233,7 +233,7 @@ class Pl_Model(pl.LightningModule):
     def parse_outputs(self,metr_name,outputs ):
         all = np.array(list(filter(lambda t:t[0]== metr_name,outputs)))
         all = np.array(list(map(lambda t:np.array(t[1]).flatten(),outputs)))
-        self.log(metr_name, np.nanmean(all.flatten()))
+        self.log(metr_name, np.nanmean(all.flatten()),sync_dist=True)
 
     def on_validation_epoch_end(self):
         # outputs=itertools.chain(*self.validation_step_outputs)
