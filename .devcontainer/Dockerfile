@@ -88,6 +88,8 @@ RUN python3 -m pip  --no-cache-dir install \
     pymia einops seaborn \
     optuna
 
+RUN python3 -m pip  --no-cache-dir install torchio
+
 RUN export GITHUB_USER=jakubMitura14
 
 ENV env_var_name=$argTokenGithub
@@ -116,5 +118,5 @@ ENV nnUNet_results="/home/sliceruser/nnUNet_results"
 
 CMD ["/bin/bash"]
 
-# cd /workspaces/konwersjaJsonData/nnunet/custom_nnunet
+# cd /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet
 # python3 -m pip  install -e .

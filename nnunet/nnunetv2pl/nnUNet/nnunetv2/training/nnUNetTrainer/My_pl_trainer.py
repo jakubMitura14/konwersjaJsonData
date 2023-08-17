@@ -11,7 +11,7 @@ from copy import deepcopy
 from datetime import datetime
 from time import time, sleep
 from typing import Union, Tuple, List
-from focal_loss.focal_loss import FocalLoss
+# from focal_loss.focal_loss import FocalLoss
 import numpy as np
 import torch
 from batchgenerators.dataloading.single_threaded_augmenter import SingleThreadedAugmenter
@@ -39,16 +39,22 @@ from nnunetv2.training.data_augmentation.custom_transforms.transforms_for_dummy_
 
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper
-from pl_model import *
+from .Pl_model import *
 
-class nnUNetTrainerCosAnneal(nnUNetTrainer):
+class My_pl_trainer(nnUNetTrainer):
 
     def on_train_start(self):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        nnUNetTrainer.on_train_start()
-        self.pl_model= Pl_Model()
+        nnUNetTrainer.on_train_start(self)
+        self.pl_model= Pl_Model(network=self.network
+                                ,dataloader_train=self.dataloader_train
+                                ,dataloader_val=self.dataloader_val
+                                ,loss=self.loss
+                                ,learning_rate=self.initial_lr
+                                ,weight_decay=self.weight_decay
+                                ,label_manager=self.label_manager)
 
         comet_logger = CometLogger(
             api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
@@ -60,7 +66,8 @@ class nnUNetTrainerCosAnneal(nnUNetTrainer):
 
         toMonitor="score_my"
         # checkpoint_callback = ModelCheckpoint(dirpath= checkPointPath,mode='max', save_top_k=1, monitor=toMonitor)
-        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
+        # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
+        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=1e-3)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
@@ -68,22 +75,22 @@ class nnUNetTrainerCosAnneal(nnUNetTrainer):
             mode="max",
             #divergence_threshold=(-0.1)
         )
-
+        # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
         self.trainer = pl.Trainer(
             #accelerator="cpu", #TODO(remove)
             max_epochs=1000,
             #gpus=1,
             #precision=experiment.get_parameter("precision"), 
-            callbacks=[ stochasticAveraging,early_stopping ], #optuna_prune,checkpoint_callback
+            callbacks=[ stochasticAveraging,early_stopping], #optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       
             default_root_dir= "/home/sliceruser/locTemp/lightning_logs",
             # auto_scale_batch_size="binsearch",
-            auto_lr_find=True,
+            # auto_lr_find=True,
             check_val_every_n_epoch=10,
-            accumulate_grad_batches= 1,
-            gradient_clip_val=  0.9 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
+            # accumulate_grad_batches= 1,
+            gradient_clip_val = 3.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=10
             # ,reload_dataloaders_every_n_epochs=1
             #strategy='dp'
@@ -211,9 +218,9 @@ class nnUNetTrainerCosAnneal(nnUNetTrainer):
 
     def run_training(self):
         self.on_train_start()
-        
-        self.trainer.tune(self.model)
-        self.trainer.fit(self.model)
+
+        # self.trainer.tune(self.pl_model)
+        self.trainer.fit(self.pl_model)
 
 
         self.on_train_end()
@@ -225,186 +232,186 @@ class nnUNetTrainerCosAnneal(nnUNetTrainer):
 
 
 
-    def on_train_epoch_start(self):
-        self.network.train()
-        self.lr_scheduler.step(self.current_epoch)
-        self.print_to_log_file('')
-        self.print_to_log_file(f'Epoch {self.current_epoch}')
-        self.print_to_log_file(
-            f"Current learning rate: {np.round(self.optimizer.param_groups[0]['lr'], decimals=5)}")
-        # lrs are the same for all workers so we don't need to gather them in case of DDP training
-        self.logger.log('lrs', self.optimizer.param_groups[0]['lr'], self.current_epoch)
+    # def on_train_epoch_start(self):
+    #     self.network.train()
+    #     self.lr_scheduler.step(self.current_epoch)
+    #     self.print_to_log_file('')
+    #     self.print_to_log_file(f'Epoch {self.current_epoch}')
+    #     self.print_to_log_file(
+    #         f"Current learning rate: {np.round(self.optimizer.param_groups[0]['lr'], decimals=5)}")
+    #     # lrs are the same for all workers so we don't need to gather them in case of DDP training
+    #     self.logger.log('lrs', self.optimizer.param_groups[0]['lr'], self.current_epoch)
 
-    def train_step(self, batch: dict) -> dict:
-        data = batch['data']
-        target = batch['target']
+    # def train_step(self, batch: dict) -> dict:
+    #     data = batch['data']
+    #     target = batch['target']
 
-        data = data.to(self.device, non_blocking=True)
-        if isinstance(target, list):
-            target = [i.to(self.device, non_blocking=True) for i in target]
-        else:
-            target = target.to(self.device, non_blocking=True)
+    #     data = data.to(self.device, non_blocking=True)
+    #     if isinstance(target, list):
+    #         target = [i.to(self.device, non_blocking=True) for i in target]
+    #     else:
+    #         target = target.to(self.device, non_blocking=True)
 
-        self.optimizer.zero_grad()
-        # Autocast is a little bitch.
-        # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
-        # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
-        # So autocast will only be active if we have a cuda device.
-        with autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
-            output = self.network(data)
-            # del data
-            l = self.loss(output, target)
+    #     self.optimizer.zero_grad()
+    #     # Autocast is a little bitch.
+    #     # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
+    #     # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
+    #     # So autocast will only be active if we have a cuda device.
+    #     with autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
+    #         output = self.network(data)
+    #         # del data
+    #         l = self.loss(output, target)
 
-        if self.grad_scaler is not None:
-            self.grad_scaler.scale(l).backward()
-            self.grad_scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(self.network.parameters(), 12)
-            self.grad_scaler.step(self.optimizer)
-            self.grad_scaler.update()
-        else:
-            l.backward()
-            torch.nn.utils.clip_grad_norm_(self.network.parameters(), 12)
-            self.optimizer.step()
-        return {'loss': l.detach().cpu().numpy()}
+    #     if self.grad_scaler is not None:
+    #         self.grad_scaler.scale(l).backward()
+    #         self.grad_scaler.unscale_(self.optimizer)
+    #         torch.nn.utils.clip_grad_norm_(self.network.parameters(), 12)
+    #         self.grad_scaler.step(self.optimizer)
+    #         self.grad_scaler.update()
+    #     else:
+    #         l.backward()
+    #         torch.nn.utils.clip_grad_norm_(self.network.parameters(), 12)
+    #         self.optimizer.step()
+    #     return {'loss': l.detach().cpu().numpy()}
 
-    def on_train_epoch_end(self, train_outputs: List[dict]):
-        outputs = collate_outputs(train_outputs)
+    # def on_train_epoch_end(self, train_outputs: List[dict]):
+    #     outputs = collate_outputs(train_outputs)
 
-        if self.is_ddp:
-            losses_tr = [None for _ in range(dist.get_world_size())]
-            dist.all_gather_object(losses_tr, outputs['loss'])
-            loss_here = np.vstack(losses_tr).mean()
-        else:
-            loss_here = np.mean(outputs['loss'])
+    #     if self.is_ddp:
+    #         losses_tr = [None for _ in range(dist.get_world_size())]
+    #         dist.all_gather_object(losses_tr, outputs['loss'])
+    #         loss_here = np.vstack(losses_tr).mean()
+    #     else:
+    #         loss_here = np.mean(outputs['loss'])
 
-        self.logger.log('train_losses', loss_here, self.current_epoch)
+    #     self.logger.log('train_losses', loss_here, self.current_epoch)
 
-    def on_validation_epoch_start(self):
-        self.network.eval()
+    # def on_validation_epoch_start(self):
+    #     self.network.eval()
 
-    def validation_step(self, batch: dict) -> dict:
-        data = batch['data']
-        target = batch['target']
+    # def validation_step(self, batch: dict) -> dict:
+    #     data = batch['data']
+    #     target = batch['target']
 
-        data = data.to(self.device, non_blocking=True)
-        if isinstance(target, list):
-            target = [i.to(self.device, non_blocking=True) for i in target]
-        else:
-            target = target.to(self.device, non_blocking=True)
+    #     data = data.to(self.device, non_blocking=True)
+    #     if isinstance(target, list):
+    #         target = [i.to(self.device, non_blocking=True) for i in target]
+    #     else:
+    #         target = target.to(self.device, non_blocking=True)
 
-        # Autocast is a little bitch.
-        # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
-        # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
-        # So autocast will only be active if we have a cuda device.
-        with autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
-            output = self.network(data)
-            del data
-            l = self.loss(output, target)
+    #     # Autocast is a little bitch.
+    #     # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
+    #     # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
+    #     # So autocast will only be active if we have a cuda device.
+    #     with autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
+    #         output = self.network(data)
+    #         del data
+    #         l = self.loss(output, target)
 
-        # we only need the output with the highest output resolution
-        output = output[0]
-        target = target[0]
+    #     # we only need the output with the highest output resolution
+    #     output = output[0]
+    #     target = target[0]
 
-        # the following is needed for online evaluation. Fake dice (green line)
-        axes = [0] + list(range(2, len(output.shape)))
+    #     # the following is needed for online evaluation. Fake dice (green line)
+    #     axes = [0] + list(range(2, len(output.shape)))
 
-        if self.label_manager.has_regions:
-            predicted_segmentation_onehot = (torch.sigmoid(output) > 0.5).long()
-        else:
-            # no need for softmax
-            output_seg = output.argmax(1)[:, None]
-            predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
-            predicted_segmentation_onehot.scatter_(1, output_seg, 1)
-            del output_seg
+    #     if self.label_manager.has_regions:
+    #         predicted_segmentation_onehot = (torch.sigmoid(output) > 0.5).long()
+    #     else:
+    #         # no need for softmax
+    #         output_seg = output.argmax(1)[:, None]
+    #         predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
+    #         predicted_segmentation_onehot.scatter_(1, output_seg, 1)
+    #         del output_seg
 
-        if self.label_manager.has_ignore_label:
-            if not self.label_manager.has_regions:
-                mask = (target != self.label_manager.ignore_label).float()
-                # CAREFUL that you don't rely on target after this line!
-                target[target == self.label_manager.ignore_label] = 0
-            else:
-                mask = 1 - target[:, -1:]
-                # CAREFUL that you don't rely on target after this line!
-                target = target[:, :-1]
-        else:
-            mask = None
+    #     if self.label_manager.has_ignore_label:
+    #         if not self.label_manager.has_regions:
+    #             mask = (target != self.label_manager.ignore_label).float()
+    #             # CAREFUL that you don't rely on target after this line!
+    #             target[target == self.label_manager.ignore_label] = 0
+    #         else:
+    #             mask = 1 - target[:, -1:]
+    #             # CAREFUL that you don't rely on target after this line!
+    #             target = target[:, :-1]
+    #     else:
+    #         mask = None
 
-        tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
+    #     tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
 
-        tp_hard = tp.detach().cpu().numpy()
-        fp_hard = fp.detach().cpu().numpy()
-        fn_hard = fn.detach().cpu().numpy()
-        if not self.label_manager.has_regions:
-            # if we train with regions all segmentation heads predict some kind of foreground. In conventional
-            # (softmax training) there needs tobe one output for the background. We are not interested in the
-            # background Dice
-            # [1:] in order to remove background
-            tp_hard = tp_hard[1:]
-            fp_hard = fp_hard[1:]
-            fn_hard = fn_hard[1:]
+    #     tp_hard = tp.detach().cpu().numpy()
+    #     fp_hard = fp.detach().cpu().numpy()
+    #     fn_hard = fn.detach().cpu().numpy()
+    #     if not self.label_manager.has_regions:
+    #         # if we train with regions all segmentation heads predict some kind of foreground. In conventional
+    #         # (softmax training) there needs tobe one output for the background. We are not interested in the
+    #         # background Dice
+    #         # [1:] in order to remove background
+    #         tp_hard = tp_hard[1:]
+    #         fp_hard = fp_hard[1:]
+    #         fn_hard = fn_hard[1:]
 
-        return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard}
+    #     return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard}
 
-    def on_validation_epoch_end(self, val_outputs: List[dict]):
-        outputs_collated = collate_outputs(val_outputs)
-        tp = np.sum(outputs_collated['tp_hard'], 0)
-        fp = np.sum(outputs_collated['fp_hard'], 0)
-        fn = np.sum(outputs_collated['fn_hard'], 0)
+    # def on_validation_epoch_end(self, val_outputs: List[dict]):
+    #     outputs_collated = collate_outputs(val_outputs)
+    #     tp = np.sum(outputs_collated['tp_hard'], 0)
+    #     fp = np.sum(outputs_collated['fp_hard'], 0)
+    #     fn = np.sum(outputs_collated['fn_hard'], 0)
 
-        if self.is_ddp:
-            world_size = dist.get_world_size()
+    #     if self.is_ddp:
+    #         world_size = dist.get_world_size()
 
-            tps = [None for _ in range(world_size)]
-            dist.all_gather_object(tps, tp)
-            tp = np.vstack([i[None] for i in tps]).sum(0)
+    #         tps = [None for _ in range(world_size)]
+    #         dist.all_gather_object(tps, tp)
+    #         tp = np.vstack([i[None] for i in tps]).sum(0)
 
-            fps = [None for _ in range(world_size)]
-            dist.all_gather_object(fps, fp)
-            fp = np.vstack([i[None] for i in fps]).sum(0)
+    #         fps = [None for _ in range(world_size)]
+    #         dist.all_gather_object(fps, fp)
+    #         fp = np.vstack([i[None] for i in fps]).sum(0)
 
-            fns = [None for _ in range(world_size)]
-            dist.all_gather_object(fns, fn)
-            fn = np.vstack([i[None] for i in fns]).sum(0)
+    #         fns = [None for _ in range(world_size)]
+    #         dist.all_gather_object(fns, fn)
+    #         fn = np.vstack([i[None] for i in fns]).sum(0)
 
-            losses_val = [None for _ in range(world_size)]
-            dist.all_gather_object(losses_val, outputs_collated['loss'])
-            loss_here = np.vstack(losses_val).mean()
-        else:
-            loss_here = np.mean(outputs_collated['loss'])
+    #         losses_val = [None for _ in range(world_size)]
+    #         dist.all_gather_object(losses_val, outputs_collated['loss'])
+    #         loss_here = np.vstack(losses_val).mean()
+    #     else:
+    #         loss_here = np.mean(outputs_collated['loss'])
 
-        global_dc_per_class = [i for i in [2 * i / (2 * i + j + k) for i, j, k in
-                                           zip(tp, fp, fn)]]
-        mean_fg_dice = np.nanmean(global_dc_per_class)
-        self.logger.log('mean_fg_dice', mean_fg_dice, self.current_epoch)
-        self.logger.log('dice_per_class_or_region', global_dc_per_class, self.current_epoch)
-        self.logger.log('val_losses', loss_here, self.current_epoch)
+    #     global_dc_per_class = [i for i in [2 * i / (2 * i + j + k) for i, j, k in
+    #                                        zip(tp, fp, fn)]]
+    #     mean_fg_dice = np.nanmean(global_dc_per_class)
+    #     self.logger.log('mean_fg_dice', mean_fg_dice, self.current_epoch)
+    #     self.logger.log('dice_per_class_or_region', global_dc_per_class, self.current_epoch)
+    #     self.logger.log('val_losses', loss_here, self.current_epoch)
 
-    def on_epoch_start(self):
-        self.logger.log('epoch_start_timestamps', time(), self.current_epoch)
+    # def on_epoch_start(self):
+    #     self.logger.log('epoch_start_timestamps', time(), self.current_epoch)
 
-    def on_epoch_end(self):
-        self.logger.log('epoch_end_timestamps', time(), self.current_epoch)
+    # def on_epoch_end(self):
+    #     self.logger.log('epoch_end_timestamps', time(), self.current_epoch)
 
-        # todo find a solution for this stupid shit
-        self.print_to_log_file('train_loss', np.round(self.logger.my_fantastic_logging['train_losses'][-1], decimals=4))
-        self.print_to_log_file('val_loss', np.round(self.logger.my_fantastic_logging['val_losses'][-1], decimals=4))
-        self.print_to_log_file('Pseudo dice', [np.round(i, decimals=4) for i in
-                                               self.logger.my_fantastic_logging['dice_per_class_or_region'][-1]])
-        self.print_to_log_file(
-            f"Epoch time: {np.round(self.logger.my_fantastic_logging['epoch_end_timestamps'][-1] - self.logger.my_fantastic_logging['epoch_start_timestamps'][-1], decimals=2)} s")
+    #     # todo find a solution for this stupid shit
+    #     self.print_to_log_file('train_loss', np.round(self.logger.my_fantastic_logging['train_losses'][-1], decimals=4))
+    #     self.print_to_log_file('val_loss', np.round(self.logger.my_fantastic_logging['val_losses'][-1], decimals=4))
+    #     self.print_to_log_file('Pseudo dice', [np.round(i, decimals=4) for i in
+    #                                            self.logger.my_fantastic_logging['dice_per_class_or_region'][-1]])
+    #     self.print_to_log_file(
+    #         f"Epoch time: {np.round(self.logger.my_fantastic_logging['epoch_end_timestamps'][-1] - self.logger.my_fantastic_logging['epoch_start_timestamps'][-1], decimals=2)} s")
 
-        # handling periodic checkpointing
-        current_epoch = self.current_epoch
-        if (current_epoch + 1) % self.save_every == 0 and current_epoch != (self.num_epochs - 1):
-            self.save_checkpoint(join(self.output_folder, 'checkpoint_latest.pth'))
+    #     # handling periodic checkpointing
+    #     current_epoch = self.current_epoch
+    #     if (current_epoch + 1) % self.save_every == 0 and current_epoch != (self.num_epochs - 1):
+    #         self.save_checkpoint(join(self.output_folder, 'checkpoint_latest.pth'))
 
-        # handle 'best' checkpointing. ema_fg_dice is computed by the logger and can be accessed like this
-        if self._best_ema is None or self.logger.my_fantastic_logging['ema_fg_dice'][-1] > self._best_ema:
-            self._best_ema = self.logger.my_fantastic_logging['ema_fg_dice'][-1]
-            self.print_to_log_file(f"Yayy! New best EMA pseudo Dice: {np.round(self._best_ema, decimals=4)}")
-            self.save_checkpoint(join(self.output_folder, 'checkpoint_best.pth'))
+    #     # handle 'best' checkpointing. ema_fg_dice is computed by the logger and can be accessed like this
+    #     if self._best_ema is None or self.logger.my_fantastic_logging['ema_fg_dice'][-1] > self._best_ema:
+    #         self._best_ema = self.logger.my_fantastic_logging['ema_fg_dice'][-1]
+    #         self.print_to_log_file(f"Yayy! New best EMA pseudo Dice: {np.round(self._best_ema, decimals=4)}")
+    #         self.save_checkpoint(join(self.output_folder, 'checkpoint_best.pth'))
 
-        if self.local_rank == 0:
-            self.logger.plot_progress_png(self.output_folder)
+    #     if self.local_rank == 0:
+    #         self.logger.plot_progress_png(self.output_folder)
 
-        self.current_epoch += 1
+    #     self.current_epoch += 1

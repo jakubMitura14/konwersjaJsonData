@@ -105,7 +105,7 @@ def calc_custom_metrics(epoch,target,output ):
     my_specificity=np.zeros(1)
 
 
-    if(epoch%10==0 and epoch>0 ): #and epoch>0
+    if(epoch%2==0 and epoch>0 ): #and epoch>0
 
         #important ! we are purposfully ignoring the channel 1 in argmax !
         output=torch.stack([output[:,0,:,:,:],output[:,2,:,:,:]],dim=1)
@@ -173,74 +173,74 @@ def calc_custom_metrics(epoch,target,output ):
         percent_out=np.array([percent_out]).flatten()
         percent_covered=np.array([percent_covered]).flatten()    
 
-        return percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity
+    return percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity
 
 
 
 
-def my_validation_step(batch: dict,device,network,loss,label_manager,epoch) -> dict:
-    data = batch['data']
-    target = batch['target']
+# def my_validation_step(batch: dict,device,network,loss,label_manager,epoch) -> dict:
+#     data = batch['data']
+#     target = batch['target']
 
-    data = data.to(device, non_blocking=True)
-    if isinstance(target, list):
-        target = [i.to(device, non_blocking=True) for i in target]
-    else:
-        target = target.to(device, non_blocking=True)
+#     data = data.to(device, non_blocking=True)
+#     if isinstance(target, list):
+#         target = [i.to(device, non_blocking=True) for i in target]
+#     else:
+#         target = target.to(device, non_blocking=True)
 
-    # Autocast is a little bitch.
-    # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
-    # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
-    # So autocast will only be active if we have a cuda device.
-    with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
-        output = network(data)
-        del data
-        l = loss(output, target)
+#     # Autocast is a little bitch.
+#     # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
+#     # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
+#     # So autocast will only be active if we have a cuda device.
+#     with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
+#         output = network(data)
+#         del data
+#         l = loss(output, target)
 
-    # we only need the output with the highest output resolution
-    output = output[0]
-    target = target[0]
+#     # we only need the output with the highest output resolution
+#     output = output[0]
+#     target = target[0]
 
-    # the following is needed for online evaluation. Fake dice (green line)
-    axes = [0] + list(range(2, len(output.shape)))
+#     # the following is needed for online evaluation. Fake dice (green line)
+#     axes = [0] + list(range(2, len(output.shape)))
 
-    if label_manager.has_regions:
-        predicted_segmentation_onehot = (torch.sigmoid(output) > 0.5).long()
-    else:
-        # no need for softmax
-        output_seg = output.argmax(1)[:, None]
-        predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
-        predicted_segmentation_onehot.scatter_(1, output_seg, 1)
-        del output_seg
+#     if label_manager.has_regions:
+#         predicted_segmentation_onehot = (torch.sigmoid(output) > 0.5).long()
+#     else:
+#         # no need for softmax
+#         output_seg = output.argmax(1)[:, None]
+#         predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
+#         predicted_segmentation_onehot.scatter_(1, output_seg, 1)
+#         del output_seg
 
-    if label_manager.has_ignore_label:
-        if not label_manager.has_regions:
-            mask = (target != label_manager.ignore_label).float()
-            # CAREFUL that you don't rely on target after this line!
-            target[target == label_manager.ignore_label] = 0
-        else:
-            mask = 1 - target[:, -1:]
-            # CAREFUL that you don't rely on target after this line!
-            target = target[:, :-1]
-    else:
-        mask = None
+#     if label_manager.has_ignore_label:
+#         if not label_manager.has_regions:
+#             mask = (target != label_manager.ignore_label).float()
+#             # CAREFUL that you don't rely on target after this line!
+#             target[target == label_manager.ignore_label] = 0
+#         else:
+#             mask = 1 - target[:, -1:]
+#             # CAREFUL that you don't rely on target after this line!
+#             target = target[:, :-1]
+#     else:
+#         mask = None
 
-    tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
+#     tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
 
-    tp_hard = tp.detach().cpu().numpy()
-    fp_hard = fp.detach().cpu().numpy()
-    fn_hard = fn.detach().cpu().numpy()
-    if not label_manager.has_regions:
-        # if we train with regions all segmentation heads predict some kind of foreground. In conventional
-        # (softmax training) there needs tobe one output for the background. We are not interested in the
-        # background Dice
-        # [1:] in order to remove background
-        tp_hard = tp_hard[1:]
-        fp_hard = fp_hard[1:]
-        fn_hard = fn_hard[1:]
+#     tp_hard = tp.detach().cpu().numpy()
+#     fp_hard = fp.detach().cpu().numpy()
+#     fn_hard = fn.detach().cpu().numpy()
+#     if not label_manager.has_regions:
+#         # if we train with regions all segmentation heads predict some kind of foreground. In conventional
+#         # (softmax training) there needs tobe one output for the background. We are not interested in the
+#         # background Dice
+#         # [1:] in order to remove background
+#         tp_hard = tp_hard[1:]
+#         fp_hard = fp_hard[1:]
+#         fn_hard = fn_hard[1:]
 
-    percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity=calc_custom_metrics(epoch,target,output )
+#     percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity=calc_custom_metrics(epoch,target,output )
 
-    return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard
-                    , 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered,'is_correct':is_correct
-                    ,'my_sensitivity':my_sensitivity,'my_specificity':my_specificity   }
+#     return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard
+#                     , 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered,'is_correct':is_correct
+#                     ,'my_sensitivity':my_sensitivity,'my_specificity':my_specificity   }

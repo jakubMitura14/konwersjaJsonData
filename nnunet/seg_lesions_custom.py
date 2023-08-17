@@ -380,6 +380,7 @@ p.wait()
 
     
 #CUDA_VISIBLE_DEVICES=0 my_proj_name="seg lesions 3" tag="t2w to adc"  my_proj_desc=" t2w resampled to ADC" nnUNetv2_train 101 3d_fullres 0 
+#my_proj_name="seg lesions debug" tag="pl"  my_proj_desc=" pl" nnUNetv2_train 101 3d_fullres 0 -tr My_pl_trainer
 
 
 #with masked binary_cross_entropy_with_logits

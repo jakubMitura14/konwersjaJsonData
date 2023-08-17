@@ -1224,6 +1224,7 @@ class nnUNetTrainer(object):
         compute_gaussian.cache_clear()
 
     def run_training(self):
+        
         self.on_train_start()
         self.trainer.tune(self.model)
         self.trainer.fit(self.model)
