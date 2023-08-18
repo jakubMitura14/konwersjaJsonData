@@ -78,7 +78,13 @@ class Pl_Model(pl.LightningModule):
                  ,loss
                  ,learning_rate
                  ,weight_decay
-                 ,label_manager):
+                 ,label_manager
+                 ,log_every_n
+                 ,num_batch_to_eval
+                 ,train_eval_folder
+                 ,val_eval_folder
+                 ,f
+                 ):
         super().__init__()
         self.network=network
         self.dataloader_train=dataloader_train
@@ -87,7 +93,13 @@ class Pl_Model(pl.LightningModule):
         self.learning_rate = learning_rate
         self.weight_decay=weight_decay
         self.label_manager=label_manager
-        self.validation_step_outputs = []
+        self.log_every_n=log_every_n
+        self.num_batch_to_eval=num_batch_to_eval
+        self.train_eval_folder =train_eval_folder
+        self.val_eval_folder =val_eval_folder
+        self.f=f
+        # self.validation_step_outputs = []
+        # self.test_step_outputs = []
 
 
     def setup(self, stage=None):
@@ -123,12 +135,41 @@ class Pl_Model(pl.LightningModule):
     #     return regr, numLesions
 
 
-    def training_step(self, batch, batch_idx):
+    def on_validation_epoch_start(self):
+        self.network.eval()
+
+    def on_train_epoch_start(self):
         self.network.train()
+
+    def training_step(self, batch, batch_idx):
+        
         data = batch['data']
         target = batch['target']
         output = self.network(data)
-        return self.loss(output, target)
+
+        epoch=self.current_epoch
+        l=self.loss(output, target)
+
+        if(epoch%self.log_every_n==0):
+            if(batch_idx<self.num_batch_to_eval):
+                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train")
+                # print(f"bbbbbbbbbbbb {batch_idx} output {len(output)} {output[0].shape} {output[1].shape} {output[2].shape}")
+                # percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity=calc_custom_metrics(epoch,target,output ,self.log_every_n,batch_idx)
+
+                # self.test_step_outputs.append(('loss', l.detach().cpu().numpy()))
+                # # self.validation_step_outputs.append(('tp_hard',tp_hard))
+                # # self.validation_step_outputs.append(('fp_hard',fp_hard))
+                # # self.validation_step_outputs.append(('fn_hard',fn_hard))
+                # self.test_step_outputs.append(('percent_in',np.nanmean(percent_in)))
+                # self.test_step_outputs.append(('percent_out',np.nanmean(percent_out)))
+                # self.test_step_outputs.append(('percent_covered',np.nanmean(percent_covered)))
+                # self.test_step_outputs.append(('is_correct',np.nanmean(is_correct)))
+                # self.test_step_outputs.append(('my_sensitivity',np.nanmean(my_sensitivity)))
+                # self.test_step_outputs.append(('my_specificity',np.nanmean(my_specificity)))
+        
+        self.log("train loss",l.detach().cpu().item())
+        
+        return l
         # if(self.current_epoch%2):
         #     seg_hat,reg_hat, y_true, numLesions=self.infer_train_ds_labels( batch)
         #     return torch.add(self.criterion(seg_hat,y_true)
@@ -163,63 +204,65 @@ class Pl_Model(pl.LightningModule):
         # So autocast will only be active if we have a cuda device.
         with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
             output = network(data)
-            del data
+            # del data
             l = loss(output, target)
 
         # we only need the output with the highest output resolution
         output = output[0]
         target = target[0]
+        if(epoch%self.log_every_n==0):
+            save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val")
+        # # the following is needed for online evaluation. Fake dice (green line)
+        # axes = [0] + list(range(2, len(output.shape)))
 
-        # the following is needed for online evaluation. Fake dice (green line)
-        axes = [0] + list(range(2, len(output.shape)))
+        # if label_manager.has_regions:
+        #     predicted_segmentation_onehot = (torch.sigmoid(output) > 0.5).long()
+        # else:
+        #     # no need for softmax
+        #     output_seg = output.argmax(1)[:, None]
+        #     predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
+        #     predicted_segmentation_onehot.scatter_(1, output_seg, 1)
+        #     del output_seg
 
-        if label_manager.has_regions:
-            predicted_segmentation_onehot = (torch.sigmoid(output) > 0.5).long()
-        else:
-            # no need for softmax
-            output_seg = output.argmax(1)[:, None]
-            predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
-            predicted_segmentation_onehot.scatter_(1, output_seg, 1)
-            del output_seg
+        # if label_manager.has_ignore_label:
+        #     if not label_manager.has_regions:
+        #         mask = (target != label_manager.ignore_label).float()
+        #         # CAREFUL that you don't rely on target after this line!
+        #         target[target == label_manager.ignore_label] = 0
+        #     else:
+        #         mask = 1 - target[:, -1:]
+        #         # CAREFUL that you don't rely on target after this line!
+        #         target = target[:, :-1]
+        # else:
+        #     mask = None
 
-        if label_manager.has_ignore_label:
-            if not label_manager.has_regions:
-                mask = (target != label_manager.ignore_label).float()
-                # CAREFUL that you don't rely on target after this line!
-                target[target == label_manager.ignore_label] = 0
-            else:
-                mask = 1 - target[:, -1:]
-                # CAREFUL that you don't rely on target after this line!
-                target = target[:, :-1]
-        else:
-            mask = None
+        # tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
 
-        tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
+        # tp_hard = tp.detach().cpu().numpy()
+        # fp_hard = fp.detach().cpu().numpy()
+        # fn_hard = fn.detach().cpu().numpy()
+        # if not label_manager.has_regions:
+        #     # if we train with regions all segmentation heads predict some kind of foreground. In conventional
+        #     # (softmax training) there needs tobe one output for the background. We are not interested in the
+        #     # background Dice
+        #     # [1:] in order to remove background
+        #     tp_hard = tp_hard[1:]
+        #     fp_hard = fp_hard[1:]
+        #     fn_hard = fn_hard[1:]
 
-        tp_hard = tp.detach().cpu().numpy()
-        fp_hard = fp.detach().cpu().numpy()
-        fn_hard = fn.detach().cpu().numpy()
-        if not label_manager.has_regions:
-            # if we train with regions all segmentation heads predict some kind of foreground. In conventional
-            # (softmax training) there needs tobe one output for the background. We are not interested in the
-            # background Dice
-            # [1:] in order to remove background
-            tp_hard = tp_hard[1:]
-            fp_hard = fp_hard[1:]
-            fn_hard = fn_hard[1:]
-        
-        percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity=calc_custom_metrics(epoch,target,output )
 
-        self.validation_step_outputs.append(('loss', l.detach().cpu().numpy()))
-        # self.validation_step_outputs.append(('tp_hard',tp_hard))
-        # self.validation_step_outputs.append(('fp_hard',fp_hard))
-        # self.validation_step_outputs.append(('fn_hard',fn_hard))
-        self.validation_step_outputs.append(('percent_in',np.nanmean(percent_in)))
-        self.validation_step_outputs.append(('percent_out',np.nanmean(percent_out)))
-        self.validation_step_outputs.append(('percent_covered',np.nanmean(percent_covered)))
-        self.validation_step_outputs.append(('is_correct',np.nanmean(is_correct)))
-        self.validation_step_outputs.append(('my_sensitivity',np.nanmean(my_sensitivity)))
-        self.validation_step_outputs.append(('my_specificity',np.nanmean(my_specificity)))
+        # percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity=calc_custom_metrics(epoch,target,output ,self.log_every_n,batch_idx)
+
+        # self.validation_step_outputs.append(('loss', l.detach().cpu().numpy()))
+        # # self.validation_step_outputs.append(('tp_hard',tp_hard))
+        # # self.validation_step_outputs.append(('fp_hard',fp_hard))
+        # # self.validation_step_outputs.append(('fn_hard',fn_hard))
+        # self.validation_step_outputs.append(('percent_in',np.nanmean(percent_in)))
+        # self.validation_step_outputs.append(('percent_out',np.nanmean(percent_out)))
+        # self.validation_step_outputs.append(('percent_covered',np.nanmean(percent_covered)))
+        # self.validation_step_outputs.append(('is_correct',np.nanmean(is_correct)))
+        # self.validation_step_outputs.append(('my_sensitivity',np.nanmean(my_sensitivity)))
+        # self.validation_step_outputs.append(('my_specificity',np.nanmean(my_specificity)))
 
         # 'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard
         #                         , 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered,'is_correct':is_correct
@@ -236,47 +279,18 @@ class Pl_Model(pl.LightningModule):
         self.log(metr_name, np.nanmean(all.flatten()),sync_dist=True)
 
     def on_validation_epoch_end(self):
-        # outputs=itertools.chain(*self.validation_step_outputs)
-        outputs=self.validation_step_outputs
-        
-        print(f"validation_epoch_end {outputs}")#{outputs}
-        list(map(lambda metr_name : self.parse_outputs(metr_name,outputs),
-                 ['loss','percent_in','percent_out','percent_covered','is_correct','my_sensitivity','my_specificity'] ))#'tp_hard','fp_hard','fn_hard'
-        
-        self.validation_step_outputs.clear()
-        # allDices = np.array(([x['dices'] for x in outputs])).flatten() 
-        # allmeanPiecaiMetr_auroc = np.array(([x['meanPiecaiMetr_auroc'] for x in outputs])).flatten() 
-        # allmeanPiecaiMetr_AP = np.array(([x['meanPiecaiMetr_AP'] for x in outputs])).flatten() 
-        # allmeanPiecaiMetr_score = np.array(([x['meanPiecaiMetr_score'] for x in outputs])).flatten() 
-        # allaccuracy = np.array(([x['f1_scoree'] for x in outputs])).flatten() 
-        
-    
-        # # allDices = np.array(([x['dices'].cpu().detach().numpy() for x in outputs])).flatten() 
-        # # allmeanPiecaiMetr_auroc = np.array(([x['meanPiecaiMetr_auroc'].cpu().detach().numpy() for x in outputs])).flatten() 
-        # # allmeanPiecaiMetr_AP = np.array(([x['meanPiecaiMetr_AP'].cpu().detach().numpy() for x in outputs])).flatten() 
-        # # allmeanPiecaiMetr_score = np.array(([x['meanPiecaiMetr_score'].cpu().detach().numpy() for x in outputs])).flatten() 
-        # regressionMetric=self.regressionMetric.compute()
-        # self.regressionMetric.reset()
-        # self.log('regr_F1', regressionMetric)
-        
-        
-        # if(len(allDices)>0):            
-        #     meanPiecaiMetr_auroc=np.nanmean(allmeanPiecaiMetr_auroc)
-        #     meanPiecaiMetr_AP=np.nanmean(allmeanPiecaiMetr_AP)
-        #     meanPiecaiMetr_score= np.nanmean(allmeanPiecaiMetr_score)
-        #     accuracy= np.nanmean(allaccuracy)
-        #     meanPiecaiMetr_score_my= (meanPiecaiMetr_auroc+meanPiecaiMetr_AP+accuracy)/3 #np.nanmean(allmeanPiecaiMetr_score)
+        if(self.current_epoch%self.log_every_n==0):
+            group_name='val'
+            return calc_custom_metrics(group_name,self.f)
 
-        #     self.log('dice', np.nanmean(allDices))
+        # outputs=self.validation_step_outputs        
+        # list(map(lambda metr_name : self.parse_outputs(metr_name,outputs),
+        #          ['loss','percent_in','percent_out','percent_covered','is_correct','my_sensitivity','my_specificity'] ))#'tp_hard','fp_hard','fn_hard'
+        
+        # self.validation_step_outputs.clear()
 
-        #     self.log('val_mean_auroc', meanPiecaiMetr_auroc)
-        #     self.log('val_mean_AP', meanPiecaiMetr_AP)
-        #     self.log('meanPiecaiMetr_score', meanPiecaiMetr_score)
-        #     self.log('accuracy', accuracy)
-            
-        #     self.log('score_my', meanPiecaiMetr_score_my)
+    def on_train_epoch_end(self):
+        if(self.current_epoch%self.log_every_n==0):
+            group_name='train'
+            return calc_custom_metrics(group_name,self.f)
 
-        #     self.picaiLossArr_auroc_final.append(meanPiecaiMetr_auroc)
-        #     self.picaiLossArr_AP_final.append(meanPiecaiMetr_AP)
-        #     self.picaiLossArr_score_final.append(meanPiecaiMetr_score)
-        #     self.dice_final.append(np.nanmean(allDices))

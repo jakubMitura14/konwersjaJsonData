@@ -40,6 +40,11 @@ from nnunetv2.training.data_augmentation.custom_transforms.transforms_for_dummy_
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper
 from .Pl_model import *
+import shutil
+import h5py
+
+from mpi4py import MPI
+
 
 class My_pl_trainer(nnUNetTrainer):
 
@@ -47,14 +52,39 @@ class My_pl_trainer(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
+        self.log_every_n=1
+        self.num_batch_to_eval=15
+        default_root_dir= "/home/sliceruser/locTemp/lightning_logs"
+        train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
+        val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
+
+        os.makedirs('/workspaces/konwersjaJsonData/explore/hdf5_loc',exist_ok=True)
+        self.f = h5py.File('/workspaces/konwersjaJsonData/explore/hdf5_loc/mytestfile.hdf5', 'w',driver='mpio', comm=MPI.COMM_WORLD)
+
+        os.makedirs(train_eval_folder,exist_ok=True)
+        os.makedirs(val_eval_folder,exist_ok=True)
+        shutil.rmtree(train_eval_folder)
+        shutil.rmtree(val_eval_folder)
+        os.makedirs(train_eval_folder,exist_ok=True)
+        os.makedirs(val_eval_folder,exist_ok=True)
+
+        self.default_root_dir=default_root_dir
         nnUNetTrainer.on_train_start(self)
+
+        
+
         self.pl_model= Pl_Model(network=self.network
                                 ,dataloader_train=self.dataloader_train
                                 ,dataloader_val=self.dataloader_val
                                 ,loss=self.loss
                                 ,learning_rate=self.initial_lr
                                 ,weight_decay=self.weight_decay
-                                ,label_manager=self.label_manager)
+                                ,label_manager=self.label_manager
+                                ,log_every_n=self.log_every_n
+                                ,num_batch_to_eval=self.num_batch_to_eval
+                                ,train_eval_folder=train_eval_folder 
+                                ,val_eval_folder=val_eval_folder
+                                ,f=self.f)
 
         comet_logger = CometLogger(
             api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
@@ -64,8 +94,8 @@ class My_pl_trainer(nnUNetTrainer):
         )
 
 
-        toMonitor="score_my"
-        # checkpoint_callback = ModelCheckpoint(dirpath= checkPointPath,mode='max', save_top_k=1, monitor=toMonitor)
+        toMonitor="is_correct"
+        checkpoint_callback = ModelCheckpoint(dirpath= join(self.output_folder),mode='max', save_top_k=2, monitor=toMonitor)
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
         stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=1e-3)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
@@ -81,14 +111,14 @@ class My_pl_trainer(nnUNetTrainer):
             max_epochs=1000,
             #gpus=1,
             #precision=experiment.get_parameter("precision"), 
-            callbacks=[ stochasticAveraging,early_stopping], #optuna_prune,checkpoint_callback
+            callbacks=[ early_stopping,checkpoint_callback], #stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       
-            default_root_dir= "/home/sliceruser/locTemp/lightning_logs",
+            default_root_dir= self.default_root_dir,
             # auto_scale_batch_size="binsearch",
             # auto_lr_find=True,
-            check_val_every_n_epoch=10,
+            check_val_every_n_epoch=self.log_every_n,
             # accumulate_grad_batches= 1,
             gradient_clip_val = 3.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=10
@@ -224,6 +254,8 @@ class My_pl_trainer(nnUNetTrainer):
 
 
         self.on_train_end()
+        shutil.rmtree(self.default_root_dir)
+        self.f.close()
 
 
     # def validation_step(self, batch: dict,batch_id) -> dict:
