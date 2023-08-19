@@ -55,82 +55,6 @@ RUN apt-get update && \
 
 
 
-RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
-    python3.10 get-pip.py && \
-    rm get-pip.py
-
-# RUN python3.9 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-RUN python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-RUN python3 -m pip  --no-cache-dir install \
-    pandas==1.5.3 \
-    future>=0.17.1 \
-    grpcio \
-    mock \
-    numpy \
-    portpicker \
-    requests \
-    kymatio==0.2.1 \
-    # h5py\
-    #itk \
-    #SimpleITK>=2.1.1.2 \
-    # pandas \
-    comet_ml \
-    jax[cpu] \
-    optax \
-    ott-jax \
-    pydicom-seg \
-    numpy \
-    opencv-python \
-    pydicom \
-    more-itertools \
-    SimpleITK \
-    highdicom==0.19.0 \
-    # nnunet==1.7.0 \
-    multiprocess \
-    dill \
-    xnat \
-    pyxnat\
-    mdai \
-    pyradiomics \ 
-    six \
-    napari-simpleitk-image-processing \
-    pytorch-lightning==2.0.7 \
-    itk itk-elastix monai-weekly \
-    pymia einops seaborn \
-    optuna \
-    torchio \
-    'itkwidgets[all]>=1.0a23' \
-    connected-components-3d
-
-
-
-# RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
-# RUN mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
-# RUN wget https://developer.download.nvidia.com/compute/cuda/12.2.1/local_installers/cuda-repo-ubuntu2004-12-2-local_12.2.1-535.86.10-1_amd64.deb
-# RUN dpkg -i cuda-repo-ubuntu2004-12-2-local_12.2.1-535.86.10-1_amd64.deb
-# RUN cp /var/cuda-repo-ubuntu2004-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
-# RUN apt-get update
-# RUN apt-get -y install cuda
-
-# RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.1-1_all.deb  \
-# && dpkg -i cuda-keyring_1.1-1_all.deb  \
-# && apt-get update \
-# && apt-get -y install cuda
-
-
-
-
-# ENV HOME /home/$USER
-# ENV MPI_DIR=/opt/ompi
-# ENV PATH="$MPI_DIR/bin:$HOME/.local/bin:$PATH"
-# ENV LD_LIBRARY_PATH="$MPI_DIR/lib:$LD_LIBRARY_PATH"
-# WORKDIR $HOME
-
-
-
-
-
-# This platform includes dependencies for building docs
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
       cmake \
       g++ \
@@ -179,8 +103,59 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
       apt-get autoremove --purge -y && \
       apt-get autoclean -y && \
       rm -rf /var/cache/apt/* /var/lib/apt/lists/*
+
+
+RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
+    python3.10 get-pip.py && \
+    rm get-pip.py
+
+# RUN python3.9 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+RUN python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+RUN python3 -m pip  --no-cache-dir install \
+    pandas==1.5.3 \
+    future>=0.17.1 \
+    grpcio \
+    mock \
+    numpy \
+    portpicker \
+    requests \
+    kymatio==0.2.1 \
+    # h5py\
+    #itk \
+    #SimpleITK>=2.1.1.2 \
+    # pandas \
+    comet_ml \
+    jax[cpu] \
+    optax \
+    ott-jax \
+    pydicom-seg \
+    numpy \
+    opencv-python \
+    pydicom \
+    more-itertools \
+    SimpleITK \
+    highdicom==0.19.0 \
+    # nnunet==1.7.0 \
+    multiprocess \
+    dill \
+    xnat \
+    pyxnat\
+    mdai \
+    pyradiomics \ 
+    six \
+    napari-simpleitk-image-processing \
+    pytorch-lightning==2.0.7 \
+    itk itk-elastix monai-weekly \
+    pymia einops seaborn \
+    optuna \
+    torchio \
+    'itkwidgets[all]>=1.0a23' \
+    connected-components-3d \
+    ninja
+
+
      
-RUN pip3 install --no-cache-dir \
+RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
     cython \
     decorator \
     jupyter \
@@ -207,6 +182,33 @@ RUN pip3 install --no-cache-dir \
     descartes \
     ipympl \
     RISE 
+
+
+# RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
+# RUN mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
+# RUN wget https://developer.download.nvidia.com/compute/cuda/12.2.1/local_installers/cuda-repo-ubuntu2004-12-2-local_12.2.1-535.86.10-1_amd64.deb
+# RUN dpkg -i cuda-repo-ubuntu2004-12-2-local_12.2.1-535.86.10-1_amd64.deb
+# RUN cp /var/cuda-repo-ubuntu2004-12-2-local/cuda-*-keyring.gpg /usr/share/keyrings/
+# RUN apt-get update
+# RUN apt-get -y install cuda
+
+# RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.1-1_all.deb  \
+# && dpkg -i cuda-keyring_1.1-1_all.deb  \
+# && apt-get update \
+# && apt-get -y install cuda
+
+
+
+
+# ENV HOME /home/$USER
+# ENV MPI_DIR=/opt/ompi
+# ENV PATH="$MPI_DIR/bin:$HOME/.local/bin:$PATH"
+# ENV LD_LIBRARY_PATH="$MPI_DIR/lib:$LD_LIBRARY_PATH"
+# WORKDIR $HOME
+
+
+
+
 
 
 
@@ -258,9 +260,11 @@ RUN git config -l
 
 
 
-RUN mkdir ${HOME}/scripts
-RUN mkdir ${HOME}/externalRepos
-RUN mkdir ${HOME}/forLesionAnalysis
+RUN mkdir ${HOME}/scripts \
+&& mkdir ${HOME}/externalRepos \
+&& mkdir ${HOME}/forLesionAnalysis \
+&& mkdir ${HOME}/Swin3d \
+&& mkdir ${HOME}/connected_comp
 # RUN mkdir ${HOME}/connected_comp
 
 
@@ -281,6 +285,13 @@ RUN mkdir ${HOME}/forLesionAnalysis
 # && cd ${HOME}/connected_comp \
 # && python3 setup.py install
 
+# RUN python3 -m pip install ninja timm==0.4.9 -U git+https://github.com/NVIDIA/MinkowskiEngine --no-deps
+# RUN git clone https://github.com/microsoft/Swin3D.git ${HOME}/Swin3d \
+# && cd ${HOME}/Swin3d \
+# && python3 -m pip install -r requirements.txt \
+# && python3 setup.py install
+RUN python3 -m pip install transformers datasets
+
 
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
@@ -290,7 +301,11 @@ ENV nnUNet_raw="/home/sliceruser/nnunetMainFolder/nnUNet_raw"
 ENV nnUNet_preprocessed="/home/sliceruser/nnunetMainFolder/nnUNet_preprocessed"
 ENV nnUNet_results="/home/sliceruser/nnUNet_results"
 
-CMD ["/bin/bash"]
+# CMD ["/bin/bash"]
+COPY docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
+CMD [ "sleep", "infinity" ]
 
 # cd /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet
 # python3 -m pip  install -e .
