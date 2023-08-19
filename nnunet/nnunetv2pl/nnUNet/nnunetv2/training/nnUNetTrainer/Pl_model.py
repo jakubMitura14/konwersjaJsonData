@@ -198,8 +198,12 @@ class Pl_Model(pl.LightningModule):
 
         data = batch['data']
         target = batch['target']
-        # print(f"valll data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
+        # if(isinstance(data,list)):
+        #     print(f"valll data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
+        # else:
+        #     print(f"valll data 0 {data.shape}")
 
+        
         epoch=self.current_epoch
         data = data.to(device, non_blocking=True)
         if isinstance(target, list):
@@ -220,6 +224,7 @@ class Pl_Model(pl.LightningModule):
         output = output[0]
         target = target[0]
         if(epoch%self.log_every_n==0):
+            # if(batch_idx<self.num_batch_to_eval):
             save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val")
         # # the following is needed for online evaluation. Fake dice (green line)
         # axes = [0] + list(range(2, len(output.shape)))
@@ -290,7 +295,14 @@ class Pl_Model(pl.LightningModule):
     def on_validation_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
             group_name='val'
-            return calc_custom_metrics(group_name,self.f)
+            res= calc_custom_metrics(group_name,self.f ).flatten()
+            self.log("percent_in", res[0]) #,sync_dist=True
+            self.log("percent_out", res[1]) #,sync_dist=True
+            self.log("is_correct", res[2])#,sync_dist=True
+            self.log("my_sensitivity", res[3])#,sync_dist=True
+            self.log("my_specificity", res[4])#,sync_dist=True
+
+
 
         # outputs=self.validation_step_outputs        
         # list(map(lambda metr_name : self.parse_outputs(metr_name,outputs),
@@ -301,5 +313,12 @@ class Pl_Model(pl.LightningModule):
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
             group_name='train'
-            return calc_custom_metrics(group_name,self.f)
+            res= calc_custom_metrics(group_name,self.f ).flatten()
+            res= calc_custom_metrics(group_name,self.f ).flatten()
+            self.log("percent_in", res[0]) #,sync_dist=True
+            self.log("percent_out", res[1]) #,sync_dist=True
+            self.log("is_correct", res[2])#,sync_dist=True
+            self.log("my_sensitivity", res[3])#,sync_dist=True
+            self.log("my_specificity", res[4])#,sync_dist=True
+
 

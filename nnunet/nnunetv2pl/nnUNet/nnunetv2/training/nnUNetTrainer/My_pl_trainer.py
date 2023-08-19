@@ -52,26 +52,34 @@ class My_pl_trainer(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=1
-        self.num_batch_to_eval=15
-        default_root_dir= "/home/sliceruser/locTemp/lightning_logs"
+        self.log_every_n=10
+        self.num_batch_to_eval=10
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
-
-        os.makedirs('/workspaces/konwersjaJsonData/explore/hdf5_loc',exist_ok=True)
-
-        hf5_path='/workspaces/konwersjaJsonData/explore/hdf5_loc/mytestfile.hdf5'
+        ligtning_logs_folder='/workspaces/konwersjaJsonData/explore'
+        h5_folder='/workspaces/konwersjaJsonData/explore/hdf5_loc'
+        hf5_path=f"{h5_folder}/mytestfile.hdf5"
         self.hf5_path=hf5_path
-        
+        os.makedirs(h5_folder,exist_ok=True)
+
 
         os.makedirs(train_eval_folder,exist_ok=True)
         os.makedirs(val_eval_folder,exist_ok=True)
+        os.makedirs(ligtning_logs_folder,exist_ok=True)
+        
+        
+        shutil.rmtree(h5_folder)        
         shutil.rmtree(train_eval_folder)
         shutil.rmtree(val_eval_folder)
-        os.makedirs(train_eval_folder,exist_ok=True)
+        shutil.rmtree(ligtning_logs_folder)
+        
+        
+        os.makedirs(train_eval_folder,exist_ok=True)        
+        os.makedirs(ligtning_logs_folder,exist_ok=True)
         os.makedirs(val_eval_folder,exist_ok=True)
+        os.makedirs(h5_folder,exist_ok=True)
 
-        self.default_root_dir=default_root_dir
+        self.default_root_dir=ligtning_logs_folder
         nnUNetTrainer.on_train_start(self)
 
         
@@ -257,8 +265,8 @@ class My_pl_trainer(nnUNetTrainer):
 
 
         self.on_train_end()
-        shutil.rmtree(self.default_root_dir)
-        self.f.close()
+        # shutil.rmtree(self.default_root_dir)
+        # self.f.close()
 
 
     # def validation_step(self, batch: dict,batch_id) -> dict:
