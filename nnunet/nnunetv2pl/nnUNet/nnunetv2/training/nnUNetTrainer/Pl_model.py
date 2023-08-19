@@ -153,7 +153,7 @@ class Pl_Model(pl.LightningModule):
         data = batch['data']
         target = batch['target']
         output = self.network(data)
-        # print(f"trainnn data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
+        print(f"trainnn data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
 
         epoch=self.current_epoch
         l=self.loss(output, target)
@@ -198,7 +198,7 @@ class Pl_Model(pl.LightningModule):
 
         data = batch['data']
         target = batch['target']
-        # print(f"valll data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
+        print(f"valll data 0 {data[0].shape} {data[1].shape} {data[2].shape}")#valll data 0 torch.Size([3, 28, 48, 56]) torch.Size([3, 28, 48, 56]) torch.Size([3, 28, 48, 56])
 
         epoch=self.current_epoch
         data = data.to(device, non_blocking=True)
