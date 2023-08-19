@@ -153,6 +153,7 @@ class Pl_Model(pl.LightningModule):
         data = batch['data']
         target = batch['target']
         output = self.network(data)
+        # print(f"trainnn data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
 
         epoch=self.current_epoch
         l=self.loss(output, target)
@@ -189,7 +190,8 @@ class Pl_Model(pl.LightningModule):
 
 
     def validation_step(self, batch, batch_idx):
-        
+        # print(f"valll data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
+
         device=self.device
         network=self.network
         loss=self.loss
