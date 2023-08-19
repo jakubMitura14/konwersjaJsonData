@@ -296,11 +296,11 @@ class Pl_Model(pl.LightningModule):
         if(self.current_epoch%self.log_every_n==0):
             group_name='val'
             res= calc_custom_metrics(group_name,self.f ).flatten()
-            self.log("percent_in", res[0]) #,sync_dist=True
-            self.log("percent_out", res[1]) #,sync_dist=True
-            self.log("is_correct", res[2])#,sync_dist=True
-            self.log("my_sensitivity", res[3])#,sync_dist=True
-            self.log("my_specificity", res[4])#,sync_dist=True
+            self.log("percent_in_val", res[0]) #,sync_dist=True
+            self.log("percent_out_val", res[1]) #,sync_dist=True
+            self.log("is_correct_val", res[2])#,sync_dist=True
+            self.log("my_sensitivity_val", res[3])#,sync_dist=True
+            self.log("my_specificity_val", res[4])#,sync_dist=True
 
 
 
@@ -315,10 +315,10 @@ class Pl_Model(pl.LightningModule):
             group_name='train'
             res= calc_custom_metrics(group_name,self.f ).flatten()
             res= calc_custom_metrics(group_name,self.f ).flatten()
-            self.log("percent_in", res[0]) #,sync_dist=True
-            self.log("percent_out", res[1]) #,sync_dist=True
-            self.log("is_correct", res[2])#,sync_dist=True
-            self.log("my_sensitivity", res[3])#,sync_dist=True
-            self.log("my_specificity", res[4])#,sync_dist=True
+            self.log("percent_in_train", res[0]) #,sync_dist=True
+            self.log("percent_out_train", res[1]) #,sync_dist=True
+            self.log("is_correct_train", res[2])#,sync_dist=True
+            self.log("my_sensitivity_train", res[3])#,sync_dist=True
+            self.log("my_specificity_train", res[4])#,sync_dist=True
 
 
