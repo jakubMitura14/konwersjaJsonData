@@ -8,7 +8,6 @@ from copy import deepcopy
 from datetime import datetime
 from time import time, sleep
 from typing import Union, Tuple, List
-# from focal_loss.focal_loss import FocalLoss
 import numpy as np
 import torch
 from batchgenerators.dataloading.single_threaded_augmenter import SingleThreadedAugmenter
@@ -91,12 +90,12 @@ def augment_two_channel(dat_curr,target_curr):
     noise_hbv[np.logical_not(res_bool)]=0.0
     noise= np.stack([noise_adc,noise_hbv])
     #13)we add image (with zeroad indexes) to array we got in previous step
-    dat_curr=np.stack([data_a,data_b])
-    dat_curr=dat_curr+noise
+    res=np.stack([data_a,data_b])
+    res=res+noise
     #we need to add remaining images - anatomy
-    data_c=dat_curr[1:,:,:,:]
+    data_c=dat_curr[2:,:,:,:]
     # data_c=np.expand_dims(data_c,axis=0)
-    return np.concatenate([dat_curr,data_c],axis=0)
+    return np.concatenate([res,data_c],axis=0)
             #     dat_curr= data[bi,:,:,:,:]
             # target_curr= data[bi,:,:,:]
 
