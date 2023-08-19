@@ -61,6 +61,10 @@ import functools
 import multiprocessing as mp
 import os
 import os.path
+import shutil
+import h5py
+
+from mpi4py import MPI
 monai.utils.set_determinism()
 from functools import partial
 from pytorch_lightning.loggers import CometLogger
@@ -83,7 +87,8 @@ class Pl_Model(pl.LightningModule):
                  ,num_batch_to_eval
                  ,train_eval_folder
                  ,val_eval_folder
-                 ,f
+                 ,hf5_path
+
                  ):
         super().__init__()
         self.network=network
@@ -97,7 +102,7 @@ class Pl_Model(pl.LightningModule):
         self.num_batch_to_eval=num_batch_to_eval
         self.train_eval_folder =train_eval_folder
         self.val_eval_folder =val_eval_folder
-        self.f=f
+        self.hf5_path=hf5_path
         # self.validation_step_outputs = []
         # self.test_step_outputs = []
 
@@ -105,6 +110,7 @@ class Pl_Model(pl.LightningModule):
     def setup(self, stage=None):
         self.logger.experiment.log_text(os.getenv('my_proj_desc'))
         self.logger.experiment.add_tag(os.getenv('tag'))
+        self.f = h5py.File(self.hf5_path, 'w',driver='mpio', comm=MPI.COMM_WORLD)
 
 
 
@@ -139,6 +145,7 @@ class Pl_Model(pl.LightningModule):
         self.network.eval()
 
     def on_train_epoch_start(self):
+        #recreating to remove all data
         self.network.train()
 
     def training_step(self, batch, batch_idx):

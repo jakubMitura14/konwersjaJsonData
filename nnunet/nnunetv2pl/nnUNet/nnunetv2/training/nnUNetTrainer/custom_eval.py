@@ -178,13 +178,21 @@ def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data):
     output_seg = output.argmax(1)[:, None]
     predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
     predicted_segmentation_onehot.scatter_(1, output_seg, 1)
-    del output_seg
-   
+    del output_seg   
     curr=predicted_segmentation_onehot.round().bool()[:,1,:,:,:]  
-    
-    f.create_dataset(f"{group_name}/{batch_id}/target",data= target.detach().cpu().numpy())
-    f.create_dataset(f"{group_name}/{batch_id}/predicted_segmentation_onehot",data= curr.detach().cpu().numpy())
-    f.create_dataset(f"{group_name}/{batch_id}/data",data= data.detach().cpu().numpy())
+    target_str= f"{group_name}/{batch_id}/target"
+    predicted_segmentation_onehot_str= f"{group_name}/{batch_id}/predicted_segmentation_onehot"
+    data_str= f"{group_name}/{batch_id}/data"
+    if(group_name not in f.keys()):
+        f.create_group(group_name)
+    if(f"{batch_id}" not in f[group_name].keys() ):
+        f.create_dataset(target_str,data= target.detach().cpu().numpy())
+        f.create_dataset(predicted_segmentation_onehot_str,data= curr.detach().cpu().numpy())
+        f.create_dataset(data_str,data= data.detach().cpu().numpy())
+    else:
+        f[target_str] = target.detach().cpu().numpy()
+        f[predicted_segmentation_onehot_str]= curr.detach().cpu().numpy()
+        f[data_str] = data.detach().cpu().numpy()
 
 
 def save_for_metrics(epoch,target,output,data,log_every_n,batch_id,f,group_name):

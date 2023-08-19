@@ -59,7 +59,10 @@ class My_pl_trainer(nnUNetTrainer):
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
 
         os.makedirs('/workspaces/konwersjaJsonData/explore/hdf5_loc',exist_ok=True)
-        self.f = h5py.File('/workspaces/konwersjaJsonData/explore/hdf5_loc/mytestfile.hdf5', 'w',driver='mpio', comm=MPI.COMM_WORLD)
+
+        hf5_path='/workspaces/konwersjaJsonData/explore/hdf5_loc/mytestfile.hdf5'
+        self.hf5_path=hf5_path
+        
 
         os.makedirs(train_eval_folder,exist_ok=True)
         os.makedirs(val_eval_folder,exist_ok=True)
@@ -84,7 +87,7 @@ class My_pl_trainer(nnUNetTrainer):
                                 ,num_batch_to_eval=self.num_batch_to_eval
                                 ,train_eval_folder=train_eval_folder 
                                 ,val_eval_folder=val_eval_folder
-                                ,f=self.f)
+                                ,hf5_path=self.hf5_path)
 
         comet_logger = CometLogger(
             api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
