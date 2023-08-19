@@ -170,7 +170,7 @@ def for_filter_unwanted(group):
 
 grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
-#my_proj_name="seg lesions 3" tag="t2w to adc"  my_proj_desc=" t2w resampled to ADC" nnUNetv2_train 101 3d_fullres 0 
+#my_proj_name="seg lesions debug" tag="pl test"  my_proj_desc=" pl test" nnUNetv2_train 101 3d_fullres 0  -tr My_pl_trainer
 
 # mainResults_folder="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate"
 # CUDA_VISIBLE_DEVICES=0 nnUNet_results="/home/sliceruser/workspaces/konwersjaJsonData/nnUNet_results/Dataset279_Prostate" nnUNetv2_train 279 3d_fullres 0
