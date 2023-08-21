@@ -122,8 +122,10 @@ class Pl_Model(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate, weight_decay=self.weight_decay,
-                                    momentum=0.99, nesterov=True)
+        # optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate, weight_decay=self.weight_decay,
+        #                             momentum=0.99, nesterov=True)
+        optimizer = torch.optim.AdamW(self.network.parameters(), self.learning_rate)
+        
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
@@ -175,7 +177,7 @@ class Pl_Model(pl.LightningModule):
                 # self.test_step_outputs.append(('my_sensitivity',np.nanmean(my_sensitivity)))
                 # self.test_step_outputs.append(('my_specificity',np.nanmean(my_specificity)))
         
-        self.log("train loss",l.detach().cpu().item())
+        
         
         return l
         # if(self.current_epoch%2):
@@ -219,88 +221,25 @@ class Pl_Model(pl.LightningModule):
             output = network(data)
             # del data
             l = loss(output, target)
-
-        # we only need the output with the highest output resolution
-        output = output[0]
-        target = target[0]
-        if(epoch%self.log_every_n==0):
-            # if(batch_idx<self.num_batch_to_eval):
             save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val")
-        # # the following is needed for online evaluation. Fake dice (green line)
-        # axes = [0] + list(range(2, len(output.shape)))
-
-        # if label_manager.has_regions:
-        #     predicted_segmentation_onehot = (torch.sigmoid(output) > 0.5).long()
-        # else:
-        #     # no need for softmax
-        #     output_seg = output.argmax(1)[:, None]
-        #     predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
-        #     predicted_segmentation_onehot.scatter_(1, output_seg, 1)
-        #     del output_seg
-
-        # if label_manager.has_ignore_label:
-        #     if not label_manager.has_regions:
-        #         mask = (target != label_manager.ignore_label).float()
-        #         # CAREFUL that you don't rely on target after this line!
-        #         target[target == label_manager.ignore_label] = 0
-        #     else:
-        #         mask = 1 - target[:, -1:]
-        #         # CAREFUL that you don't rely on target after this line!
-        #         target = target[:, :-1]
-        # else:
-        #     mask = None
-
-        # tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
-
-        # tp_hard = tp.detach().cpu().numpy()
-        # fp_hard = fp.detach().cpu().numpy()
-        # fn_hard = fn.detach().cpu().numpy()
-        # if not label_manager.has_regions:
-        #     # if we train with regions all segmentation heads predict some kind of foreground. In conventional
-        #     # (softmax training) there needs tobe one output for the background. We are not interested in the
-        #     # background Dice
-        #     # [1:] in order to remove background
-        #     tp_hard = tp_hard[1:]
-        #     fp_hard = fp_hard[1:]
-        #     fn_hard = fn_hard[1:]
-
-
-        # percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity=calc_custom_metrics(epoch,target,output ,self.log_every_n,batch_idx)
-
-        # self.validation_step_outputs.append(('loss', l.detach().cpu().numpy()))
-        # # self.validation_step_outputs.append(('tp_hard',tp_hard))
-        # # self.validation_step_outputs.append(('fp_hard',fp_hard))
-        # # self.validation_step_outputs.append(('fn_hard',fn_hard))
-        # self.validation_step_outputs.append(('percent_in',np.nanmean(percent_in)))
-        # self.validation_step_outputs.append(('percent_out',np.nanmean(percent_out)))
-        # self.validation_step_outputs.append(('percent_covered',np.nanmean(percent_covered)))
-        # self.validation_step_outputs.append(('is_correct',np.nanmean(is_correct)))
-        # self.validation_step_outputs.append(('my_sensitivity',np.nanmean(my_sensitivity)))
-        # self.validation_step_outputs.append(('my_specificity',np.nanmean(my_specificity)))
-
-        # 'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard
-        #                         , 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered,'is_correct':is_correct
-        #                         ,'my_sensitivity':my_sensitivity,'my_specificity':my_specificity
+        self.log("val loss",l.detach().cpu().item())
+        # we only need the output with the highest output resolution
+        # output = output[0]
+        # target = target[0]
+        # if(epoch%self.log_every_n==0):
+            # if(batch_idx<self.num_batch_to_eval):
+            
         return l
-        # return {'loss': l.detach().cpu().numpy(), 'tp_hard': tp_hard, 'fp_hard': fp_hard, 'fn_hard': fn_hard
-        #                 , 'percent_in' :percent_in,'percent_out':percent_out,'percent_covered':percent_covered,'is_correct':is_correct
-        #                 ,'my_sensitivity':my_sensitivity,'my_specificity':my_specificity   }
-
-
-    def parse_outputs(self,metr_name,outputs ):
-        all = np.array(list(filter(lambda t:t[0]== metr_name,outputs)))
-        all = np.array(list(map(lambda t:np.array(t[1]).flatten(),outputs)))
-        self.log(metr_name, np.nanmean(all.flatten()),sync_dist=True)
 
     def on_validation_epoch_end(self):
-        if(self.current_epoch%self.log_every_n==0):
-            group_name='val'
-            res= calc_custom_metrics(group_name,self.f ).flatten()
-            self.log("percent_in_val", res[0]) #,sync_dist=True
-            self.log("percent_out_val", res[1]) #,sync_dist=True
-            self.log("is_correct_val", res[2])#,sync_dist=True
-            self.log("my_sensitivity_val", res[3])#,sync_dist=True
-            self.log("my_specificity_val", res[4])#,sync_dist=True
+        group_name='val'
+        res= calc_custom_metrics(group_name,self.f ).flatten()
+        self.log("percent_in_val", res[0]) #,sync_dist=True
+        self.log("percent_out_val", res[1]) #,sync_dist=True
+        self.log("percent_covered_val", res[2]) #,sync_dist=True
+        self.log("is_correct_val", res[3])#,sync_dist=True
+        self.log("my_sensitivity_val", res[4])#,sync_dist=True
+        self.log("my_specificity_val", res[5])#,sync_dist=True
 
 
 
@@ -314,11 +253,11 @@ class Pl_Model(pl.LightningModule):
         if(self.current_epoch%self.log_every_n==0):
             group_name='train'
             res= calc_custom_metrics(group_name,self.f ).flatten()
-            res= calc_custom_metrics(group_name,self.f ).flatten()
             self.log("percent_in_train", res[0]) #,sync_dist=True
             self.log("percent_out_train", res[1]) #,sync_dist=True
-            self.log("is_correct_train", res[2])#,sync_dist=True
-            self.log("my_sensitivity_train", res[3])#,sync_dist=True
-            self.log("my_specificity_train", res[4])#,sync_dist=True
+            self.log("percent_covered_train", res[2]) #,sync_dist=True
+            self.log("is_correct_train", res[3])#,sync_dist=True
+            self.log("my_sensitivity_train", res[4])#,sync_dist=True
+            self.log("my_specificity_train", res[5])#,sync_dist=True
 
 

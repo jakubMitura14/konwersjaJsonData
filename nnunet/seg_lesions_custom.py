@@ -426,7 +426,7 @@ p.wait()
 
 
     
-#my_proj_name="seg lesions 4" tag="pl test l4d" my_proj_desc=" pl test" nnUNetv2_train 101 3d_fullres 0 -tr My_pl_trainer
+#my_proj_name="seg lesions 5" tag="pl with AdamW l4d" my_proj_desc="pl with AdamW" nnUNetv2_train 101 3d_fullres 0 -tr My_pl_trainer
 #my_proj_name="seg lesions 4" tag="pl test l4d" my_proj_desc=" pl test" nnUNetv2_train 101 3d_fullres 0 -tr D2_My_pl_trainer
 
 
