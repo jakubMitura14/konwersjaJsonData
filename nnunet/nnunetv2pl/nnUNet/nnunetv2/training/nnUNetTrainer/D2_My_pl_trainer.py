@@ -26,8 +26,7 @@ from batchgenerators.utilities.file_and_folder_operations import join, load_json
 from torch._dynamo import OptimizedModule
 from nnunetv2.training.data_augmentation.custom_transforms.cascade_transforms import MoveSegAsOneHotToData, \
     ApplyRandomBinaryOperatorTransform, RemoveRandomConnectedComponentFromOneHotEncodingTransform
-from nnunetv2.training.data_augmentation.custom_transforms.deep_supervision_donwsampling import \
-    DownsampleSegForDSTransform2
+from nnunetv2.training.data_augmentation.custom_transforms.deep_supervision_donwsampling import *
 from nnunetv2.training.data_augmentation.custom_transforms.limited_length_multithreaded_augmenter import \
     LimitedLenWrapper
 from nnunetv2.training.data_augmentation.custom_transforms.masking import MaskTransform
@@ -35,29 +34,19 @@ from nnunetv2.training.data_augmentation.custom_transforms.region_based_training
     ConvertSegmentationToRegionsTransform
 from nnunetv2.training.data_augmentation.custom_transforms.transforms_for_dummy_2d import Convert2DTo3DTransform, \
     Convert3DTo2DTransform
+from nnunetv2.training.dataloading.data_loader_3d import nnUNetDataLoader3D
 
 
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper
-from .Pl_model import *
+from .D2_Pl_model import *
 import shutil
 import h5py
-import transformers
+from .my_transform import *
 from mpi4py import MPI
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
-from torch.utils.data import DataLoader
-from transformers import (
-    AdamW,
-    AutoConfig,
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
-    get_linear_schedule_with_warmup,
-)
-
-from transformers import AutoImageProcessor
 
 
-class My_pl_trainer(nnUNetTrainer):
+class D2_My_pl_trainer(nnUNetTrainer):
 
     def on_train_start(self):
         """
@@ -65,6 +54,7 @@ class My_pl_trainer(nnUNetTrainer):
         """
         self.log_every_n=10
         self.num_batch_to_eval=10
+        batch_size=1
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
         ligtning_logs_folder='/workspaces/konwersjaJsonData/explore'
@@ -93,10 +83,9 @@ class My_pl_trainer(nnUNetTrainer):
         self.default_root_dir=ligtning_logs_folder
         nnUNetTrainer.on_train_start(self)
 
-        self.save_hyperparameters()
+        
 
-
-        self.pl_model= Pl_Model(network=self.network
+        self.pl_model= D2_Pl_model(network=self.network
                                 ,dataloader_train=self.dataloader_train
                                 ,dataloader_val=self.dataloader_val
                                 ,loss=self.loss
@@ -107,7 +96,8 @@ class My_pl_trainer(nnUNetTrainer):
                                 ,num_batch_to_eval=self.num_batch_to_eval
                                 ,train_eval_folder=train_eval_folder 
                                 ,val_eval_folder=val_eval_folder
-                                ,hf5_path=self.hf5_path)
+                                ,hf5_path=self.hf5_path
+                                ,batch_size=batch_size)
 
         comet_logger = CometLogger(
             api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
@@ -159,20 +149,42 @@ class My_pl_trainer(nnUNetTrainer):
         return optimizer, lr_scheduler
     
     def _build_loss(self):
-        loss= Picai_FL_and_CE_loss()
+        # loss= Picai_FL_and_CE_loss()
+        loss= torch.nn.CrossEntropyLoss()
 
-        deep_supervision_scales = self._get_deep_supervision_scales()
+        # deep_supervision_scales = self._get_deep_supervision_scales()
 
-        # we give each output a weight which decreases exponentially (division by 2) as the resolution decreases
-        # this gives higher resolution outputs more weight in the loss
-        weights = np.array([1 / (2 ** i) for i in range(len(deep_supervision_scales))])
-        weights[-1] = 0
+        # # we give each output a weight which decreases exponentially (division by 2) as the resolution decreases
+        # # this gives higher resolution outputs more weight in the loss
+        # weights = np.array([1 / (2 ** i) for i in range(len(deep_supervision_scales))])
+        # weights[-1] = 0
 
-        # we don't use the lowest 2 outputs. Normalize weights so that they sum to 1
-        weights = weights / weights.sum()
-        # now wrap the loss
-        loss = DeepSupervisionWrapper(loss, weights)
+        # # we don't use the lowest 2 outputs. Normalize weights so that they sum to 1
+        # weights = weights / weights.sum()
+        # # now wrap the loss
+        # loss = DeepSupervisionWrapper(loss, weights)
         return loss    
+
+
+
+    def get_plain_dataloaders(self, initial_patch_size: Tuple[int, ...], dim: int):
+        dataset_tr, dataset_val = self.get_tr_and_val_datasets()
+
+
+        dl_tr = nnUNetDataLoader3D(dataset_tr, self.batch_size,
+                                    initial_patch_size,
+                                    self.configuration_manager.patch_size,
+                                    self.label_manager,
+                                    oversample_foreground_percent=self.oversample_foreground_percent,
+                                    sampling_probabilities=None, pad_sides=None)
+        dl_val = nnUNetDataLoader3D(dataset_val, self.batch_size,
+                                    self.configuration_manager.patch_size,
+                                    self.configuration_manager.patch_size,
+                                    self.label_manager,
+                                    oversample_foreground_percent=self.oversample_foreground_percent,
+                                    sampling_probabilities=None, pad_sides=None)
+        return dl_tr, dl_val
+
 
 
     @staticmethod
@@ -190,9 +202,11 @@ class My_pl_trainer(nnUNetTrainer):
                                 regions: List[Union[List[int], Tuple[int, ...], int]] = None,
                                 ignore_label: int = None) -> AbstractTransform:
         tr_transforms = []
+
+
         if do_dummy_2d_data_aug:
             ignore_axes = (0,)
-            tr_transforms.append(Convert3DTo2DTransform())
+            # tr_transforms.append(Convert3DTo2DTransform())
             patch_size_spatial = patch_size[1:]
         else:
             patch_size_spatial = patch_size
@@ -210,12 +224,12 @@ class My_pl_trainer(nnUNetTrainer):
             p_el_per_sample=0, p_scale_per_sample=0.2, p_rot_per_sample=0.2,
             independent_scale_for_each_axis=False  # todo experiment with this
         ))
-
+        tr_transforms.append(My_PseudoLesion_adder())
         if do_dummy_2d_data_aug:
             tr_transforms.append(Convert2DTo3DTransform())
 
         tr_transforms.append(RicianNoiseTransform(p_per_sample=0.1))
-        tr_transforms.append(My_PseudoLesion_adder())
+        
         tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=0.2,
                                                    p_per_channel=0.5))
         # tr_transforms.append(BrightnessMultiplicativeTransform(multiplier_range=(0.75, 1.25), p_per_sample=0.15))
@@ -252,13 +266,10 @@ class My_pl_trainer(nnUNetTrainer):
                     p_per_sample=0.2,
                     fill_with_other_class_p=0,
                     dont_do_if_covers_more_than_x_percent=0.15))
-
-
-
-
+            
+        tr_transforms.append(Convert3DTo2DTransform())
         tr_transforms.append(RenameTransform('seg', 'target', True))
-
-
+        tr_transforms.append(One_former_preprocess())
 
         if regions is not None:
             # the ignore label must also be converted
@@ -266,12 +277,44 @@ class My_pl_trainer(nnUNetTrainer):
                                                                        if ignore_label is not None else regions,
                                                                        'target', 'target'))
 
-        if deep_supervision_scales is not None:
-            tr_transforms.append(DownsampleSegForDSTransform2(deep_supervision_scales, 0, input_key='target',
-                                                              output_key='target'))
+        # if deep_supervision_scales is not None:
+        #     tr_transforms.append(DownsampleSegForDSTransform2_b(deep_supervision_scales, 0, input_key='target',
+        #                                                       output_key='target'))
         tr_transforms.append(NumpyToTensor(['data', 'target'], 'float'))
+
         tr_transforms = Compose(tr_transforms)
         return tr_transforms
+
+
+    @staticmethod
+    def get_validation_transforms(deep_supervision_scales: Union[List, Tuple],
+                                  is_cascaded: bool = False,
+                                  foreground_labels: Union[Tuple[int, ...], List[int]] = None,
+                                  regions: List[Union[List[int], Tuple[int, ...], int]] = None,
+                                  ignore_label: int = None) -> AbstractTransform:
+        val_transforms = []
+        val_transforms.append(RemoveLabelTransform(-1, 0))
+
+        if is_cascaded:
+            val_transforms.append(MoveSegAsOneHotToData(1, foreground_labels, 'seg', 'data'))
+
+        # val_transforms.append(Convert3DTo2DTransform())
+        val_transforms.append(RenameTransform('seg', 'target', True))
+        val_transforms.append(One_former_preprocess())
+
+        if regions is not None:
+            # the ignore label must also be converted
+            val_transforms.append(ConvertSegmentationToRegionsTransform(list(regions) + [ignore_label]
+                                                                        if ignore_label is not None else regions,
+                                                                        'target', 'target'))
+
+        # if deep_supervision_scales is not None:
+        #     val_transforms.append(DownsampleSegForDSTransform2_b(deep_supervision_scales, 0, input_key='target',
+        #                                                        output_key='target'))
+
+        val_transforms.append(NumpyToTensor(['data', 'target'], 'float'))
+        val_transforms = Compose(val_transforms)
+        return val_transforms
 
 
     def run_training(self):

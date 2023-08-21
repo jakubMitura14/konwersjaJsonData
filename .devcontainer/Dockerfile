@@ -246,25 +246,18 @@ RUN wget -q -O - https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1
     make install && \
     rm -rf /tmp/hdf5-1.12.0
 
-
-
 RUN CC=mpicc HDF5_MPI="ON" HDF5_VERSION=1.12.0 HDF5_DIR=${HOME}/hdf5/inst python3 -m pip install --no-binary=h5py h5py
-
-
 RUN export GITHUB_USER=jakubMitura14
-
-
 RUN git config --global user.name "Jakub Mitura"
 RUN git config --global user.email "jakub.mitura14@gmail.com"
 RUN git config -l
 
 
-
 RUN mkdir ${HOME}/scripts \
-&& mkdir ${HOME}/externalRepos \
-&& mkdir ${HOME}/forLesionAnalysis \
-&& mkdir ${HOME}/Swin3d \
-&& mkdir ${HOME}/connected_comp
+    && mkdir ${HOME}/externalRepos \
+    && mkdir ${HOME}/forLesionAnalysis \
+    && mkdir ${HOME}/Swin3d \
+    && mkdir ${HOME}/connected_comp
 # RUN mkdir ${HOME}/connected_comp
 
 

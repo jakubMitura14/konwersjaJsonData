@@ -74,8 +74,27 @@ from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from .custom_eval import *
 
+from datetime import datetime
+from typing import Optional
 
-class Pl_Model(pl.LightningModule):
+# import datasets
+import torch
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
+from torch.utils.data import DataLoader
+from transformers import (
+    AdamW,
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    get_linear_schedule_with_warmup,
+)
+from nnunetv2.training.data_augmentation.custom_transforms.transforms_for_dummy_2d import *
+from transformers import AutoModelForUniversalSegmentation
+from transformers import AutoProcessor
+import einops
+
+
+class D2_Pl_model(pl.LightningModule):
     def __init__(self,network
                  ,dataloader_train
                  ,dataloader_val
@@ -88,10 +107,12 @@ class Pl_Model(pl.LightningModule):
                  ,train_eval_folder
                  ,val_eval_folder
                  ,hf5_path
+                 ,batch_size
 
                  ):
         super().__init__()
-        self.network=network
+        # self.network=network
+        self.network=AutoModelForUniversalSegmentation.from_pretrained("shi-labs/oneformer_coco_swin_large")
         self.dataloader_train=dataloader_train
         self.dataloader_val=dataloader_val
         self.loss=loss
@@ -103,6 +124,10 @@ class Pl_Model(pl.LightningModule):
         self.train_eval_folder =train_eval_folder
         self.val_eval_folder =val_eval_folder
         self.hf5_path=hf5_path
+        self.batch_size=batch_size
+        self.processor = AutoProcessor.from_pretrained("shi-labs/oneformer_coco_swin_large")
+
+
         # self.validation_step_outputs = []
         # self.test_step_outputs = []
 
@@ -115,10 +140,14 @@ class Pl_Model(pl.LightningModule):
 
 
     def train_dataloader(self):
-        return self.dataloader_train                    
+        res= self.dataloader_train   
+        res.batch_size=self.batch_size
+        return res                 
 
     def val_dataloader(self):
-        return self.dataloader_val
+        res=  self.dataloader_val
+        res.batch_size=self.batch_size
+        return res                 
 
 
     def configure_optimizers(self):
@@ -195,13 +224,35 @@ class Pl_Model(pl.LightningModule):
         network=self.network
         loss=self.loss
         label_manager=self.label_manager
-
+        # convert_back_to_3D=Convert2DTo3DTransform()
+        # batch=Convert3DTo2DTransform_b()(batch)
         data = batch['data']
         target = batch['target']
-        if(isinstance(data,list)):
-            print(f"valll data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
-        else:
-            print(f"valll data 0 {data.shape}")
+        # orig_shape=data.shape
+        # data = einops.rearrange(data,'b c x y z-> (b z) c x y')
+        # target = einops.rearrange(target,'b c x y z-> (b z) c x y')
+        # print(f" aaa data { batch['data'].shape}")
+
+        # batch=My_Convert2DTo3DTransform()(batch)
+
+        outputs = network(**data)
+        print(f"oooooooooooo outputs {outputs.shape}")
+
+        with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
+            # output = network(data)
+            # del data
+            l = loss(outputs, target)
+
+        # batch=My_Convert2DTo3DTransform()({'data':batch['data'][0],'target':batch['target'][0]} )
+        outputs = self.processor.post_process_semantic_segmentation(outputs)[0]
+
+        
+
+
+        # if(isinstance(data,list)):
+        #     print(f"valll data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
+        # else:
+        #     print(f"valll data 0 {data.shape}")
 
         
         epoch=self.current_epoch
@@ -211,21 +262,18 @@ class Pl_Model(pl.LightningModule):
         else:
             target = target.to(device, non_blocking=True)
 
-        # Autocast is a little bitch.
-        # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
-        # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
-        # So autocast will only be active if we have a cuda device.
-        with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
-            output = network(data)
-            # del data
-            l = loss(output, target)
 
         # we only need the output with the highest output resolution
-        output = output[0]
-        target = target[0]
+        # output = output[0]
+        # target = target[0]
+
+        orig_shape=data.shape
+        # data = einops.rearrange(data,'(b z) c x y->b c x y z',b=orig_shape[0])
+        # target = einops.rearrange(target,'(b z) c x y->b c x y z',b=orig_shape[0])
+
         if(epoch%self.log_every_n==0):
             # if(batch_idx<self.num_batch_to_eval):
-            save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val")
+            save_for_metrics(epoch,target,outputs,data,self.log_every_n,batch_idx,self.f,"val")
         # # the following is needed for online evaluation. Fake dice (green line)
         # axes = [0] + list(range(2, len(output.shape)))
 

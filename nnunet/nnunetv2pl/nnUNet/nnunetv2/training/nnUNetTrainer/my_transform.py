@@ -22,7 +22,8 @@ import scipy.stats as st
 from batchgenerators.utilities.custom_types import ScalarType, sample_scalar
 from scipy.ndimage import gaussian_filter
 from scipy import ndimage
-
+from transformers import AutoProcessor
+import einops
         # tr_transforms.append(NumpyToTensor(['data', 'target'], 'float'))
 
 
@@ -96,8 +97,6 @@ def augment_two_channel(dat_curr,target_curr):
     data_c=dat_curr[2:,:,:,:]
     # data_c=np.expand_dims(data_c,axis=0)
     return np.concatenate([res,data_c],axis=0)
-            #     dat_curr= data[bi,:,:,:,:]
-            # target_curr= data[bi,:,:,:]
 
 
 class My_PseudoLesion_adder(LocalTransform):
@@ -115,6 +114,8 @@ class My_PseudoLesion_adder(LocalTransform):
     def __call__(self, **data_dict):
         data = data_dict.get("data")
         target= data_dict.get("seg")
+        # print(f"iiiiiiiiiin transform {data.shape}  keys {data_dict.keys()} ")
+        
         assert data is not None, "Could not find data key '%s'" % self.data_key
         b, c, *img_shape = data.shape
         for bi in range(b):
@@ -123,31 +124,37 @@ class My_PseudoLesion_adder(LocalTransform):
             dat_curr=augment_two_channel(dat_curr,target_curr)
             #)we save result in data dictionary
             data[bi, :,:,:,:] =dat_curr
-            # if np.random.uniform() < self.p_per_sample:
-            #     if self.same_for_all_channels:
-            #         kernel = self._generate_kernel(img_shape)
-            #         if self.mean_centered:
-            #             # first center the mean of the kernel
-            #             kernel -= kernel.mean()
-            #         mx = max(np.max(np.abs(kernel)), 1e-8)
-            #         if not callable(self.max_strength):
-            #             strength = sample_scalar(self.max_strength, None, None)
-            #         for ci in range(c):
-            #             if np.random.uniform() < self.p_per_channel:
-            #                 # now rescale so that the maximum value of the kernel is max_strength
-            #                 strength = sample_scalar(self.max_strength, data[bi, ci], kernel) if callable(
-            #                     self.max_strength) else strength
-            #                 kernel_scaled = np.copy(kernel) / mx * strength
-            #                 data[bi, ci] += kernel_scaled
-            #     else:
-            #         for ci in range(c):
-            #             if np.random.uniform() < self.p_per_channel:
-            #                 kernel = self._generate_kernel(img_shape)
-            #                 if self.mean_centered:
-            #                     kernel -= kernel.mean()
-            #                 mx = max(np.max(np.abs(kernel)), 1e-8)
-            #                 strength = sample_scalar(self.max_strength, data[bi, ci], kernel)
-            #                 kernel = kernel / mx * strength
-            #                 data[bi, ci] += kernel
         return data_dict
+
+
+class One_former_preprocess(LocalTransform):
+    def __init__(self):
+        super().__init__(1.0)
+        self.processor = AutoProcessor.from_pretrained("shi-labs/oneformer_coco_swin_large")
+        
+    def __call__(self, **data_dict):
+        data = data_dict.get("data")
+        target= data_dict.get("target")
+        orig_shape=data.shape
+        assert data is not None, "Could not find data key '%s'" % self.data_key
+        print(f"ppppppppppppppp data {data.shape}")
+
+        data = einops.rearrange(data,'b c x y z  -> (b z) c x y')
+        target = einops.rearrange(target,'b c x y z -> (b z) c x y')
+
+        data_a=data[11,0:3,:,:]#TODO change
+        target=target[10:11,:,:,:]#TODO change
+        # data = np.nan_to_num(data,0)
+        data_a = (data_a-np.min(data_a.flatten()))/((np.max(data_a.flatten())-np.min(data_a.flatten()))+0.000000000001)
+
+        data_b=data[12,0:3,:,:]#TODO change
+        target=target[10:11,:,:,:]#TODO change
+        # data = np.nan_to_num(data,0)
+        data_b = (data_b-np.min(data_b.flatten()))/((np.max(data_b.flatten())-np.min(data_b.flatten()))+0.000000000001)
+
+        data = self.processor(images=[data_a,data_b], task_inputs=["semantic"], return_tensors="pt")
+        #data = einops.rearrange(data,'(b z) c x y->b c x y z',b=orig_shape[0])
+        #target = einops.rearrange(target,'(b z) c x y c->b c x y z',b=orig_shape[0])      
+        
+        return {"data":data,"target":target,"orig_shape":orig_shape}
 

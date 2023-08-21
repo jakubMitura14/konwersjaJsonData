@@ -124,6 +124,8 @@ nnunetv2/training/loss/dice.py
 nnunetv2/training/loss/robust_ce_loss.py
 nnunetv2/training/lr_scheduler/__init__.py
 nnunetv2/training/lr_scheduler/polylr.py
+nnunetv2/training/nnUNetTrainer/D2_My_pl_trainer.py
+nnunetv2/training/nnUNetTrainer/D2_Pl_model.py
 nnunetv2/training/nnUNetTrainer/My_pl_trainer.py
 nnunetv2/training/nnUNetTrainer/Pl_model.py
 nnunetv2/training/nnUNetTrainer/__init__.py
@@ -131,6 +133,7 @@ nnunetv2/training/nnUNetTrainer/custom_eval.py
 nnunetv2/training/nnUNetTrainer/custom_loss.py
 nnunetv2/training/nnUNetTrainer/my_transform.py
 nnunetv2/training/nnUNetTrainer/nnUNetTrainer.py
+nnunetv2/training/nnUNetTrainer/transfer_2D.py
 nnunetv2/training/nnUNetTrainer/variants/__init__.py
 nnunetv2/training/nnUNetTrainer/variants/benchmarking/__init__.py
 nnunetv2/training/nnUNetTrainer/variants/benchmarking/nnUNetTrainerBenchmark_5epochs.py

@@ -307,7 +307,8 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 #metadata directory
 resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory with inferred prostates
-dir_inferred_prost='/workspaces/konwersjaJsonData/explore/all_prost_segm_full_files/my_prost_infered'
+dir_inferred_prost='/workspaces/konwersjaJsonData/explore/all_prost_segm_files/all_prost_segm_files/my_prost_infered'
+# dir_inferred_prost='/workspaces/konwersjaJsonData/explore/all_prost_segm_full_files/my_prost_infered'
 dir_inferred_prost_parts='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_parts_infered'
 
 sourceFrame = pd.read_csv(resCSVDir)
@@ -426,6 +427,7 @@ p.wait()
 
     
 #my_proj_name="seg lesions 4" tag="pl test l4d" my_proj_desc=" pl test" nnUNetv2_train 101 3d_fullres 0 -tr My_pl_trainer
+#my_proj_name="seg lesions 4" tag="pl test l4d" my_proj_desc=" pl test" nnUNetv2_train 101 3d_fullres 0 -tr D2_My_pl_trainer
 
 
 #with masked binary_cross_entropy_with_logits
