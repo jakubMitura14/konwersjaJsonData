@@ -42,6 +42,11 @@ from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper
 from .Pl_model import *
 import shutil
 import h5py
+import pytorch_lightning as pl
+from lightning.pytorch.tuner import Tuner
+
+
+
 import transformers
 from mpi4py import MPI
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
@@ -93,6 +98,10 @@ class My_pl_trainer(nnUNetTrainer):
         self.default_root_dir=ligtning_logs_folder
         nnUNetTrainer.on_train_start(self)
 
+        
+
+        
+
         self.save_hyperparameters()
 
 
@@ -117,8 +126,8 @@ class My_pl_trainer(nnUNetTrainer):
         )
 
 
-        toMonitor="is_correct"
-        checkpoint_callback = ModelCheckpoint(dirpath= join(self.output_folder),mode='max', save_top_k=2, monitor=toMonitor)
+        toMonitor="is_correct_val"
+        checkpoint_callback = ModelCheckpoint(dirpath= join(self.output_folder),mode='max', save_top_k=1, monitor=toMonitor)
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
         stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=1e-3)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
@@ -140,11 +149,10 @@ class My_pl_trainer(nnUNetTrainer):
             devices='auto',       
             default_root_dir= self.default_root_dir,
             # auto_scale_batch_size="binsearch",
-            # auto_lr_find=True,
             check_val_every_n_epoch=self.log_every_n,
-            # accumulate_grad_batches= 1,
+            accumulate_grad_batches= 1,
             gradient_clip_val = 3.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
-            log_every_n_steps=10
+            log_every_n_steps=self.log_every_n
             # ,reload_dataloaders_every_n_epochs=1
             #strategy='dp'
         )
@@ -277,10 +285,11 @@ class My_pl_trainer(nnUNetTrainer):
     def run_training(self):
         self.on_train_start()
 
-        # self.trainer.tune(self.pl_model)
+        tuner = Tuner(self.trainer)
+        # to set to your own hparams.my_value
+        tuner.lr_find(self.pl_model, attr_name="learning_rate")
         self.trainer.fit(self.pl_model)
-
-
+        
         self.on_train_end()
         # shutil.rmtree(self.default_root_dir)
         # self.f.close()
