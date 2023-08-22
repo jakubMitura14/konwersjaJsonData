@@ -16,6 +16,7 @@ from batchgenerators.transforms.local_transforms import *
 from batchgenerators.transforms.local_transforms import LocalTransform
 from abc import ABC
 from typing import Tuple
+from torch import autocast, nn
 
 import numpy as np
 import scipy.stats as st
@@ -173,12 +174,15 @@ class One_former_preprocess(LocalTransform):
         task_inputs=list(batched(task_inputs,n_split))
         segmentation_maps=list(batched(segmentation_maps,n_split))
 
-        data = list(map(lambda tupl:
-                         self.processor(images=tupl[0], task_inputs=tupl[1], segmentation_maps=tupl[2] ,return_tensors="pt")
-                         ,list(zip(data,task_inputs,segmentation_maps ))))
+        with autocast(device_type="cpu",dtype=torch.float16):
+            data = tuple(list(map(lambda tupl:
+                            self.processor(images=tupl[0], task_inputs=tupl[1], segmentation_maps=tupl[2] ,return_tensors="pt")
+                            ,list(zip(data,task_inputs,segmentation_maps )))))
+        
+        print(f"iiiiiiiiiiiiiiiiiiiiiii data {type(data)}  ii {type(data[0])}")
         # data_b = self.processor(images=data_b, task_inputs=["semantic"], return_tensors="pt")
         #data = einops.rearrange(data,'(b z) c x y->b c x y z',b=orig_shape[0])
         #target = einops.rearrange(target,'(b z) c x y c->b c x y z',b=orig_shape[0])      
         
-        return {"data":data,"target":torch.tensor(target_orig),"orig_shape":orig_shape,"data_orig":torch.tensor(data_orig)}
+        return {"data_a":data[0]  ,"target":torch.tensor(target_orig),"orig_shape":orig_shape,"data_orig":torch.tensor(data_orig)}
 
