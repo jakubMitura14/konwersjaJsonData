@@ -169,7 +169,7 @@ class Picai_FL_and_CE_loss(nn.Module):
 
         # net_output=net_output*target_mask
         # target=(target==2).int()
-        weight=torch.tensor([10,8,10])/10
+        weight=torch.tensor([6,8,10])/10
         # ce_loss = self.ce(net_output, target)
         fl_loss = self.fl(net_output, target,weight)
         return fl_loss
