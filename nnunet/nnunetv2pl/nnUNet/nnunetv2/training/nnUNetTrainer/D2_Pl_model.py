@@ -92,6 +92,7 @@ from nnunetv2.training.data_augmentation.custom_transforms.transforms_for_dummy_
 from transformers import AutoModelForUniversalSegmentation
 from transformers import AutoProcessor
 import einops
+import deepspeed
 
 
 class D2_Pl_model(pl.LightningModule):
@@ -151,8 +152,12 @@ class D2_Pl_model(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate, weight_decay=self.weight_decay,
-                                    momentum=0.99, nesterov=True)
+        # optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate, weight_decay=self.weight_decay,
+        #                             momentum=0.99, nesterov=True)
+
+        # learning rate taken from oneformer code https://github.com/SHI-Labs/OneFormer/blob/4962ef6a96ffb76a76771bfa3e8b3587f209752b/configs/coco/Base-COCO-UnifiedSegmentation.yaml#L23
+        # then reduced 100 times as it is just fine tuning
+        optimizer = torch.optim.AdamW(self.network.parameters(), 0.0001*0.01)        # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), 0.0001)
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
@@ -179,17 +184,32 @@ class D2_Pl_model(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         
-        data = batch['data']
+        # data = batch['data']
         target = batch['target']
-        output = self.network(data)
-        print(f"trainnn data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
+        data = batch['data_a']
+
+        # orig_shape=data.shape
+        with autocast(device_type=self.device.type,dtype=torch.float16):
+            # print(f"aaaaaaaaaaaaaa {type(data)}")
+            outputs_multi = list(map(lambda dat: self.network(**dat), data))
+            l=torch.mean(torch.stack(list(map(lambda el: el.loss, outputs_multi))))
+
+            # batch=My_Convert2DTo3DTransform()({'data':batch['data'][0],'target':batch['target'][0]} )
+
+
 
         epoch=self.current_epoch
-        l=self.loss(output, target)
+        # l=self.loss(output, target)
 
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
-                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train")
+                outputs = list(map( lambda el: self.processor.post_process_semantic_segmentation(el)[0],outputs_multi))
+                outputs = torch.concatenate(outputs)
+
+                orig_shape=batch["orig_shape"]
+                target = einops.rearrange(target,'(b z) c x y -> b c x y z',b=orig_shape[0])
+
+                save_for_metrics(epoch,target,outputs,data,self.log_every_n,batch_idx,self.f,"train")
                 # print(f"bbbbbbbbbbbb {batch_idx} output {len(output)} {output[0].shape} {output[1].shape} {output[2].shape}")
                 # percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity=calc_custom_metrics(epoch,target,output ,self.log_every_n,batch_idx)
 
@@ -224,28 +244,16 @@ class D2_Pl_model(pl.LightningModule):
         network=self.network
         loss=self.loss
         label_manager=self.label_manager
-        # convert_back_to_3D=Convert2DTo3DTransform()
-        # batch=Convert3DTo2DTransform_b()(batch)
+
         data = batch['data']
-        target = batch['target']
         # orig_shape=data.shape
-        # data = einops.rearrange(data,'b c x y z-> (b z) c x y')
-        # target = einops.rearrange(target,'b c x y z-> (b z) c x y')
-        # print(f" aaa data { batch['data'].shape}")
-
-        # batch=My_Convert2DTo3DTransform()(batch)
-
-        outputs = network(**data)
-        print(f"oooooooooooo outputs {outputs.shape}")
-
-        with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
-            # output = network(data)
-            # del data
-            l = loss(outputs, target)
-
-        # batch=My_Convert2DTo3DTransform()({'data':batch['data'][0],'target':batch['target'][0]} )
-        outputs = self.processor.post_process_semantic_segmentation(outputs)[0]
-
+        with autocast(device_type=self.device.type,dtype=torch.float16):
+            outputs_multi = list(map(lambda dat: self.network(**dat), data))
+            l=torch.mean(torch.stack(list(map(lambda el: el.loss, outputs_multi))))
+            outputs = list(map( lambda el: self.processor.post_process_semantic_segmentation(el)[0],outputs_multi))
+            outputs = torch.concatenate(outputs)
+            
+            print(f"iiiiiiiiiiiiiiiiii outputs {outputs.shape}  orig shape { batch['orig_shape'] }")
         
 
 
@@ -267,13 +275,15 @@ class D2_Pl_model(pl.LightningModule):
         # output = output[0]
         # target = target[0]
 
-        orig_shape=data.shape
+        orig_shape=batch["orig_shape"]
+        
         # data = einops.rearrange(data,'(b z) c x y->b c x y z',b=orig_shape[0])
         # target = einops.rearrange(target,'(b z) c x y->b c x y z',b=orig_shape[0])
 
         if(epoch%self.log_every_n==0):
             # if(batch_idx<self.num_batch_to_eval):
-            save_for_metrics(epoch,target,outputs,data,self.log_every_n,batch_idx,self.f,"val")
+            target = einops.rearrange(target,'(b z) c x y -> b c x y z',b=orig_shape[0])
+            save_for_metrics(epoch,target,outputs,batch["data_orig"],self.log_every_n,batch_idx,self.f,"val")
         # # the following is needed for online evaluation. Fake dice (green line)
         # axes = [0] + list(range(2, len(output.shape)))
 

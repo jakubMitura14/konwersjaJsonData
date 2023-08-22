@@ -26,7 +26,8 @@ from transformers import AutoProcessor
 import einops
         # tr_transforms.append(NumpyToTensor(['data', 'target'], 'float'))
 
-
+import itertools
+from more_itertools import batched
 
 def augment_two_channel(dat_curr,target_curr):
     """
@@ -126,35 +127,58 @@ class My_PseudoLesion_adder(LocalTransform):
             data[bi, :,:,:,:] =dat_curr
         return data_dict
 
+     
 
 class One_former_preprocess(LocalTransform):
     def __init__(self):
         super().__init__(1.0)
         self.processor = AutoProcessor.from_pretrained("shi-labs/oneformer_coco_swin_large")
+        self.processor.num_text=0
+        self.processor.metadata={"class_names":["background","sum","common"]}
+
         
     def __call__(self, **data_dict):
         data = data_dict.get("data")
+        data_orig=np.copy(data)
         target= data_dict.get("target")
+        target_orig= np.copy(target)
         orig_shape=data.shape
         assert data is not None, "Could not find data key '%s'" % self.data_key
-        print(f"ppppppppppppppp data {data.shape}")
+        n_split=20
 
-        data = einops.rearrange(data,'b c x y z  -> (b z) c x y')
-        target = einops.rearrange(target,'b c x y z -> (b z) c x y')
+        data = einops.rearrange(data,'b c x y z  -> (b z) c x y')#.astype('float16')
+        target = einops.rearrange(target,'b c x y z -> (b z) c x y').astype(int)#.astype('float16')
+        target_0=(target==0)
+        target_1=(target==1)
+        target_2=(target==2)
+        target= np.concatenate([target_0,target_1,target_2],axis=1).astype(int)
 
-        data_a=data[11,0:3,:,:]#TODO change
-        target=target[10:11,:,:,:]#TODO change
-        # data = np.nan_to_num(data,0)
-        data_a = (data_a-np.min(data_a.flatten()))/((np.max(data_a.flatten())-np.min(data_a.flatten()))+0.000000000001)
+        data_0 = data[:,0,:,:]
+        data_1 = data[:,1,:,:]
+        data_2 = data[:,2,:,:]
 
-        data_b=data[12,0:3,:,:]#TODO change
-        target=target[10:11,:,:,:]#TODO change
-        # data = np.nan_to_num(data,0)
-        data_b = (data_b-np.min(data_b.flatten()))/((np.max(data_b.flatten())-np.min(data_b.flatten()))+0.000000000001)
+        data_0 = (data_0-np.min(data_0.flatten()))/((np.max(data_0.flatten())-np.min(data_0.flatten()))+0.000000000000000001)
+        data_1 = (data_1-np.min(data_1.flatten()))/((np.max(data_1.flatten())-np.min(data_1.flatten()))+0.000000000000000001)
+        data_2 = (data_2-np.min(data_2.flatten()))/((np.max(data_2.flatten())-np.min(data_2.flatten()))+0.000000000000000001)
+        data=np.stack([data_0,data_1,data_2],axis=1)
+      
+        lenn=data.shape[0]
+        data=list(map(lambda i: data[i,0:3,:,:],range(lenn)))
+        segmentation_maps=list(map(lambda i: target[i,:,:,:].astype(int),range(lenn)))
+        task_inputs=list(itertools.repeat("semantic",len(data)))
+        # print(f"tttttttttt sssssssssssssegmentation_maps {segmentation_maps[0].shape} \n \n dddddddddddddddata {data[0].shape}")
 
-        data = self.processor(images=[data_a,data_b], task_inputs=["semantic"], return_tensors="pt")
+
+        data=list(batched(data,n_split))
+        task_inputs=list(batched(task_inputs,n_split))
+        segmentation_maps=list(batched(segmentation_maps,n_split))
+
+        data = list(map(lambda tupl:
+                         self.processor(images=tupl[0], task_inputs=tupl[1], segmentation_maps=tupl[2] ,return_tensors="pt")
+                         ,list(zip(data,task_inputs,segmentation_maps ))))
+        # data_b = self.processor(images=data_b, task_inputs=["semantic"], return_tensors="pt")
         #data = einops.rearrange(data,'(b z) c x y->b c x y z',b=orig_shape[0])
         #target = einops.rearrange(target,'(b z) c x y c->b c x y z',b=orig_shape[0])      
         
-        return {"data":data,"target":target,"orig_shape":orig_shape}
+        return {"data":data,"target":torch.tensor(target_orig),"orig_shape":orig_shape,"data_orig":torch.tensor(data_orig)}
 
