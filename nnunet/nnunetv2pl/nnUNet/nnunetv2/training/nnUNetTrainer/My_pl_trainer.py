@@ -96,13 +96,11 @@ class My_pl_trainer(nnUNetTrainer):
         os.makedirs(h5_folder,exist_ok=True)
 
         self.default_root_dir=ligtning_logs_folder
+        
         nnUNetTrainer.on_train_start(self)
+    
 
-        
-
-        
-
-        self.save_hyperparameters()
+        # self.save_hyperparameters()
 
 
         self.pl_model= Pl_Model(network=self.network
@@ -285,9 +283,9 @@ class My_pl_trainer(nnUNetTrainer):
     def run_training(self):
         self.on_train_start()
 
-        tuner = Tuner(self.trainer)
+        # tuner = Tuner(self.trainer)
         # to set to your own hparams.my_value
-        tuner.lr_find(self.pl_model, attr_name="learning_rate")
+        # tuner.lr_find(self.pl_model, attr_name="learning_rate")
         self.trainer.fit(self.pl_model)
         
         self.on_train_end()
