@@ -283,7 +283,7 @@ RUN mkdir ${HOME}/scripts \
 # && cd ${HOME}/Swin3d \
 # && python3 -m pip install -r requirements.txt \
 # && python3 setup.py install
-RUN python3 -m pip install transformers datasets
+RUN python3 -m pip install transformers datasets lightning==2.0.7
 
 
 # Set TMP for nvidia build environment
