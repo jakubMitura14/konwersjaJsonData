@@ -46,6 +46,16 @@ import h5py
 from .my_transform import *
 from mpi4py import MPI
 
+one_former_path="shi-labs/oneformer_coco_swin_large"
+processor=AutoProcessor.from_pretrained(one_former_path,num_text=0
+                                        ,do_resize=False
+                                        ,do_rescale=False
+                                        ,do_normalize=False
+
+                                                    #    ,class_info_file= 'classes.json'
+                                                    #    ,repo_path='/workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet/nnunetv2/training/nnUNetTrainer/one_former_my'
+                                                    #    ,repo_path='one_former_my'
+                                                       )
 
 class D2_My_pl_trainer(nnUNetTrainer):
 
@@ -84,8 +94,11 @@ class D2_My_pl_trainer(nnUNetTrainer):
 
         self.default_root_dir=ligtning_logs_folder
         nnUNetTrainer.on_train_start(self)
-
         
+        
+        self.processor = processor
+        self.one_former_path=one_former_path
+
 
         self.pl_model= D2_Pl_model(network=self.network
                                 ,dataloader_train=self.dataloader_train
@@ -99,7 +112,9 @@ class D2_My_pl_trainer(nnUNetTrainer):
                                 ,train_eval_folder=train_eval_folder 
                                 ,val_eval_folder=val_eval_folder
                                 ,hf5_path=self.hf5_path
-                                ,batch_size=batch_size)
+                                ,batch_size=batch_size
+                                ,processor=self.processor
+                                ,one_former_path=self.one_former_path)
 
         comet_logger = CometLogger(
             api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
@@ -272,7 +287,7 @@ class D2_My_pl_trainer(nnUNetTrainer):
             
         tr_transforms.append(Convert3DTo2DTransform())
         tr_transforms.append(RenameTransform('seg', 'target', True))
-        tr_transforms.append(One_former_preprocess())
+        tr_transforms.append(One_former_preprocess(processor))
 
         # if regions is not None:
         #     # the ignore label must also be converted
@@ -303,7 +318,7 @@ class D2_My_pl_trainer(nnUNetTrainer):
 
         # val_transforms.append(Convert3DTo2DTransform())
         val_transforms.append(RenameTransform('seg', 'target', True))
-        val_transforms.append(One_former_preprocess())
+        val_transforms.append(One_former_preprocess(processor))
 
         # if regions is not None:
         #     # the ignore label must also be converted

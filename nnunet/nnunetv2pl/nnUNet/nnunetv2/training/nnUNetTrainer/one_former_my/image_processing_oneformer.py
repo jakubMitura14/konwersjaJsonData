@@ -424,10 +424,10 @@ class OneFormerImageProcessor(BaseImageProcessor):
             do_reduce_labels = kwargs.pop("reduce_labels")
 
         super().__init__(**kwargs)
-        self.do_resize = False#krowa
+        self.do_resize = True#False#krowa
         self.size = size
         self.resample = resample
-        self.do_rescale = False#krowa
+        self.do_rescale = True#False#krowa
         self.rescale_factor = rescale_factor
         self.do_normalize = do_normalize
         self.image_mean = image_mean if image_mean is not None else IMAGENET_DEFAULT_MEAN
@@ -521,6 +521,10 @@ class OneFormerImageProcessor(BaseImageProcessor):
         )
 
     def __call__(self, images, task_inputs=None, segmentation_maps=None, **kwargs) -> BatchFeature:
+        with open(hf_hub_download(self.repo_path, self.class_info_file, repo_type="dataset"), "r") as f:
+            class_info = json.load(f)
+            print(f"aaaaaaaaaaaaazzzzzzzzzzzz {class_info}")
+
         return self.preprocess(images, task_inputs=task_inputs, segmentation_maps=segmentation_maps, **kwargs)
 
     def _preprocess(
@@ -806,13 +810,13 @@ class OneFormerImageProcessor(BaseImageProcessor):
                     masks[idx] = np.clip(masks[idx], 0, 1)
 
         num = 0
-        # for i, cls_name in annotation_classes_names): # krowa encoding texts !!
-        #     if num_class_obj[cls_name] > 0:
-        #         for _ in range(num_class_obj[cls_name]):
-        #             if num >= len(texts):
-        #                 break
-        #             texts[num] = f"a photo with a {cls_name}"
-        #             num += 1
+        for i, cls_name in enumerate(annotation_classes_names): 
+            if num_class_obj[cls_name] > 0:
+                for _ in range(num_class_obj[cls_name]):
+                    if num >= len(texts):
+                        break
+                    texts[num] = f"a photo with a {cls_name}"
+                    num += 1
 
         classes = np.array(classes)
         masks = np.array(masks)
@@ -947,8 +951,6 @@ class OneFormerImageProcessor(BaseImageProcessor):
         pixel_values_list = [to_numpy_array(pixel_values) for pixel_values in pixel_values_list]
         pad_size = get_max_height_width(pixel_values_list)
         encoded_inputs = self.pad(pixel_values_list, return_tensors=return_tensors)
-
-        print(f"lllllllllllll instance_id_to_semantic_id {instance_id_to_semantic_id} segmentation_maps lenn  {len(segmentation_maps)} shape[0] {segmentation_maps[0].shape}")
 
         annotations = None
         if segmentation_maps is not None:

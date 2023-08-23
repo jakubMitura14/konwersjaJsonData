@@ -403,7 +403,7 @@ channel_names={
     "5": "noNorm"
 
     }
-
+#https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/explanation_plans_files.md
 data = { 
     "channel_names": channel_names, 
     "labels": label_names,  

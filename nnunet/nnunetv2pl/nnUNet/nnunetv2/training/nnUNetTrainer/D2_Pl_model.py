@@ -93,6 +93,8 @@ from transformers import AutoModelForUniversalSegmentation
 from transformers import AutoProcessor
 import einops
 import deepspeed
+# import transformers.image_processing_utils.BatchFeature
+
 
 
 class D2_Pl_model(pl.LightningModule):
@@ -109,11 +111,15 @@ class D2_Pl_model(pl.LightningModule):
                  ,val_eval_folder
                  ,hf5_path
                  ,batch_size
+                 ,processor
+                 ,one_former_path
 
                  ):
         super().__init__()
         # self.network=network
-        self.network=AutoModelForUniversalSegmentation.from_pretrained("shi-labs/oneformer_coco_swin_large")
+        self.network=AutoModelForUniversalSegmentation.from_pretrained(one_former_path,is_training=True)
+        # self.network.is_training=True
+
         self.dataloader_train=dataloader_train
         self.dataloader_val=dataloader_val
         self.loss=loss
@@ -126,8 +132,8 @@ class D2_Pl_model(pl.LightningModule):
         self.val_eval_folder =val_eval_folder
         self.hf5_path=hf5_path
         self.batch_size=batch_size
-        self.processor = AutoProcessor.from_pretrained("shi-labs/oneformer_coco_swin_large")
-
+        self.processor=processor
+        self.one_former_path=one_former_path
 
         # self.validation_step_outputs = []
         # self.test_step_outputs = []
@@ -246,12 +252,23 @@ class D2_Pl_model(pl.LightningModule):
         label_manager=self.label_manager
 
         data = batch['data']
+        print(f"aaaaiiiiiuuuu {data.keys()} mask labels {data['mask_labels'].shape} class_labels  {data['class_labels'].shape} ")
+        # for k in data.keys():
+        #     print(f"jjjj {k}  {data[k].shape}")
+        
+        #ict_keys(['pixel_values', 'pixel_mask', 'mask_labels', 'class_labels', 'text_inputs', 'task_inputs'])
+        data['mask_labels']=list(map( lambda i:data['mask_labels'][i,:,:,:] ,range(data['mask_labels'].shape[0])))
+        data['class_labels']=list(map( lambda i:data['class_labels'][i,:] ,range(data['class_labels'].shape[0])))
+        
+        # data['text_queries']=list(map( lambda i:data['class_labels'][i,:] ,range(data['class_labels'].shape[0])))
+        # data['class_labels']= torch.stack(processed['class_labels'])
+
         # orig_shape=data.shape
         with autocast(device_type=self.device.type,dtype=torch.float16):
-            outputs_multi = list(map(lambda dat: self.network(**dat), data))
-            l=torch.mean(torch.stack(list(map(lambda el: el.loss, outputs_multi))))
-            outputs = list(map( lambda el: self.processor.post_process_semantic_segmentation(el)[0],outputs_multi))
-            outputs = torch.concatenate(outputs)
+            outputs_multi = self.network(**data)
+            l=outputs_multi.loss
+            outputs =self.processor.post_process_semantic_segmentation(outputs_multi)[0]
+
             
             print(f"iiiiiiiiiiiiiiiiii outputs {outputs.shape}  orig shape { batch['orig_shape'] }")
         
