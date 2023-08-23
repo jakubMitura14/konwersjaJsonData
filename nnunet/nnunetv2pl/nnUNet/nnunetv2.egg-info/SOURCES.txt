@@ -128,6 +128,7 @@ nnunetv2/training/nnUNetTrainer/D2_My_pl_trainer.py
 nnunetv2/training/nnUNetTrainer/D2_Pl_model.py
 nnunetv2/training/nnUNetTrainer/My_pl_trainer.py
 nnunetv2/training/nnUNetTrainer/Pl_model.py
+nnunetv2/training/nnUNetTrainer/SAM.py
 nnunetv2/training/nnUNetTrainer/__init__.py
 nnunetv2/training/nnUNetTrainer/custom_eval.py
 nnunetv2/training/nnUNetTrainer/custom_loss.py

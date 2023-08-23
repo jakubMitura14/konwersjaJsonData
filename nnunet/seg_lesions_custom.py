@@ -307,8 +307,8 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 #metadata directory
 resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory with inferred prostates
-dir_inferred_prost='/workspaces/konwersjaJsonData/explore/all_prost_segm_files/all_prost_segm_files/my_prost_infered'
-# dir_inferred_prost='/workspaces/konwersjaJsonData/explore/all_prost_segm_full_files/my_prost_infered'
+dir_inferred_prost='/workspaces/konwersjaJsonData/explore/all_prost_segm_full_files/my_prost_infered'
+# dir_inferred_prost='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_infered'
 dir_inferred_prost_parts='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_parts_infered'
 
 sourceFrame = pd.read_csv(resCSVDir)
@@ -361,6 +361,7 @@ labelsTrFolder= join(taskFolder,'labelsTr')
 imagesTsFolder= join(taskFolder,'imagesTs')
 json_path= join(taskFolder,'dataset.json')
 
+
 # main modality that will be set as a reference and others will be registered to it 
 
 
@@ -410,7 +411,10 @@ data = {
     # "regions_class_order": [2,1,0],  
     "file_ending": ".nii.gz",
     "numTraining" : len(ids),
-    "nnUNetPlans" : ['2d','3d_fullres']
+    
+    "nnUNetPlans" : ['2d','3d_fullres'],
+    
+    # 'conv_kernel_sizes': [[1, 3, 3], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
 }
 
 print(f"lllllllllllllllllllllllllll {len(ids)}")
@@ -420,16 +424,93 @@ with open(json_path, 'w') as outfile:
     outfile.write(json_string)
 
 
+
 cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
 p = Popen(cmd_terminal, shell=True)
 p.wait()
 
 
+
+# plans_path= join(preprocesss_folder,taskName,'nnUNetPlans.json')
+plans_path= f"/home/sliceruser/nnunetMainFolder/nnUNet_preprocessed/Dataset{dataset_id}_Prostate/nnUNetPlans.json"
+f = open(plans_path)
+plans = json.load(f)
+plans['configurations']['3d_lowres'] = {
+    "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time
+    'inherits_from': '3d_fullres',
+    "patch_size": [20, 28, 20],
+    "median_image_size_in_voxels": [18.0, 25.0, 18.0],
+    "spacing": [2.0, 2.0, 2.0],
+    "n_conv_per_stage_encoder": [2, 2, 2],
+    "n_conv_per_stage_decoder": [2, 2],
+    "num_pool_per_axis": [2, 2, 2],
+    "pool_op_kernel_sizes": [[1, 1, 1], [2, 2, 2], [2, 2, 2]],
+    "conv_kernel_sizes": [[3, 3, 3], [3, 3, 3], [3, 3, 3]],
+    "next_stage": "3d_cascade_fullres"
+}
+plans['configurations']['3d_cascade_fullres'] = {
+    "data_identifier": "3d_cascade_fullres",
+    'inherits_from': '3d_fullres',
+    "previous_stage": "3d_lowres"
+}
+plans['configurations']['3d_fullres_custom'] = {"data_identifier": "3d_fullres_custom"
+#     'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 10, 'patch_size': [40, 96, 96]
+#                                                 , 'median_image_size_in_voxels': [40., 84., 95.]
+# , 'spacing': [3.30000019, 0.78125   , 0.78125   ]
+# , 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
+# , 'use_mask_for_norm': [False, False, False, False, False]
+, 'UNet_class_name': 'PlainConvUNet'
+, 'UNet_base_num_features': 32
+, 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2)
+, 'n_conv_per_stage_decoder': (2, 2, 2, 2)
+, 'num_pool_per_axis': [2, 4, 4]
+, 'pool_op_kernel_sizes': [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
+# , 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
+, 'conv_kernel_sizes': [[1, 5, 5], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
+, 'unet_max_num_features': 320
+, 'resampling_fn_data': 'resample_data_or_seg_to_shape'
+, 'resampling_fn_seg': 'resample_data_or_seg_to_shape'
+, 'resampling_fn_data_kwargs': {'is_seg': False, 'order': 3, 'order_z': 0, 'force_separate_z': None}
+, 'resampling_fn_seg_kwargs': {'is_seg': True, 'order': 1, 'order_z': 0, 'force_separate_z': None}
+, 'resampling_fn_probabilities': 'resample_data_or_seg_to_shape'
+, 'resampling_fn_probabilities_kwargs': {'is_seg': False, 'order': 1, 'order_z': 0, 'force_separate_z': None}, 'batch_dice': False}
+
+
+json_string = json.dumps(plans)     
+print(f"aaaaaaaaaaaaa {json_string} \n \n \n ppppppppppppppppppppppppppppppppppp")
+     
+with open(plans_path, 'w') as outfile:
+    outfile.write(json_string)
+
+data = { 
+    "channel_names": channel_names, 
+    "labels": label_names,  
+    # "regions_class_order": [2,1,0],  
+    "file_ending": ".nii.gz",
+    "numTraining" : len(ids),
+    
+    "nnUNetPlans" : ['2d','3d_fullres','3d_fullres_custom','3d_lowres','3d_cascade_fullres'],
+    
+    # 'conv_kernel_sizes': [[1, 3, 3], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
+}
+
+
+json_string = json.dumps(data)
+with open(json_path, 'w') as outfile:
+    outfile.write(json_string)
+    
+
+
+cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
+p = Popen(cmd_terminal, shell=True)
+p.wait()
+
+
+
 #### image_processing_oneformer is modified
 
 
-#my_proj_name="seg lesions 5" tag="pl with AdamW l4d increase back weight" my_proj_desc="pl with AdamW increase back weight" nnUNetv2_train 101 3d_fullres 0 -tr My_pl_trainer
-#my_proj_name="seg lesions 4" tag="pl test l4d" my_proj_desc=" pl test" nnUNetv2_train 101 3d_fullres 0 -tr D2_My_pl_trainer
+#my_proj_name="seg lesions 5" tag="pl l4a increased conv kernel sizes" my_proj_desc="pl l4a increased conv kernel sizes" nnUNetv2_train 101 3d_fullres_custom 0 -tr My_pl_trainer
 
 
 #with masked binary_cross_entropy_with_logits

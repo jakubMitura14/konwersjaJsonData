@@ -16,5 +16,20 @@ cd /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet \
 && python3 -m pip  install -e .
 
 
+
+# set -ex
+
+# script_dir=$(cd $(dirname $0) || exit 1; pwd)
+
+# ################################################################################
+# # Set up headless environment
+# source $script_dir/start-xorg.sh
+
+
+
+export SHELL=/bin/bash
+
+
+
 exec "$@"
 
