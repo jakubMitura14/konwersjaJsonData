@@ -35,6 +35,7 @@ import json
 import os
 from subprocess import Popen
 import subprocess
+from pathlib import Path    
 
 
 elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
@@ -166,16 +167,19 @@ def get_id_from_file_name(path_str):
     path_str=path_str[1:5]
     return int(path_str)
 
-def add_t2w_to_name(source):
+def add_t2w_to_name(source,temp_folder):
     if(source==' '):
         return ' '
     if('t2w' in source):
         return source
-    new_path= source.replace('.nii.gz','_t2w.nii.gz')
+    naame=Path(source).name
+    naame=naame.replace('.nii.gz','')
+
+    new_path= f"{temp_folder}/{naame}_t2w.nii.gz"
     copy_changing_type(source, new_path)
     return new_path
 
-def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
+def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name, temp_folder):
     """ 
     we have some inferred anatomical segmentations done by previous 
     models now we want to take the folder with 
@@ -187,7 +191,7 @@ def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
     file_and_id= dict(list(zip(list_ids,list_files)))
     new_col_dat= list(map( lambda el: file_and_id.get(el,' ') ,df['masterolds'].to_numpy() ))
     #changing path name to mark it is t2w related
-    new_col_dat= list(map(add_t2w_to_name,new_col_dat))
+    new_col_dat= list(map(lambda name: add_t2w_to_name(name,temp_folder),new_col_dat))
 
     df[new_col_name]=new_col_dat
     return df

@@ -307,19 +307,25 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 #metadata directory
 resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 #directory with inferred prostates
-dir_inferred_prost='/workspaces/konwersjaJsonData/explore/all_prost_segm_full_files/my_prost_infered'
+dir_inferred_prost='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_infered'
 # dir_inferred_prost='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_infered'
 dir_inferred_prost_parts='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_parts_infered'
 
 sourceFrame = pd.read_csv(resCSVDir)
 
 
+out_folder='/home/sliceruser/explore/temp'
+os.makedirs(out_folder ,exist_ok = True)
+shutil.rmtree(out_folder)
+os.makedirs(out_folder ,exist_ok = True)
+
+
 cols=sourceFrame.columns
 noSegCols=list(filter(lambda el: '_noSeg' in el , cols))+['series_MRI_path']
 lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 
-sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_name)
-sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_parts_name)
+sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_name,out_folder)
+sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_parts_name,out_folder)
 sourceFrame['tz_inferred']=' '
 test_ids = pd.read_csv('/workspaces/konwersjaJsonData/test_ids.csv' ).to_numpy().flatten()
 
@@ -331,7 +337,8 @@ lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 main_modality = 't2w'
 dataset_id=101
 
-out_folder='/home/sliceruser/explore/temp'
+
+
 # with mp.Pool(processes = mp.cpu_count()) as pool:
 # with mp.Pool(processes = 1) as pool:
 #     @curry  
@@ -342,9 +349,7 @@ nNunetBaseFolder='/home/sliceruser/nnunetMainFolder'
 
 os.makedirs(f"{nNunetBaseFolder}/nnUNet_preprocessed" ,exist_ok = True)
 os.makedirs(f"{nNunetBaseFolder}/nnUNet_raw" ,exist_ok = True)
-os.makedirs(out_folder ,exist_ok = True)
-shutil.rmtree(out_folder)
-os.makedirs(out_folder ,exist_ok = True)
+
 
 
 
@@ -538,7 +543,7 @@ p.wait()
 #### image_processing_oneformer is modified
 
 
-#my_proj_name="seg lesions 5" tag="pl l4a increased conv kernel sizes" my_proj_desc="pl l4a increased conv kernel sizes" nnUNetv2_train 101 3d_lowres 0 -tr My_pl_trainer
+#my_proj_name="seg lesions 5" tag="pl l4d increased conv kernel sizes plus SAM" my_proj_desc="pl l4d increased conv kernel sizes plus SAM" nnUNetv2_train 101 3d_lowres 0 -tr My_pl_trainer
 
 
 #with masked binary_cross_entropy_with_logits
