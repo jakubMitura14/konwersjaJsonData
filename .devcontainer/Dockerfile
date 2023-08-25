@@ -56,69 +56,69 @@ RUN apt-get update && \
 
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      cmake \
-      g++ \
-      gfortran \
-      git \
-      vim \
+    cmake \
+    g++ \
+    gfortran \
+    git \
+    vim \
     #   hdf5-tools \
-      libmkl-full-dev \ 
-      libboost-dev \
-      libfftw3-dev \
-      libnfft3-dev \
-      libgfortran5 \
-      libgmp-dev \
+    libmkl-full-dev \ 
+    libboost-dev \
+    libfftw3-dev \
+    libnfft3-dev \
+    libgfortran5 \
+    libgmp-dev \
     #   libhdf5-dev \
-      libopenmpi-dev \
-      cython3 \
-      openmpi-bin \
-      openmpi-common \
-      openmpi-doc \
-      python3-dev \
-      python3-mako \
-      python3-numpy \
-      python3-scipy \
-      python3-matplotlib \
-      python3-mpi4py \
-      python3-pip \
-      python3-sphinx \
-      python3-skimage \ 
-      python3-nbsphinx \
-      python3-notebook \
-      libpython3-dev \
-      git \
-      ca-certificates \
-      openssl \
-      rsync \
-      libomp-dev \
-      nano \
-      less \
-      # Jupyter lab packages
-      nodejs \
+    libopenmpi-dev \
+    cython3 \
+    openmpi-bin \
+    openmpi-common \
+    openmpi-doc \
+    python3-dev \
+    python3-mako \
+    python3-numpy \
+    python3-scipy \
+    python3-matplotlib \
+    python3-mpi4py \
+    python3-pip \
+    python3-sphinx \
+    python3-skimage \ 
+    python3-nbsphinx \
+    python3-notebook \
+    libpython3-dev \
+    git \
+    ca-certificates \
+    openssl \
+    rsync \
+    libomp-dev \
+    nano \
+    less \
+    # Jupyter lab packages
+    nodejs \
     #   texlive \
     #   dvipng \
     #   texlive-latex-extra \
     #   texlive-fonts-recommended \
     vim net-tools curl \
-        libgl1-mesa-glx \
-        xserver-xorg-video-dummy \
-        libxrender1 \
-        libpulse0 \
-        libpulse-mainloop-glib0  \
-        libnss3  \
-        libxcomposite1 \
-        libxcursor1 \
-        libfontconfig1 \
-        libxrandr2 \
-        libasound2 \
-        libglu1 \
-        x11vnc \
-        awesome \
-        jq \
-        git 
-    #   apt-get autoremove --purge -y && \
-    #   apt-get autoclean -y && \
-    #   rm -rf /var/cache/apt/* /var/lib/apt/lists/*
+    libgl1-mesa-glx \
+    xserver-xorg-video-dummy \
+    libxrender1 \
+    libpulse0 \
+    libpulse-mainloop-glib0  \
+    libnss3  \
+    libxcomposite1 \
+    libxcursor1 \
+    libfontconfig1 \
+    libxrandr2 \
+    libasound2 \
+    libglu1 \
+    x11vnc \
+    awesome \
+    jq \
+    git 
+#   apt-get autoremove --purge -y && \
+#   apt-get autoclean -y && \
+#   rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 
 
 
@@ -131,12 +131,12 @@ RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
 
 # RUN python3.9 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 RUN python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-    
 
 
-     
+
+
 RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
-pandas==1.5.3 \
+    pandas==1.5.3 \
     future>=0.17.1 \
     grpcio \
     mock \
@@ -173,7 +173,6 @@ pandas==1.5.3 \
     pymia einops seaborn \
     optuna \
     torchio \
-    'itkwidgets[all]>=1.0a23' \
     connected-components-3d \
     ninja \
     cython \
@@ -202,18 +201,31 @@ pandas==1.5.3 \
     descartes \
     ipympl \
     RISE \
-    transformers datasets deepspeed==0.10.1 ctviewer lightning==2.0.7 more_itertools==10.1.0 tcia_utils==1.6.9
+    transformers datasets deepspeed==0.10.1 ctviewer lightning==2.0.7 more_itertools==10.1.0 tcia_utils==1.6.9 \
+    rt-utils \
+    pydicom-seg  \
+    scikit-image \
+    itk==5.3.0 \
+    vtk \
+    monai[nibabel,itk,tqdm]==1.0.1  \
+    nibabel \
+    tqdm \
+    itkwidgets[all]==1.0a23  \
+    imjoy-elfinder \
+    imjoy-jupyter-extension \
+    imjoy-jupyterlab-extension
+
 
 
 
 
 RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin \
-&& mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600 \
-&& wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb \
-&& dpkg -i cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb \
-&& cp /var/cuda-repo-ubuntu2204-11-8-local/cuda-*-keyring.gpg /usr/share/keyrings/  \
-&& apt-get update  \
-&& apt-get -y install cuda
+    && mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600 \
+    && wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb \
+    && dpkg -i cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb \
+    && cp /var/cuda-repo-ubuntu2204-11-8-local/cuda-*-keyring.gpg /usr/share/keyrings/  \
+    && apt-get update  \
+    && apt-get -y install cuda
 
 
 # RUN wget -q -O - http://www.mpich.org/static/downloads/3.3.2/mpich-3.3.2.tar.gz | tar -C /tmp -xzf - && \
@@ -228,11 +240,11 @@ RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86
 
 #--enable-fortran
 RUN mkdir ${HOME}/hdf5  \
-&& mkdir ${HOME}/hdf5/dest  \
-&& mkdir ${HOME}/hdf5/inst \
-&& mkdir ${HOME}/Slicer \
-&& mkdir ${HOME}/Slicer/bin \
-&& mkdir ${HOME}/Slicer/bin/websockify 
+    && mkdir ${HOME}/hdf5/dest  \
+    && mkdir ${HOME}/hdf5/inst \
+    && mkdir ${HOME}/Slicer \
+    && mkdir ${HOME}/Slicer/bin \
+    && mkdir ${HOME}/Slicer/bin/websockify 
 
 
 COPY websockify ./Slicer/bin/
@@ -249,7 +261,7 @@ RUN wget -q -O - https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1
     rm -rf /tmp/hdf5-1.12.0
 
 RUN CC=mpicc HDF5_MPI="ON" HDF5_VERSION=1.12.0 HDF5_DIR=${HOME}/hdf5/inst python3 -m pip install --no-binary=h5py h5py \
-&& export GITHUB_USER=jakubMitura14
+    && export GITHUB_USER=jakubMitura14
 RUN git config --global user.name "Jakub Mitura"
 RUN git config --global user.email "jakub.mitura14@gmail.com"
 RUN git config -l
@@ -262,9 +274,25 @@ RUN mkdir ${HOME}/scripts \
     && mkdir ${HOME}/connected_comp
 # RUN mkdir ${HOME}/connected_comp
 
-COPY etc/dpkg/dpkg.cfg.d/01_nodoc /etc/dpkg/dpkg.cfg.d/01_nodoc
-RUN echo 'APT::Install-Recommends "0" ; APT::Install-Suggests "0" ;' >> /etc/apt/apt.conf && \
-    echo 'Dir::Cache::pkgcache "";\nDir::Cache::srcpkgcache "";' | tee /etc/apt/apt.conf.d/00_disable-cache-files
+## for downloads from cancer imaging archive
+RUN apt-get install -y ruby-dev  \
+    && apt install -y libtool libffi-dev ruby ruby-dev make  \
+    && apt install -y libzmq3-dev libczmq-dev  \
+    && gem install ffi-rzmq rake  \
+    && gem install specific_install  \
+    && gem specific_install https://github.com/SciRuby/iruby  \
+    && iruby register  \
+    && gem install net-protocol -v 0.1.2  \
+    && gem install net-smtp -v 0.3.0  \
+    && gem install aspera-cli 
+RUN ascli conf ascp install
+
+
+
+
+# COPY etc/dpkg/dpkg.cfg.d/01_nodoc /etc/dpkg/dpkg.cfg.d/01_nodoc
+# RUN echo 'APT::Install-Recommends "0" ; APT::Install-Suggests "0" ;' >> /etc/apt/apt.conf && \
+#     echo 'Dir::Cache::pkgcache "";\nDir::Cache::srcpkgcache "";' | tee /etc/apt/apt.conf.d/00_disable-cache-files
 
 
 # ARG SLICER_DOWNLOAD_URL=https://download.slicer.org/bitstream/6286ce04e8408647b39f803a
