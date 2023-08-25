@@ -44,6 +44,8 @@ import shutil
 import h5py
 import pytorch_lightning as pl
 from lightning.pytorch.tuner import Tuner
+from nnunetv2.utilities.label_handling.label_handling import convert_labelmap_to_one_hot, determine_num_input_channels
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 
 
@@ -60,7 +62,7 @@ from transformers import (
 )
 
 from transformers import AutoImageProcessor
-
+from .med_next.create_mednext_v1 import *
 
 class My_pl_trainer(nnUNetTrainer):
 
@@ -98,9 +100,37 @@ class My_pl_trainer(nnUNetTrainer):
         self.default_root_dir=ligtning_logs_folder
         
         nnUNetTrainer.on_train_start(self)
-    
 
+
+
+
+        self.num_input_channels = determine_num_input_channels(self.plans_manager, self.configuration_manager,
+                                                                self.dataset_json)
+
+        # self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
+        #                                                 self.configuration_manager,
+        #                                                 self.num_input_channels,
+        #                                                 enable_deep_supervision=True).to(self.device)
+        # compile network for free speedup
+        if self._do_i_compile():
+            self.print_to_log_file('Compiling network...')
+            self.network = torch.compile(self.network)
+
+
+
+
+        self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
+                                            ,num_classes=self.label_manager.num_segmentation_heads
+                                            ,kernel_size= 7
+                                            ,ds= True)
         # self.save_hyperparameters()
+
+        self.optimizer, self.lr_scheduler = self.configure_optimizers()
+        # if ddp, wrap in DDP wrapper
+        if self.is_ddp:
+            self.network = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.network)
+            self.network = DDP(self.network, device_ids=[self.local_rank])
+
 
 
         self.pl_model= Pl_Model(network=self.network

@@ -39,11 +39,11 @@
         "--net",
         "host",
         "--privileged",
-        "-i",
-        "-e",
-        "DISPLAY=${env:DISPLAY}",
-        "-v",
-        "/tmp/.X11-unix:/tmp/.X11-unix"
+        "-i"
+        // "-e",
+        // "DISPLAY=${env:DISPLAY}",
+        // "-v",
+        // "/tmp/.X11-unix:/tmp/.X11-unix"
     ],
     // Add the IDs of extensions you want installed when the container is created.
     "extensions": [

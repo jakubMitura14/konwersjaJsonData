@@ -169,7 +169,7 @@ RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
     six \
     napari-simpleitk-image-processing \
     pytorch-lightning==2.0.7 \
-    itk itk-elastix monai-weekly \
+    # itk itk-elastix monai-weekly \
     pymia einops seaborn \
     optuna \
     torchio \
@@ -207,7 +207,7 @@ RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
     scikit-image \
     itk==5.3.0 \
     vtk \
-    monai[nibabel,itk,tqdm]==1.0.1  \
+    monai[nibabel,itk,tqdm]  \
     nibabel \
     tqdm \
     itkwidgets[all]==1.0a23  \
