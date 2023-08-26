@@ -178,7 +178,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         os.makedirs(for_explore,exist_ok=True)
         shutil.rmtree(for_explore)   
         os.makedirs(for_explore,exist_ok=True)
-        target_to_save=torch.concatenate([(target==1),(target==2)],dim=1)
+        target_to_save=np.concatenate([(target==1),(target==2)],axis=1)
         save_batched_to_file(for_explore,batch_ids,"predicted_segmentation_onehot",np.expand_dims(predicted_segmentation_onehot,1),int)
         save_batched_to_file(for_explore,batch_ids,"data",data,float)
         save_batched_to_file(for_explore,batch_ids,"target",target_to_save,int)
