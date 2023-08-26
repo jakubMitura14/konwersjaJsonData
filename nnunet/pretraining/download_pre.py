@@ -322,7 +322,7 @@ if __name__ == '__main__':
         else:
             mylist.append(v[0])
 
-    pd.DataFrame(mylist).to_csv(csv_file_path,index=False)
+    pd.DataFrame(mylist).to_csv(f"{csv_file_path}/frame.csv",index=False)
     print(count)
 
 if __name__ == '__main__':
