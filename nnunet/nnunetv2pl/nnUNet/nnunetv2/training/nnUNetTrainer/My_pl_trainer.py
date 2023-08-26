@@ -121,10 +121,18 @@ class My_pl_trainer(nnUNetTrainer):
 
 
 
-        self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
-                                            ,num_classes=self.label_manager.num_segmentation_heads
-                                            ,kernel_size= 7
-                                            ,ds= True)
+        # self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
+        #                                     ,num_classes=self.label_manager.num_segmentation_heads
+        #                                     ,kernel_size= 7
+        #                                     ,ds= True)
+        
+
+        self.network=SwinUNETR(in_channels=self.num_input_channels
+                    ,out_channels=self.label_manager.num_segmentation_heads
+                    ,use_v2=True
+                    ,image_shape=(48, 96, 96))
+
+
         # self.save_hyperparameters()
         # self.pl_model= Pl_Model.load_from_checkpoint(self.output_folder)
 
