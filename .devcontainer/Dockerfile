@@ -286,10 +286,9 @@ RUN apt-get install -y ruby-dev  \
     && gem install aspera-cli 
 RUN ascli conf ascp install
 
-RUN mkdir /usr/share/desktop-directories/  
-# RUN cd /usr/share/desktop-directories/ 
-RUN wget -P /content/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb   
-# RUN dpkg -i /content/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb
+RUN python3 -m pip  --no-cache-dir install evalutils==0.3.0 https://github.com/DIAGNijmegen/picai_prep/archive/refs/tags/v1.3.2.zip
+
+
 
 
 
