@@ -270,7 +270,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     tz_image=my_crop(tz_image,min_z,min_y,min_x,max_z,max_x,max_y)
     
     
-    # print(f"tttttttttt t2w_image {sitk.GetArrayFromImage(t2w_image).shape}")
+    print(f"tttttttttt t2w_image {sitk.GetArrayFromImage(t2w_image).shape}")
     
     registered_prostate=my_crop(registered_prostate,min_z,min_y,min_x,max_z,max_x,max_y)
     
@@ -552,7 +552,7 @@ p.wait()
 #### image_processing_oneformer is modified
 
 
-# my_proj_name="seg lesions 5" tag="pl med next kernel 3" my_proj_desc=" med next kernel 3" nnUNetv2_train 101 3d_lowres 0 -tr My_pl_trainer
+# my_proj_name="seg lesions 5" tag="l4a swin kernel 3" my_proj_desc="l4a swinkernel 3" nnUNetv2_train 101 3d_lowres 0 -tr My_pl_trainer
 
 
 #with masked binary_cross_entropy_with_logits

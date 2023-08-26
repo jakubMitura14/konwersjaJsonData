@@ -247,7 +247,15 @@ class SwinUNETR(nn.Module):
         )
 
         self.out = UnetOutBlock(spatial_dims=spatial_dims, in_channels=feature_size, out_channels=out_channels)
+        self.out_4 = UnetOutBlock(spatial_dims=spatial_dims, in_channels=384, out_channels=out_channels)
+        self.out_3 = UnetOutBlock(spatial_dims=spatial_dims, in_channels=192, out_channels=out_channels)
+        self.out_2 = UnetOutBlock(spatial_dims=spatial_dims, in_channels=96, out_channels=out_channels)
+        self.out_1 = UnetOutBlock(spatial_dims=spatial_dims, in_channels=48, out_channels=out_channels)
+        self.out_0 = UnetOutBlock(spatial_dims=spatial_dims, in_channels=24, out_channels=out_channels)
+        
+                # #dec4 torch.Size([5, 384, 3, 3, 3]) dec3 torch.Size([5, 192, 6, 6, 6]) dec2 torch.Size([5, 96, 12, 12, 12]) dec1 torch.Size([5, 48, 24, 24, 24]) dec0 torch.Size([5, 24, 48, 48, 48]) out torch.Size([5, 24, 96, 96, 96])
 
+        
     def load_from(self, weights):
         with torch.no_grad():
             self.swinViT.patch_embed.proj.weight.copy_(weights["state_dict"]["module.patch_embed.proj.weight"])
@@ -309,10 +317,12 @@ class SwinUNETR(nn.Module):
         dec1 = self.decoder3(dec2, enc2)
         dec0 = self.decoder2(dec1, enc1)
         out = self.decoder1(dec0, enc0)
-        print(f" dec4 {dec4.shape} dec3 {dec3.shape} dec2 {dec2.shape} dec1 {dec1.shape} dec0 {dec0.shape} out {out.shape}")
 
-        logits = self.out(out)
-        return logits
+        
+        # print(f" dec4 {dec4.shape} dec3 {dec3.shape} dec2 {dec2.shape} dec1 {dec1.shape} dec0 {dec0.shape} out {out.shape}")
+        # #dec4 torch.Size([5, 384, 3, 3, 3]) dec3 torch.Size([5, 192, 6, 6, 6]) dec2 torch.Size([5, 96, 12, 12, 12]) dec1 torch.Size([5, 48, 24, 24, 24]) dec0 torch.Size([5, 24, 48, 48, 48]) out torch.Size([5, 24, 96, 96, 96])
+        # logits = self.out(out)
+        return [self.out(out),self.out_0(dec0),self.out_1(dec1),self.out_2(dec2),self.out_3(dec3),self.out_4(dec4)  ]
 
 
 def window_partition(x, window_size):
