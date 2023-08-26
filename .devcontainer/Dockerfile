@@ -287,6 +287,10 @@ RUN apt-get install -y ruby-dev  \
     && gem install aspera-cli 
 RUN ascli conf ascp install
 
+RUN mkdir /usr/share/desktop-directories/  
+# RUN cd /usr/share/desktop-directories/ 
+RUN wget -P /content/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb   
+# RUN dpkg -i /content/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb
 
 
 
