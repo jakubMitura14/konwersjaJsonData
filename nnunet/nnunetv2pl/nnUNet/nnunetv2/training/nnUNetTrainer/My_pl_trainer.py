@@ -79,6 +79,7 @@ class My_pl_trainer(nnUNetTrainer):
         ligtning_logs_folder='/workspaces/konwersjaJsonData/explore'
         h5_folder='/workspaces/konwersjaJsonData/explore/hdf5_loc'
         hf5_path=f"{h5_folder}/mytestfile.hdf5"
+        for_explore='/workspaces/konwersjaJsonData/explore/for_explore'
         self.hf5_path=hf5_path
         os.makedirs(h5_folder,exist_ok=True)
 
@@ -86,18 +87,21 @@ class My_pl_trainer(nnUNetTrainer):
         os.makedirs(train_eval_folder,exist_ok=True)
         os.makedirs(val_eval_folder,exist_ok=True)
         os.makedirs(ligtning_logs_folder,exist_ok=True)
+        os.makedirs(for_explore,exist_ok=True)
         
         
         shutil.rmtree(h5_folder)        
         shutil.rmtree(train_eval_folder)
         shutil.rmtree(val_eval_folder)
         shutil.rmtree(ligtning_logs_folder)
+        # shutil.rmtree(for_explore)
         
         
         os.makedirs(train_eval_folder,exist_ok=True)        
         os.makedirs(ligtning_logs_folder,exist_ok=True)
         os.makedirs(val_eval_folder,exist_ok=True)
         os.makedirs(h5_folder,exist_ok=True)
+        os.makedirs(for_explore,exist_ok=True)
 
         self.default_root_dir=ligtning_logs_folder
         
@@ -121,15 +125,15 @@ class My_pl_trainer(nnUNetTrainer):
 
 
 
-        # self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
-        #                                     ,num_classes=self.label_manager.num_segmentation_heads
-        #                                     ,kernel_size= 7
-        #                                     ,ds= True)
+        self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
+                                            ,num_classes=self.label_manager.num_segmentation_heads
+                                            ,kernel_size= 3
+                                            ,ds= True)
         
-        self.network=SwinUNETR(in_channels=self.num_input_channels
-                    ,out_channels=self.label_manager.num_segmentation_heads
-                    ,use_v2=True#
-                    ,image_shape=(48, 96, 96))
+        # self.network=SwinUNETR(in_channels=self.num_input_channels
+        #             ,out_channels=self.label_manager.num_segmentation_heads
+        #             ,use_v2=True#
+        #             ,image_shape=(48, 96, 96))
 
 
         # self.save_hyperparameters()
@@ -154,7 +158,8 @@ class My_pl_trainer(nnUNetTrainer):
                                 ,num_batch_to_eval=self.num_batch_to_eval
                                 ,train_eval_folder=train_eval_folder 
                                 ,val_eval_folder=val_eval_folder
-                                ,hf5_path=self.hf5_path)
+                                ,hf5_path=self.hf5_path
+                                ,for_explore=for_explore)
 
         comet_logger = CometLogger(
             api_key="yB0irIjdk9t7gbpTlSUPnXBd4",

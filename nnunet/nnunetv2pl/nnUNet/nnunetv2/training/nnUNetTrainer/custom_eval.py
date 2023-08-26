@@ -18,7 +18,8 @@ import torch
 from nnunetv2.training.loss.dice import get_tp_fp_fn_tn, MemoryEfficientSoftDiceLoss
 from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
-
+import shutil
+import itertools
 
 def analyze_single_label(uniq_num,centers, big_mask, connected,in_min):
     infered_inner=(connected==uniq_num)
@@ -107,8 +108,12 @@ def get_my_sensitivity(arrs):
 def concat_local(batch_ids,f,group_name,name):
     res=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/{name}"][:,:,:,:],batch_ids))
     return np.concatenate(res,axis=0)
+ 
+def concat_local_data(batch_ids,f,group_name,name):
+    res=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/{name}"][:,:,:,:,:],batch_ids))
+    return np.concatenate(res,axis=0)
     
-def calc_custom_metrics(group_name,f):    
+def calc_custom_metrics(group_name,f,for_explore,to_save_files):    
     batch_nums= np.array(list(f[group_name].keys()))
     if(batch_nums.shape[0]<3):
         batch_nums=np.array_split(batch_nums, 1)
@@ -122,7 +127,10 @@ def calc_custom_metrics(group_name,f):
 
 
 
-    res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local(batch_ids,f,group_name,"target"),concat_local(batch_ids,f,group_name,"predicted_segmentation_onehot")),batch_nums))
+    res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
+                                                              ,concat_local(batch_ids,f,group_name,"predicted_segmentation_onehot")
+                                                              ,concat_local_data(batch_ids,f,group_name,"data")
+                                                              ,f,for_explore,to_save_files,batch_ids),batch_nums))
     res=np.concatenate(res,axis=-1)
     # res= list(map(lambda batch_ids: calc_custom_metrics_inner(f[f"{group_name}/{batch_id}/target"][:,:,:,:],f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:]),batch_nums))
     res= np.mean(res,axis=-1)
@@ -132,8 +140,32 @@ def prep_arr_list(inn,twos,curr,bigger_mask,batch_num):
     
     return list(map(lambda bi: (inn[bi,:,:,:],twos[bi,:,:,:],curr[bi,:,:,:],bigger_mask[bi,:,:,:]  ) ,range(batch_num)))
 
+def save_single_arr(args ):
+    image_array,batch_idd, bn, c,for_explore,name,typee=args
+    # im= sitk.GetImageFromArray(image_array)
+    folder=f"{for_explore}/{int(batch_idd)*100+int(bn)}/{name}/{c}"
+    Path(folder).mkdir( parents=True, exist_ok=True )
+    path=f"{folder}/im_{name}_{c}.nii.gz"    
+    sitk.WriteImage(sitk.GetImageFromArray(image_array.astype(typee)), path)
+    return path
 
-def calc_custom_metrics_inner(target,predicted_segmentation_onehot):
+def save_batched_to_file(for_explore,batch_ids,name,arr,typee):
+    batch_idd=batch_ids[0]
+    b_num_local=arr.shape[0]
+    c_num_local=arr.shape[1]
+    
+    listed=list(map(lambda bn: 
+                    list(map(lambda c: (arr[bn,c,:,:,:],batch_idd, bn, c ,for_explore,name,typee) ,range(c_num_local) )) 
+                    , range(b_num_local)))
+    listed=itertools.chain(*listed)
+    with mp.Pool(processes = mp.cpu_count()) as pool:
+        pool.map(save_single_arr,listed)
+    
+    return listed
+    
+
+
+def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_explore,to_save_files,batch_ids):
     percent_in= np.zeros(1)
     percent_out=np.zeros(1)
     percent_covered=np.zeros(1)
@@ -142,7 +174,14 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot):
     my_specificity=np.zeros(1)
 
 
-
+    if(to_save_files):
+        os.makedirs(for_explore,exist_ok=True)
+        shutil.rmtree(for_explore)   
+        os.makedirs(for_explore,exist_ok=True)
+        target_to_save=torch.concatenate([(target==1),(target==2)],dim=1)
+        save_batched_to_file(for_explore,batch_ids,"predicted_segmentation_onehot",np.expand_dims(predicted_segmentation_onehot,1),int)
+        save_batched_to_file(for_explore,batch_ids,"data",data,float)
+        save_batched_to_file(for_explore,batch_ids,"target",target_to_save,int)
 
 
     curr=predicted_segmentation_onehot
@@ -241,7 +280,7 @@ def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data):
 def save_for_metrics(epoch,target,output,data,log_every_n,batch_id,f,group_name):
     if(isinstance(output, list)):
         # list(map(lambda i: save_to_hdf5(f,i,group_name,batch_id,target[i],output[i],data[i]),range(len(output))))
-        save_to_hdf5(f,0,group_name,batch_id,target[0],output[0],data[0])
+        save_to_hdf5(f,0,group_name,batch_id,target[0],output[0],data)
     else:
         save_to_hdf5(f,0,group_name,batch_id,target,output,data)  
 

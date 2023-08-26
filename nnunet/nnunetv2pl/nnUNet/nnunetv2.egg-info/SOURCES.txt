@@ -141,6 +141,8 @@ nnunetv2/training/nnUNetTrainer/med_next/create_mednext_v1.py
 nnunetv2/training/nnUNetTrainer/one_former_my/image_processing_oneformer.py
 nnunetv2/training/nnUNetTrainer/one_former_my/one_former_model.py
 nnunetv2/training/nnUNetTrainer/one_former_my/processing_oneformer.py
+nnunetv2/training/nnUNetTrainer/swin_unetr/Swin_unetr_model.py
+nnunetv2/training/nnUNetTrainer/swin_unetr/cross_attention.py
 nnunetv2/training/nnUNetTrainer/variants/__init__.py
 nnunetv2/training/nnUNetTrainer/variants/benchmarking/__init__.py
 nnunetv2/training/nnUNetTrainer/variants/benchmarking/nnUNetTrainerBenchmark_5epochs.py
