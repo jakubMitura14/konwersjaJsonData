@@ -126,10 +126,9 @@ class My_pl_trainer(nnUNetTrainer):
         #                                     ,kernel_size= 7
         #                                     ,ds= True)
         
-
         self.network=SwinUNETR(in_channels=self.num_input_channels
                     ,out_channels=self.label_manager.num_segmentation_heads
-                    ,use_v2=True
+                    ,use_v2=True#
                     ,image_shape=(48, 96, 96))
 
 
