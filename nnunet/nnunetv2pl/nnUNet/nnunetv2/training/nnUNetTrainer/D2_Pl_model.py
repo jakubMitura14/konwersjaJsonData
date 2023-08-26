@@ -270,7 +270,6 @@ class D2_Pl_model(pl.LightningModule):
             outputs =self.processor.post_process_semantic_segmentation(outputs_multi)[0]
 
             
-            print(f"iiiiiiiiiiiiiiiiii outputs {outputs.shape}  orig shape { batch['orig_shape'] }")
         
 
 

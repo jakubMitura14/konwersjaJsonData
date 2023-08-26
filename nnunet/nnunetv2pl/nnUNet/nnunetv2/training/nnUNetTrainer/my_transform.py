@@ -117,7 +117,6 @@ class My_PseudoLesion_adder(LocalTransform):
     def __call__(self, **data_dict):
         data = data_dict.get("data")
         target= data_dict.get("seg")
-        # print(f"iiiiiiiiiin transform {data.shape}  keys {data_dict.keys()} ")
         
         assert data is not None, "Could not find data key '%s'" % self.data_key
         b, c, *img_shape = data.shape

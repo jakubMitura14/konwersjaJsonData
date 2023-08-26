@@ -107,6 +107,7 @@ class Pl_Model(pl.LightningModule):
         # self.test_step_outputs = []
 
 
+
     def setup(self, stage=None):
         self.logger.experiment.log_text(os.getenv('my_proj_desc'))
         self.logger.experiment.add_tag(os.getenv('tag'))
@@ -156,6 +157,9 @@ class Pl_Model(pl.LightningModule):
         target = batch['target']
         output = self.network(data)
 
+        target=self.transform_gold(target)
+        # print(f"tttt target {len(target)}   {target[0].shape}")
+        
         epoch=self.current_epoch
         l=self.loss(output, target)
 
@@ -189,6 +193,24 @@ class Pl_Model(pl.LightningModule):
         #     regr_no_lab, numLesions_no_lab= self.infer_train_ds_no_labels( batch) 
         #     return self.regLoss(regr_no_lab.flatten().float(),torch.Tensor(numLesions_no_lab).to(self.device).flatten().float() ) 
 
+    def transform_gold(self,target):
+        shape_0 =target[0].shape
+        seg_shape=shape_0
+        # shape_1 =(seg_shape[0],seg_shape[1] ,seg_shape[2]//2,seg_shape[3]//2,seg_shape[4]//2)
+        # shape_2 =(seg_shape[0],seg_shape[1] ,shape_1[2]//2,shape_1[3]//2,shape_1[4]//2)
+        # shape_3 =(seg_shape[0],seg_shape[1] ,shape_2[2]//2,shape_2[3]//2,shape_2[4]//2)
+        shape_1 =(seg_shape[2]//2,seg_shape[3]//2,seg_shape[4]//2)
+        shape_2 =(shape_1[0]//2,shape_1[1]//2,shape_1[2]//2)
+        shape_3 =(shape_2[0]//2,shape_2[1]//2,shape_2[2]//2)
+        
+        targets=[target[0]]
+        shapes=[shape_0,shape_1,shape_2,shape_3]     
+        # print(f"ttttttttttt {target[0].shape}")   
+        for j in range(len(target)):
+            if(j>0):
+                loc_res=torch.nn.functional.interpolate(input=target[j],size=shapes[j])
+                targets.append(loc_res)
+        return targets
 
     def validation_step(self, batch, batch_idx):
 
@@ -199,12 +221,16 @@ class Pl_Model(pl.LightningModule):
 
         data = batch['data']
         target = batch['target']
+        
+        target=self.transform_gold(target)
+        
+        
         # if(isinstance(data,list)):
         #     print(f"valll data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
         # else:
         #     print(f"valll data 0 {data.shape}")
 
-        
+
         epoch=self.current_epoch
         data = data.to(device, non_blocking=True)
         if isinstance(target, list):

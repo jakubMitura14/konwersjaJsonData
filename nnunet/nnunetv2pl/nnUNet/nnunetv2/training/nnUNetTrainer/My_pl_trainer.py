@@ -70,7 +70,7 @@ class My_pl_trainer(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=10
+        self.log_every_n=1#TODO increase
         self.num_batch_to_eval=10
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
@@ -124,6 +124,7 @@ class My_pl_trainer(nnUNetTrainer):
                                             ,kernel_size= 7
                                             ,ds= True)
         # self.save_hyperparameters()
+        # self.pl_model= Pl_Model.load_from_checkpoint(self.output_folder)
 
         self.optimizer, self.lr_scheduler = self.configure_optimizers()
         # if ddp, wrap in DDP wrapper
@@ -161,7 +162,7 @@ class My_pl_trainer(nnUNetTrainer):
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
-            patience=10,
+            patience=5,
             mode="max",
             #divergence_threshold=(-0.1)
         )
@@ -189,7 +190,7 @@ class My_pl_trainer(nnUNetTrainer):
 
 
     def configure_optimizers(self):
-        optimizer = SAM(torch.optim.SGD,self.network.parameters(), lr=self.initial_lr, weight_decay=self.weight_decay,
+        optimizer = torch.optim.SGD(self.network.parameters(), lr=self.initial_lr, weight_decay=self.weight_decay,
                                     momentum=0.99, nesterov=True)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs)
         return optimizer, lr_scheduler
