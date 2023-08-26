@@ -36,6 +36,8 @@ class FocalLossV2(nn.Module):
             logit = self.apply_nonlin(logit)
         num_class = logit.shape[1]
 
+        # print(f"logit {logit.shape} target {target.shape}")
+        
         target_b=torch.clone(target)
         if logit.dim() > 2:
             # N,C,d1,d2 -> N,C,m (m=d1*d2*...)

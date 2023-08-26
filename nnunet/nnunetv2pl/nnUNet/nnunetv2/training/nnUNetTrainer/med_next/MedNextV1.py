@@ -251,34 +251,22 @@ class MedNeXt(nn.Module):
 
     def forward(self, x):
 
-        print(f"aaaaaa 0  x {x.shape}")
 
         x = self.stem(x)
-        print(f"aaaaaa 1  x {x.shape}")
         if self.outside_block_checkpointing:
             x_res_0 = self.iterative_checkpoint(self.enc_block_0, x)
-            print(f"aaaaaa 2  x_res_0 {x_res_0.shape}")
             x = checkpoint.checkpoint(self.down_0, x_res_0, self.dummy_tensor)
-            print(f"aaaaaa 3  x {x.shape}")
             x_res_1 = self.iterative_checkpoint(self.enc_block_1, x)
-            print(f"aaaaaa 4  x_res_1 {x_res_1.shape}")
             x = checkpoint.checkpoint(self.down_1, x_res_1, self.dummy_tensor)
-            print(f"aaaaaa 5  x {x.shape}")
             x_res_2 = self.iterative_checkpoint(self.enc_block_2, x)
-            print(f"aaaaaa 6  x_res_2 {x_res_2.shape}")
             x = checkpoint.checkpoint(self.down_2, x_res_2, self.dummy_tensor)
-            print(f"aaaaaa 7  x {x.shape}")
             x_res_3 = self.iterative_checkpoint(self.enc_block_3, x)
-            print(f"aaaaaa 8  x_res_3 {x_res_3.shape}")
             x = checkpoint.checkpoint(self.down_3, x_res_3, self.dummy_tensor)
-            print(f"aaaaaa 9  x {x.shape}")
             x = self.iterative_checkpoint(self.bottleneck, x)
-            print(f"aaaaaa 10  x {x.shape}")
             if self.do_ds:
                 x_ds_4 = checkpoint.checkpoint(self.out_4, x, self.dummy_tensor)
 
             x_up_3 = checkpoint.checkpoint(self.up_3, x, self.dummy_tensor)
-            print(f"aaaaaa 11  x_up_3 {x_up_3.shape} x_res_3 {x_res_3.shape}")
 
             dec_x = x_res_3 + x_up_3 
             x = self.iterative_checkpoint(self.dec_block_3, dec_x)
@@ -351,7 +339,16 @@ class MedNeXt(nn.Module):
             x = self.out_0(x)
 
         if self.do_ds:
+            # print(f"xxxxxxxxxxx \n  {x.shape} x_ds_1 {x_ds_1.shape} x_ds_2 {x_ds_2.shape}  x_ds_3 {x_ds_3.shape}  x_ds_4 {x_ds_4.shape} ")
+            # shh= x.shape
             return [x, x_ds_1, x_ds_2, x_ds_3, x_ds_4]
+            # return [x,
+            #         torch.nn.functional.interpolate(x_ds_1, size=shh, mode='linear')
+            #         ,torch.nn.functional.interpolate(x_ds_2, size=shh, mode='linear')
+            #         ,torch.nn.functional.interpolate(x_ds_3, size=shh, mode='linear')
+            #         ,torch.nn.functional.interpolate(x_ds_4, size=shh, mode='linear')
+            # ]
+        
         else: 
             return x
 

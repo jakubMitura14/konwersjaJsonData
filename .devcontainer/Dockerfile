@@ -203,7 +203,6 @@ RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
     RISE \
     transformers datasets deepspeed==0.10.1 ctviewer lightning==2.0.7 more_itertools==10.1.0 tcia_utils==1.6.9 \
     rt-utils \
-    pydicom-seg  \
     scikit-image \
     itk==5.3.0 \
     vtk \

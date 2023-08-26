@@ -111,6 +111,42 @@ class MedNeXtDownBlock(MedNeXtBlock):
         return x1
 
 
+class MedNeXt_No_stride_Block(MedNeXtBlock):
+
+    def __init__(self, in_channels, out_channels, exp_r=4, kernel_size=7, 
+                do_res=False, norm_type = 'group'):
+
+        super().__init__(in_channels, out_channels, exp_r, kernel_size, 
+                        do_res = False, norm_type = norm_type)
+
+        self.resample_do_res = do_res
+        if do_res:
+            self.res_conv = nn.Conv3d(
+                in_channels = in_channels,
+                out_channels = out_channels,
+                kernel_size = 1,
+                stride = 1
+            )
+
+        self.conv1 = nn.Conv3d(
+            in_channels = in_channels,
+            out_channels = in_channels,
+            kernel_size = kernel_size,
+            stride = 1,
+            padding = kernel_size//2,
+            groups = in_channels,
+        )
+
+    def forward(self, x, dummy_tensor=None):
+        
+        x1 = super().forward(x)
+        
+        if self.resample_do_res:
+            res = self.res_conv(x)
+            x1 = x1 + res
+
+        return x1
+
 class MedNeXtUpBlock(MedNeXtBlock):
 
     def __init__(self, in_channels, out_channels, exp_r=4, kernel_size=7, 

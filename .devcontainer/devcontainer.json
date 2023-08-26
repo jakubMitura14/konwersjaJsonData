@@ -57,10 +57,10 @@
         //"source=/media/jm/hddData/datasets/workspace,target=/home/sliceruser/workspaces,type=bind,consistency=cached",
         // "source=/home/jakubmitura/explore,target=/home/sliceruser/explore,type=bind,consistency=cached",
         // "source=/media/jm/hddData/projects/konwersjaJsonData,target=/home/sliceruser/code,type=bind,consistency=cached"
-        // "source=/home/jakubmitura/nnunet,target=/home/sliceruser/nnunetMainFolder,type=bind,consistency=cached",
-        //  "source=/mnt/disks/nvme0n2/workspaces,target=/home/sliceruser/workspaces,type=bind,consistency=cached"
-        "source=/media/jm/hddData/datasets/nnunet,target=/home/sliceruser/nnunetMainFolder,type=bind,consistency=cached",
-        "source=/media/jm/hddData/datasets/workspace,target=/home/sliceruser/workspaces,type=bind,consistency=cached"
+        "source=/home/jakubmitura/nnunet,target=/home/sliceruser/nnunetMainFolder,type=bind,consistency=cached",
+         "source=/mnt/disks/nvme0n2/workspaces,target=/home/sliceruser/workspaces,type=bind,consistency=cached"
+        // "source=/media/jm/hddData/datasets/nnunet,target=/home/sliceruser/nnunetMainFolder,type=bind,consistency=cached",
+        // "source=/media/jm/hddData/datasets/workspace,target=/home/sliceruser/workspaces,type=bind,consistency=cached"
     ],
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
