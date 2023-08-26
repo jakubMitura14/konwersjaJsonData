@@ -72,7 +72,7 @@ class My_pl_trainer(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=1#TODO increase
+        self.log_every_n=5
         self.num_batch_to_eval=10
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
@@ -121,18 +121,10 @@ class My_pl_trainer(nnUNetTrainer):
 
 
 
-        # self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
-        #                                     ,num_classes=self.label_manager.num_segmentation_heads
-        #                                     ,kernel_size= 7
-        #                                     ,ds= True)
-        
-
-        self.network=SwinUNETR(in_channels=self.num_input_channels
-                    ,out_channels=self.label_manager.num_segmentation_heads
-                    ,use_v2=True
-                    ,image_shape=(48, 96, 96))
-
-
+        self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
+                                            ,num_classes=self.label_manager.num_segmentation_heads
+                                            ,kernel_size= 3
+                                            ,ds= True)
         # self.save_hyperparameters()
         # self.pl_model= Pl_Model.load_from_checkpoint(self.output_folder)
 

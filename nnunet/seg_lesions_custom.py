@@ -311,6 +311,8 @@ dir_inferred_prost='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFold
 # dir_inferred_prost='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_infered'
 dir_inferred_prost_parts='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_parts_infered'
 
+
+
 sourceFrame = pd.read_csv(resCSVDir)
 
 
