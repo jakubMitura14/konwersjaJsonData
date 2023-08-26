@@ -164,6 +164,7 @@ def get_4_id(masterolds):
 
 def get_id_from_file_name(path_str):
     path_str=path_str.replace('.nii.gz','')
+    print(f"a path_str {path_str} b {path_str[1:5]}  c  {int(path_str[1:5])}")
     path_str=path_str[1:5]
     return int(path_str)
 
@@ -185,8 +186,10 @@ def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name, te
     models now we want to take the folder with 
     """
     list_files= os.listdir(dir_inferred_prost)
+    
     list_files= list(filter(lambda el : el[0]=='9' ,list_files ))
     list_ids= list(map(get_id_from_file_name,list_files))
+    print(f"nnnnnnnnnn {new_col_name} list_files {list_ids}")
     list_files= list(map( lambda el: f"{dir_inferred_prost}/{el}" ,list_files))
     file_and_id= dict(list(zip(list_ids,list_files)))
     new_col_dat= list(map( lambda el: file_and_id.get(el,' ') ,df['masterolds'].to_numpy() ))
