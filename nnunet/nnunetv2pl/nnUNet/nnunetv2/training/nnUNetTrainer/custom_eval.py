@@ -122,8 +122,8 @@ def save_single_arr(image_array,batch_idd, bn, c,for_explore,name,typee ):
 
 def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_files):
     bn,arrs=arrs_tupl
-    get_my_specifity(arrs)
-    get_my_sensitivity(arrs)
+    specificity=get_my_specifity(arrs)
+    sensitivity=get_my_sensitivity(arrs)
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
     if(to_save_files):
         save_single_arr(curr_in,batch_idd, bn, 0,for_explore,"curr_in",np.uint8 )
@@ -136,7 +136,8 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
         save_single_arr(data[2,:,:,:],batch_idd, bn, 2,for_explore,"data",float)
         save_single_arr(data[3,:,:,:],batch_idd, bn, 3,for_explore,"data",float)
         save_single_arr(data[4,:,:,:],batch_idd, bn, 4,for_explore,"data",float)
-    
+    return specificity,sensitivity
+
 # def save_batched_to_file(for_explore,batch_ids,name,arr,typee):
 #     batch_idd=batch_ids[0]
 #     b_num_local=arr.shape[0]
@@ -278,10 +279,9 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     del bigger_mask
     
     with mp.Pool(processes = mp.cpu_count()) as pool:
-        pool.map(partial(get_sensitivity_and_specificity(for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files)),enumerate(arrs))
+        my_specificity,my_sensitivity=pool.map(partial(get_sensitivity_and_specificity(for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files)),enumerate(arrs))
         # my_sensitivity=pool.map(get_my_sensitivity,arrs)
         # my_specificity=pool.map(get_my_specifity,arrs)
-
     
     # with mp.Pool(processes = mp.cpu_count()) as pool:
         
