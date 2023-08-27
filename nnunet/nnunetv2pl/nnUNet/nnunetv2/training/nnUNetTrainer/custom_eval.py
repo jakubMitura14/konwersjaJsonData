@@ -112,7 +112,7 @@ def save_single_arr(image_array,batch_idd, bn, c,for_explore,name,typee ):
     folder=f"{for_explore}/{int(batch_idd)*100+int(bn)}" #/{name}_{c}
     Path(folder).mkdir( parents=True, exist_ok=True )
     path=f"{folder}/im_{name}_{c}.nii.gz"    
-    print(f"ffffffffff folder {folder} sh {image_array.shape}")
+    # print(f"ffffffffff folder {folder} sh {image_array.shape}")
     sitk.WriteImage(sitk.GetImageFromArray(image_array.astype(typee)), path)
     return path
 
@@ -124,15 +124,6 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
     num_components=ress[1]
     sensitivity=get_my_sensitivity(arrs)
     # print(f"specificity {specificity} sensitivity {sensitivity}")
-    curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
-    #if(False):
-
-        
-    return specificity,sensitivity,num_components,np.sum(inferred.flatten())
-
-
-def save_files(arrs_tupl,for_explore,batch_idd,to_save_files):
-    bn,arrs=arrs_tupl
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
     #if(False):
     if(to_save_files):
@@ -147,6 +138,26 @@ def save_files(arrs_tupl,for_explore,batch_idd,to_save_files):
         save_single_arr(data[2,:,:,:],batch_idd, bn, 2,for_explore,"data",float)
         save_single_arr(data[3,:,:,:],batch_idd, bn, 3,for_explore,"data",float)
         save_single_arr(data[4,:,:,:],batch_idd, bn, 4,for_explore,"data",float)
+        
+    return specificity,sensitivity,num_components,np.sum(inferred.flatten())
+
+
+# def save_files(arrs_tupl,for_explore,batch_idd,to_save_files):
+#     bn,arrs=arrs_tupl
+#     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
+#     #if(False):
+#     if(to_save_files):
+        
+#         save_single_arr(curr_in,batch_idd, bn, 0,for_explore,"curr_in",np.uint8 )
+#         save_single_arr(curr_twos,batch_idd, bn, 0,for_explore,"curr_twos",np.uint8 )
+#         save_single_arr(inferred,batch_idd, bn, 0,for_explore,"inferred",np.uint8 )
+#         save_single_arr(curr_bigger_mask,batch_idd, bn, 0,for_explore,"curr_bigger_mask",np.uint8 )
+
+#         save_single_arr(data[0,:,:,:],batch_idd, bn, 0,for_explore,"data",float)
+#         save_single_arr(data[1,:,:,:],batch_idd, bn, 1,for_explore,"data",float)
+#         save_single_arr(data[2,:,:,:],batch_idd, bn, 2,for_explore,"data",float)
+#         save_single_arr(data[3,:,:,:],batch_idd, bn, 3,for_explore,"data",float)
+#         save_single_arr(data[4,:,:,:],batch_idd, bn, 4,for_explore,"data",float)
         
 
 
@@ -308,7 +319,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     num_components=ress[:,2]
     in_inferred=ress[:,3]
     
-    list(map(lambda arrs_tupl :save_files(arrs_tupl,for_explore,batch_idd,to_save_files),enumerate(arrs)))
+    # list(map(lambda arrs_tupl :save_files(arrs_tupl,for_explore,batch_idd,to_save_files),enumerate(arrs)))
     
     # my_specificity,my_sensitivity,num_components,in_inferred=list(map(partial(get_sensitivity_and_specificity,for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files),enumerate(arrs)))
         # my_sensitivity=pool.map(get_my_sensitivity,arrs)
