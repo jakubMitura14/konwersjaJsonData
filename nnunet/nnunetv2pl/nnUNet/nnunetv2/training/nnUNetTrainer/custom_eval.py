@@ -119,11 +119,22 @@ def save_single_arr(image_array,batch_idd, bn, c,for_explore,name,typee ):
 
 def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_files):
     bn,arrs=arrs_tupl
-    num_components,specificity=get_my_specifity(arrs)
+    specificity,num_components=get_my_specifity(arrs)
     sensitivity=get_my_sensitivity(arrs)
-    print(f"specificity {specificity} sensitivity {sensitivity}")
+    # print(f"specificity {specificity} sensitivity {sensitivity}")
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
+    #if(False):
+
+        
+    return specificity,sensitivity,num_components,np.sum(inferred.flatten())
+
+
+def save_files(arrs_tupl,for_explore,batch_idd,to_save_files):
+    bn,arrs=arrs_tupl
+    curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
+    #if(False):
     if(to_save_files):
+        
         save_single_arr(curr_in,batch_idd, bn, 0,for_explore,"curr_in",np.uint8 )
         save_single_arr(curr_twos,batch_idd, bn, 0,for_explore,"curr_twos",np.uint8 )
         save_single_arr(inferred,batch_idd, bn, 0,for_explore,"inferred",np.uint8 )
@@ -134,7 +145,8 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
         save_single_arr(data[2,:,:,:],batch_idd, bn, 2,for_explore,"data",float)
         save_single_arr(data[3,:,:,:],batch_idd, bn, 3,for_explore,"data",float)
         save_single_arr(data[4,:,:,:],batch_idd, bn, 4,for_explore,"data",float)
-    return specificity,sensitivity,num_components,np.sum(inferred.flatten())
+        
+
 
 # def save_batched_to_file(for_explore,batch_ids,name,arr,typee):
 #     batch_idd=batch_ids[0]
@@ -275,9 +287,20 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     del twos
     del curr
     del bigger_mask
-    print(f"before multiprocessss  ")
+
+    ress=[]
     with mp.Pool(processes = mp.cpu_count()) as pool:
-        my_specificity,my_sensitivity,num_components,in_inferred=pool.map(partial(get_sensitivity_and_specificity,for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files),enumerate(arrs))
+        ress=pool.map(partial(get_sensitivity_and_specificity,for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files),enumerate(arrs))
+    
+    ress=np.array(ress)
+    my_specificity=ress[:,0]
+    my_sensitivity=ress[:,1]
+    num_components=ress[:,2]
+    in_inferred=ress[:,3]
+    
+    list(map(lambda arrs_tupl :save_files(arrs_tupl,for_explore,batch_idd,to_save_files),enumerate(arrs)))
+    
+    # my_specificity,my_sensitivity,num_components,in_inferred=list(map(partial(get_sensitivity_and_specificity,for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files),enumerate(arrs)))
         # my_sensitivity=pool.map(get_my_sensitivity,arrs)
         # my_specificity=pool.map(get_my_specifity,arrs)
     # with mp.Pool(processes = mp.cpu_count()) as pool:
