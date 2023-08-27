@@ -21,8 +21,7 @@ from toolz import curry
 from os.path import basename, dirname, exists, isdir, join, split
 import nnunetv2
 
-import elastixRegister as elastixRegister
-from elastixRegister import reg_a_to_b,reg_a_to_b_be_meta_data,reg_a_to_b_by_metadata_single_b
+# from elastixRegister import reg_a_to_b,reg_a_to_b_be_meta_data,reg_a_to_b_by_metadata_single_b
 import tempfile
 import shutil
 import re
@@ -52,8 +51,62 @@ elacticPath='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/elastix'
 transformix_path='/home/sliceruser/elastixBase/elastix-5.0.1-linux/bin/transformix'
 reg_prop='/workspaces/konwersjaJsonData/nnunet/registration/parameters.txt'  
 # dataframe with master ids that we should not include in training
-test_ids_CSVDir='/workspaces/prost_anatomy_seg/test_ids.csv'
+test_ids_CSVDir='/workspaces/konwersjaJsonData/test_ids.csv'
 test_ids=pd.read_csv(test_ids_CSVDir)['ids'].to_numpy().flatten()
+
+
+
+def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,out_folder, interpolator=sitk.sitkNearestNeighbor):
+    if(len(moving_image_path)<4):
+        moving_image_path=moving_image_path[0]
+    fixed_image=sitk.ReadImage(fixed_image_path)
+    moving_image=sitk.ReadImage(moving_image_path)
+
+    # fixed_image=sitk.Cast(fixed_image, sitk.sitkUInt8)
+    # moving_image=sitk.Cast(moving_image, sitk.sitkInt)
+    
+    arr=sitk.GetArrayFromImage(moving_image)
+    resampled=sitk.Resample(moving_image, fixed_image, sitk.Transform(3, sitk.sitkIdentity), interpolator, 0)
+    
+    # print(f" prim sum {np.sum(sitk.GetArrayFromImage(sitk.ReadImage(moving_image_path)).flatten())} \n suuum {np.sum(sitk.GetArrayFromImage(resampled).flatten())} ")
+  
+    writer = sitk.ImageFileWriter()
+    new_path= join(out_folder,moving_image_path.split('/')[-1])
+    writer.SetFileName(new_path)
+    writer.Execute(resampled)
+
+    return new_path
+
+def reg_a_to_b_by_metadata_single_f(fixed_image_path,moving_image_path,interpolator):
+
+    fixed_image=sitk.ReadImage(fixed_image_path)
+    moving_image=sitk.ReadImage(moving_image_path)
+    arr=sitk.GetArrayFromImage(moving_image)
+    resampled=sitk.Resample(moving_image, fixed_image, sitk.Transform(3, sitk.sitkIdentity), interpolator, 0)
+    return resampled
+
+
+
+def reg_a_to_b_by_metadata_single_g(fixed_image_path,moving_image_path,out_folder, interpolator=sitk.sitkNearestNeighbor):
+    if(len(moving_image_path)<4):
+        moving_image_path=moving_image_path[0]
+    fixed_image=sitk.ReadImage(fixed_image_path)
+    moving_image=sitk.ReadImage(moving_image_path)
+
+    # fixed_image=sitk.Cast(fixed_image, sitk.sitkUInt8)
+    # moving_image=sitk.Cast(moving_image, sitk.sitkInt)
+    
+    arr=sitk.GetArrayFromImage(moving_image)
+    resampled=sitk.Resample(moving_image, fixed_image, sitk.Transform(3, sitk.sitkIdentity), interpolator, 0)
+    
+    # print(f" prim sum {np.sum(sitk.GetArrayFromImage(sitk.ReadImage(moving_image_path)).flatten())} \n suuum {np.sum(sitk.GetArrayFromImage(resampled).flatten())} ")
+  
+    writer = sitk.ImageFileWriter()
+    new_path= moving_image_path
+    writer.SetFileName(new_path)
+    writer.Execute(resampled)
+
+    return new_path
 
 
 def groupByMaster(rowws):
@@ -344,7 +397,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
             example_scan=zipped_modalit_path[2][1]
 
         if(len(non_mri_inputs)>0):
-            prost_im=elastixRegister.reg_a_to_b_by_metadata_single_f(example_scan,group[1][non_mri_inputs[0]][1][0],sitk.sitkNearestNeighbor)
+            prost_im=reg_a_to_b_by_metadata_single_f(example_scan,group[1][non_mri_inputs[0]][1][0],sitk.sitkNearestNeighbor)
             sitk.WriteImage(prost_im, out_pathsDict[non_mri_inputs[0]])
 
         # # write preprocessed scans to nnUNet input directory
@@ -387,7 +440,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
  
         label_new_paths,newPaths= process_labels(labels,group,main_modality,label_new_path,newPaths,out_pathsDict)
         if(is_to_preprocess):
-            elastixRegister.reg_a_to_b_by_metadata_single_g(example_scan,label_new_path_prim,sitk.sitkNearestNeighbor)
+            reg_a_to_b_by_metadata_single_g(example_scan,label_new_path_prim,sitk.sitkNearestNeighbor)
         
         for label_new_path in label_new_paths:
             newPaths.append(('label',label_new_path ))
@@ -510,8 +563,8 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     "labels": label_names,  
     "file_ending": ".nii.gz",
     "overwrite_image_reader_writer": "SimpleITKIO",
-    "regions_class_order": [7,6,5,4,3,2,1],  
-    "normalization_schemes" : ["zscore","noNorm","noNorm","noNorm","noNorm"],
+    "regions_class_order": [3,2,1],  
+    "normalization_schemes" : ["zscore","noNorm","noNorm"],
     "numTraining" : len(label_paths),
     "nnUNetPlans" : ['2d','3d_lowres','3d_cascade_fullres', '3d_fullres']
     }
@@ -547,6 +600,72 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
         cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
         p = Popen(cmd_terminal, shell=True)
         p.wait()
+
+
+
+    # plans_path= join(preprocesss_folder,taskName,'nnUNetPlans.json')
+    plans_path= f"/home/sliceruser/nnunetMainFolder/nnUNet_preprocessed/Dataset{dataset_id}_Prostate/nnUNetPlans.json"
+    f = open(plans_path)
+    plans = json.load(f)
+    plans['configurations']['3d_lowres'] = {
+        "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time
+        'inherits_from': '3d_fullres',
+    'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 12, 'patch_size': [32, 96, 96]
+        #   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 2, 'patch_size': [96, 96, 96] # for swin
+                                                    , 'median_image_size_in_voxels': [32., 84., 95.]
+    , 'spacing': [0.78125, 0.78125   , 0.78125   ] #for swin
+    # , 'spacing': [3.30000019, 0.78125   , 0.78125   ]
+
+    , 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
+    , 'use_mask_for_norm': [False, False, False, False, False]
+    , 'UNet_class_name': 'PlainConvUNet'
+    , 'UNet_base_num_features': 32
+    , 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2)
+    , 'n_conv_per_stage_decoder': (2, 2, 2, 2)
+    , 'num_pool_per_axis': [2, 4, 4]
+    , 'pool_op_kernel_sizes': [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
+    # , 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
+    , 'conv_kernel_sizes': [[1, 5, 5], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
+    , 'unet_max_num_features': 320
+    , 'resampling_fn_data': 'resample_data_or_seg_to_shape'
+    , 'resampling_fn_seg': 'resample_data_or_seg_to_shape'
+    , 'resampling_fn_data_kwargs': {'is_seg': False, 'order': 3, 'order_z': 0, 'force_separate_z': None}
+    , 'resampling_fn_seg_kwargs': {'is_seg': True, 'order': 1, 'order_z': 0, 'force_separate_z': None}
+    , 'resampling_fn_probabilities': 'resample_data_or_seg_to_shape'
+    , 'resampling_fn_probabilities_kwargs': {'is_seg': False, 'order': 1, 'order_z': 0, 'force_separate_z': None}, 'batch_dice': False}
+
+
+
+
+    json_string = json.dumps(plans)     
+    print(f"aaaaaaaaaaaaa {json_string} \n \n \n ppppppppppppppppppppppppppppppppppp")
+        
+    with open(plans_path, 'w') as outfile:
+        outfile.write(json_string)
+
+    # data = { 
+    #     "channel_names": channel_names, 
+    #     "labels": label_names,  
+    #     # "regions_class_order": [2,1,0],  
+    #     "file_ending": ".nii.gz",
+    #     "numTraining" : len(label_paths),
+        
+    #     # "nnUNetPlans" : ['2d','3d_fullres','3d_fullres_custom','3d_lowres','3d_cascade_fullres'],
+    #     "nnUNetPlans" : ['2d','3d_fullres','3d_fullres_custom'],
+        
+    #     # 'conv_kernel_sizes': [[1, 3, 3], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
+    # }
+
+
+    # json_string = json.dumps(data)
+    # with open(json_path, 'w') as outfile:
+    #     outfile.write(json_string)
+        
+
+
+    cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
+    p = Popen(cmd_terminal, shell=True)
+    p.wait()
 
 
 

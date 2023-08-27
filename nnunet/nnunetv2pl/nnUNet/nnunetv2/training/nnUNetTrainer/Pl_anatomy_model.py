@@ -168,44 +168,19 @@ class Pl_Model(pl.LightningModule):
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
                 save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train")
-                # print(f"bbbbbbbbbbbb {batch_idx} output {len(output)} {output[0].shape} {output[1].shape} {output[2].shape}")
-                # percent_in,percent_out,percent_covered,is_correct,my_sensitivity,my_specificity=calc_custom_metrics(epoch,target,output ,self.log_every_n,batch_idx)
-
-                # self.test_step_outputs.append(('loss', l.detach().cpu().numpy()))
-                # # self.validation_step_outputs.append(('tp_hard',tp_hard))
-                # # self.validation_step_outputs.append(('fp_hard',fp_hard))
-                # # self.validation_step_outputs.append(('fn_hard',fn_hard))
-                # self.test_step_outputs.append(('percent_in',np.nanmean(percent_in)))
-                # self.test_step_outputs.append(('percent_out',np.nanmean(percent_out)))
-                # self.test_step_outputs.append(('percent_covered',np.nanmean(percent_covered)))
-                # self.test_step_outputs.append(('is_correct',np.nanmean(is_correct)))
-                # self.test_step_outputs.append(('my_sensitivity',np.nanmean(my_sensitivity)))
-                # self.test_step_outputs.append(('my_specificity',np.nanmean(my_specificity)))
-        
-        
-        
+       
         return l
-        # if(self.current_epoch%2):
-        #     seg_hat,reg_hat, y_true, numLesions=self.infer_train_ds_labels( batch)
-        #     return torch.add(self.criterion(seg_hat,y_true)
-        #                     ,self.regLoss(reg_hat.flatten().float(),torch.Tensor(numLesions).to(self.device).flatten().float() ) 
-        #                     # ,self.regLoss(regr_no_lab.flatten(),torch.Tensor(numLesions_no_lab).to(self.device).flatten() ) 
-        #                         )
-        # else:
-        #     regr_no_lab, numLesions_no_lab= self.infer_train_ds_no_labels( batch) 
-        #     return self.regLoss(regr_no_lab.flatten().float(),torch.Tensor(numLesions_no_lab).to(self.device).flatten().float() ) 
+
 
     def transform_gold(self,target):
         shape_0 =target[0].shape
         seg_shape=shape_0
-        # shape_1 =(seg_shape[0],seg_shape[1] ,seg_shape[2]//2,seg_shape[3]//2,seg_shape[4]//2)
-        # shape_2 =(seg_shape[0],seg_shape[1] ,shape_1[2]//2,shape_1[3]//2,shape_1[4]//2)
-        # shape_3 =(seg_shape[0],seg_shape[1] ,shape_2[2]//2,shape_2[3]//2,shape_2[4]//2)
+
         shape_1 =(seg_shape[2]//2,seg_shape[3]//2,seg_shape[4]//2)
         shape_2 =(shape_1[0]//2,shape_1[1]//2,shape_1[2]//2)
         shape_3 =(shape_2[0]//2,shape_2[1]//2,shape_2[2]//2)
         shape_4 =(shape_3[0]//2,shape_3[1]//2,shape_3[2]//2)
-
+        
         targets=[target[0]]
         shapes=[shape_0,shape_1,shape_2,shape_3,shape_4]     
         # print(f"ttttttttttt {target[0].shape}")   
@@ -261,15 +236,15 @@ class Pl_Model(pl.LightningModule):
 
     def on_validation_epoch_end(self):
         group_name='val'
-        res= calc_custom_metrics(group_name,self.f,self.for_explore,False ).flatten()
+        res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=True )
+        list(map(lambda tupl : self.log(tupl[0], tupl[1]) ,res ))
         
-        
-        self.log("percent_in_val", res[0]) #,sync_dist=True
-        self.log("percent_out_val", res[1]) #,sync_dist=True
-        self.log("percent_covered_val", res[2]) #,sync_dist=True
-        self.log("is_correct_val", res[3])#,sync_dist=True
-        self.log("my_sensitivity_val", res[4])#,sync_dist=True
-        self.log("my_specificity_val", res[5])#,sync_dist=True
+        # self.log("percent_in_val", res[0]) #,sync_dist=True
+        # self.log("percent_out_val", res[1]) #,sync_dist=True
+        # self.log("percent_covered_val", res[2]) #,sync_dist=True
+        # self.log("is_correct_val", res[3])#,sync_dist=True
+        # self.log("my_sensitivity_val", res[4])#,sync_dist=True
+        # self.log("my_specificity_val", res[5])#,sync_dist=True
 
 
 
@@ -282,12 +257,14 @@ class Pl_Model(pl.LightningModule):
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
             group_name='train'
-            res= calc_custom_metrics(group_name,self.f,self.for_explore,True ).flatten()
-            self.log("percent_in_train", res[0]) #,sync_dist=True
-            self.log("percent_out_train", res[1]) #,sync_dist=True
-            self.log("percent_covered_train", res[2]) #,sync_dist=True
-            self.log("is_correct_train", res[3])#,sync_dist=True
-            self.log("my_sensitivity_train", res[4])#,sync_dist=True
-            self.log("my_specificity_train", res[5])#,sync_dist=True
+            res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True )
+            list(map(lambda tupl : self.log(tupl[0], tupl[1]) ,res ))
+
+            # self.log("percent_in_train", res[0]) #,sync_dist=True
+            # self.log("percent_out_train", res[1]) #,sync_dist=True
+            # self.log("percent_covered_train", res[2]) #,sync_dist=True
+            # self.log("is_correct_train", res[3])#,sync_dist=True
+            # self.log("my_sensitivity_train", res[4])#,sync_dist=True
+            # self.log("my_specificity_train", res[5])#,sync_dist=True
 
 

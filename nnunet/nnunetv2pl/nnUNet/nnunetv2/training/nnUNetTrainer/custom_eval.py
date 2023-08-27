@@ -20,6 +20,10 @@ from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
 import shutil
 import itertools
+import pymia.evaluation.metric as metric
+import pymia.evaluation.evaluator as eval_
+import pymia.evaluation.writer as writer
+
 
 def analyze_single_label(uniq_num,centers, big_mask, connected,in_min):
     infered_inner=(connected==uniq_num)
@@ -113,7 +117,11 @@ def concat_local_data(batch_ids,f,group_name,name):
     res=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/{name}"][:,:,:,:,:],batch_ids))
     return np.concatenate(res,axis=0)
     
-def calc_custom_metrics(group_name,f,for_explore,to_save_files):    
+
+
+
+
+def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=False):    
     batch_nums= np.array(list(f[group_name].keys()))
     if(batch_nums.shape[0]<3):
         batch_nums=np.array_split(batch_nums, 1)
@@ -130,7 +138,14 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files):
     res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
                                                               ,concat_local(batch_ids,f,group_name,"predicted_segmentation_onehot")
                                                               ,concat_local_data(batch_ids,f,group_name,"data")
-                                                              ,f,for_explore,to_save_files,batch_ids),batch_nums))
+                                                              ,f,for_explore,to_save_files,batch_ids,anatomy_metr=anatomy_metr),batch_nums))
+
+    if(anatomy_metr):
+        res= itertools.chain(*res)
+        metrics_names= np.unique(np.array(list(map(lambda tupl:tupl[0] ,res))))
+        filtered=list(map(lambda name: list(filter(lambda tupl: tupl[0]==name ,res ))  , metrics_names))
+        filtered= list(map( lambda listt: np.mean(np.array(list(map(lambda tupl :tupl[1] ,listt )))) ,filtered))
+        return list(zip(metrics_names,filtered))
     res=np.concatenate(res,axis=-1)
     # res= list(map(lambda batch_ids: calc_custom_metrics_inner(f[f"{group_name}/{batch_id}/target"][:,:,:,:],f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:]),batch_nums))
     res= np.mean(res,axis=-1)
@@ -165,14 +180,14 @@ def save_batched_to_file(for_explore,batch_ids,name,arr,typee):
     
 
 
-def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_explore,to_save_files,batch_ids):
+def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_explore,to_save_files,batch_ids,anatomy_metr):
     percent_in= np.zeros(1)
     percent_out=np.zeros(1)
     percent_covered=np.zeros(1)
     is_correct=np.zeros(1)
     my_sensitivity=np.zeros(1)
     my_specificity=np.zeros(1)
-
+    shapp= target.shape
 
     if(to_save_files):
         os.makedirs(for_explore,exist_ok=True)
@@ -182,6 +197,24 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         save_batched_to_file(for_explore,batch_ids,"predicted_segmentation_onehot",np.expand_dims(predicted_segmentation_onehot,1),int)
         save_batched_to_file(for_explore,batch_ids,"data",data,float)
         save_batched_to_file(for_explore,batch_ids,"target",target_to_save,int)
+    ####### full anatomy metrics
+    if(anatomy_metr):
+        arrs=list(map(lambda bi: (predicted_segmentation_onehot[bi,:,:,:],target[bi,:,:,:]) ,range(shapp[0])))
+        metrics = [metric.DiceCoefficient(), metric.HausdorffDistance(percentile=95, metric='HDRFDST95'), metric.VolumeSimilarity()]
+        labels = {1: 'segmentation' }
+        evaluator = eval_.SegmentationEvaluator(metrics, labels)      
+        metr_res ='/workspaces/konwersjaJsonData/explore/metr.csv'
+        batch_idd=int(batch_ids[0])
+        list(map(lambda bi:evaluator.evaluate(sitk.GetImageFromArray(predicted_segmentation_onehot[bi,:,:,:])
+                                                , sitk.GetImageFromArray(target[bi,:,:,:])
+                                                , (batch_idd*100)+bi) ,range(shapp[0])))        
+        functions = {'MEAN': np.mean}
+        writer.CSVStatisticsWriter(metr_res, functions=functions).write(evaluator.results)
+        frame = pd.read_csv(metr_res,header=0,sep=";")
+        rows = frame.iterrows()
+        rows= list(map(lambda roww: (roww[1]['METRIC'],roww[1]['VALUE']),rows))
+        return rows
+    ####### lesions metrics
 
 
     curr=predicted_segmentation_onehot
@@ -189,7 +222,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     # curr= torch.sum(curr,dim=1)
     inn = curr & bigger_mask
     twos= (target==2)[:,0,:,:,:]
-    shapp= target.shape
+    
     
     total = np.sum(curr.flatten())
     

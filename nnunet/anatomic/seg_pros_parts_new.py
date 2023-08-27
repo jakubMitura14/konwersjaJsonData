@@ -26,8 +26,6 @@ from toolz import curry
 from os.path import basename, dirname, exists, isdir, join, split
 import nnunetv2
 
-import elastixRegister as elastixRegister
-from elastixRegister import reg_a_to_b
 
 from toolz.itertoolz import groupby
 from toolz import curry
@@ -97,13 +95,13 @@ main_modality = 't2w'
 main_modality = 't2w'
 modalities_of_intrest=['t2w','adc','hbv']
 
-prostate_col= 'pg_noSeg'
-new_col_name=prostate_col
+# prostate_col= 'pg_noSeg'
+# new_col_name=prostate_col
 
-new_col_name= 'inferred_pg'
+# new_col_name= 'inferred_pg'
 
-non_mri_inputs=[new_col_name]
-prostate_col= new_col_name # name of the column with segmentaton of whole prostate gland
+non_mri_inputs=[]
+# prostate_col= new_col_name # name of the column with segmentaton of whole prostate gland
 
 anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg']
 # anatomic_cols=['afs_noSeg']
@@ -119,13 +117,9 @@ channel_names={
 
 label_names= {  
     "background": 0,
-    "afs": 1,
+    "pz": 1,
     "tz": 2,
-    "cz": 3,
-    "pz": 4,
-    "pz_big":[3,4],
-    "tz_big":[1,2],
-    "full_prost":[1,2,3,4]
+    "full_prost":[1,2]
     }
 
 # label_names= {  # THIS IS DIFFERENT NOW!
@@ -141,13 +135,13 @@ def get_int_arr_from_path(pathh):
     index=15
     to_ignore=False
     if('afs' in pathh):
-        index=1
+        index=2
     elif('cz' in pathh):
-        index=2        
+        index=1        
     elif('pz' in pathh):
-        index=3
+        index=1
     elif('tz' in pathh):
-        index=4
+        index=2
     else:
         to_ignore=True
 
