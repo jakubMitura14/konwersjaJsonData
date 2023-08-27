@@ -66,7 +66,7 @@ from .med_next.create_mednext_v1 import *
 from .swin_unetr.Swin_unetr_model import *
 
 
-class My_pl_trainer(nnUNetTrainer):
+class My_Anatomy_trainer(nnUNetTrainer):
 
     def on_train_start(self):
         """
