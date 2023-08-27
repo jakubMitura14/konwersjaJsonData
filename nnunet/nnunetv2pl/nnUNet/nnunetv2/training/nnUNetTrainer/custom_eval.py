@@ -280,7 +280,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     
     with mp.Pool(processes = mp.cpu_count()) as pool:
         # get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_files)
-        my_specificity,my_sensitivity=pool.map(partial(get_sensitivity_and_specificity,for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files)),enumerate(arrs))
+        my_specificity,my_sensitivity=pool.map(partial(get_sensitivity_and_specificity,for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files)),enumerate(arrs)
         # my_sensitivity=pool.map(get_my_sensitivity,arrs)
         # my_specificity=pool.map(get_my_specifity,arrs)
     
