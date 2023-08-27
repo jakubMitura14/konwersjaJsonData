@@ -89,6 +89,7 @@ class Pl_Model(pl.LightningModule):
                  ,val_eval_folder
                  ,hf5_path
                  ,for_explore
+                 ,is_plain_conv
 
                  ):
         super().__init__()
@@ -105,6 +106,7 @@ class Pl_Model(pl.LightningModule):
         self.val_eval_folder =val_eval_folder
         self.hf5_path=hf5_path
         self.for_explore=for_explore
+        self.is_plain_conv=is_plain_conv
         # self.validation_step_outputs = []
         # self.test_step_outputs = []
 
@@ -172,8 +174,8 @@ class Pl_Model(pl.LightningModule):
         data = batch['data']
         target = batch['target']
         output = self.network(data)
-
-        target=self.transform_gold(target)
+        if(not self.is_plain_conv):
+            target=self.transform_gold(target)
         # print(f"tttt target {len(target)}   {target[0].shape}")
         
         epoch=self.current_epoch
@@ -238,8 +240,8 @@ class Pl_Model(pl.LightningModule):
 
         data = batch['data']
         target = batch['target']
-        
-        target=self.transform_gold(target)
+        if(not self.is_plain_conv):
+            target=self.transform_gold(target)
         
         
         # if(isinstance(data,list)):

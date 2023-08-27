@@ -108,15 +108,16 @@ class My_pl_trainer(nnUNetTrainer):
         nnUNetTrainer.on_train_start(self)
 
 
-
+        self.is_plain_conv=True
 
         self.num_input_channels = determine_num_input_channels(self.plans_manager, self.configuration_manager,
                                                                 self.dataset_json)
 
-        self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
-                                                        self.configuration_manager,
-                                                        self.num_input_channels,
-                                                        enable_deep_supervision=True).to(self.device)
+        if(self.is_plain_conv):
+            self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
+                                                            self.configuration_manager,
+                                                            self.num_input_channels,
+                                                            enable_deep_supervision=True).to(self.device)
         # compile network for free speedup
 
 
@@ -159,7 +160,8 @@ class My_pl_trainer(nnUNetTrainer):
                                 ,train_eval_folder=train_eval_folder 
                                 ,val_eval_folder=val_eval_folder
                                 ,hf5_path=self.hf5_path
-                                ,for_explore=for_explore)
+                                ,for_explore=for_explore
+                                ,is_plain_conv=self.is_plain_conv)
 
         comet_logger = CometLogger(
             api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
