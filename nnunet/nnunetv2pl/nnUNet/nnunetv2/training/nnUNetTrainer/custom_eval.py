@@ -38,7 +38,7 @@ def get_my_specifity(arrs):
     # inferred=curr#[bi,:,:,:]
     # big_mask=bigger_mask#[bi,:,:,:]
 
-    curr_in,centers,inferred,big_mask=arrs
+    curr_in,centers,inferred,big_mask,data=arrs
     
     if(np.sum(inferred.flatten())==0):
         return 1.0
@@ -65,7 +65,7 @@ def get_connected_components_num(arr):
     return len(uniqq)    
 
 def get_my_sensitivity(arrs):
-    curr_in,curr_twos,inferred,curr_bigger_mask=arrs
+    curr_in,curr_twos,inferred,curr_bigger_mask,data=arrs
     
     # curr_in= inn#[bi,:,:,:]
     # curr_twos= twos#[bi,:,:,:]
@@ -109,6 +109,55 @@ def get_my_sensitivity(arrs):
     res=res.astype(int)
     return np.mean(res.flatten())
 
+def save_single_arr(image_array,batch_idd, bn, c,for_explore,name,typee ):
+    # image_array,batch_idd, bn, c,for_explore,name,typee=args
+    # im= sitk.GetImageFromArray(image_array)
+    folder=f"{for_explore}/{int(batch_idd)*100+int(bn)}" #/{name}_{c}
+    Path(folder).mkdir( parents=True, exist_ok=True )
+    path=f"{folder}/im_{name}_{c}.nii.gz"    
+    print(f"ffffffffff folder {folder} sh {image_array.shape}")
+    sitk.WriteImage(sitk.GetImageFromArray(image_array.astype(typee)), path)
+    return path
+
+
+def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_files):
+    bn,arrs=arrs_tupl
+    get_my_specifity(arrs)
+    get_my_sensitivity(arrs)
+    curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
+    if(to_save_files):
+        save_single_arr(curr_in,batch_idd, bn, 0,for_explore,"curr_in",np.uint8 )
+        save_single_arr(curr_twos,batch_idd, bn, 0,for_explore,"curr_twos",np.uint8 )
+        save_single_arr(inferred,batch_idd, bn, 0,for_explore,"inferred",np.uint8 )
+        save_single_arr(curr_bigger_mask,batch_idd, bn, 0,for_explore,"curr_bigger_mask",np.uint8 )
+
+        save_single_arr(data[0,:,:,:],batch_idd, bn, 0,for_explore,"data",float)
+        save_single_arr(data[1,:,:,:],batch_idd, bn, 1,for_explore,"data",float)
+        save_single_arr(data[2,:,:,:],batch_idd, bn, 2,for_explore,"data",float)
+        save_single_arr(data[3,:,:,:],batch_idd, bn, 3,for_explore,"data",float)
+        save_single_arr(data[4,:,:,:],batch_idd, bn, 4,for_explore,"data",float)
+    
+# def save_batched_to_file(for_explore,batch_ids,name,arr,typee):
+#     batch_idd=batch_ids[0]
+#     b_num_local=arr.shape[0]
+#     c_num_local=arr.shape[1]
+    
+#     listed=list(map(lambda bn: 
+#                     list(map(lambda c: (arr[bn,c,:,:,:],batch_idd, bn, c ,for_explore,name,typee) ,range(c_num_local) )) 
+#                     , range(b_num_local)))
+#     listed=itertools.chain(*listed)
+#     with mp.Pool(processes = mp.cpu_count()) as pool:
+#         pool.map(save_single_arr,listed)
+    
+#     return listed
+    
+
+
+
+
+
+
+
 def concat_local(batch_ids,f,group_name,name):
     res=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/{name}"][:,:,:,:],batch_ids))
     return np.concatenate(res,axis=0)
@@ -132,7 +181,10 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
 
     # target=np.concatenate(target,axis=0)
     # predicted_segmentation_onehot=np.concatenate(predicted_segmentation_onehot,axis=0)
-
+    if(to_save_files):
+        os.makedirs(for_explore,exist_ok=True)
+        shutil.rmtree(for_explore)   
+        os.makedirs(for_explore,exist_ok=True)
 
 
     res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
@@ -151,34 +203,11 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
     res= np.mean(res,axis=-1)
     return res
 
-def prep_arr_list(inn,twos,curr,bigger_mask,batch_num):
+def prep_arr_list(inn,twos,curr,bigger_mask,data,batch_num):
     
-    return list(map(lambda bi: (inn[bi,:,:,:],twos[bi,:,:,:],curr[bi,:,:,:],bigger_mask[bi,:,:,:]  ) ,range(batch_num)))
+    return list(map(lambda bi: (inn[bi,:,:,:],twos[bi,:,:,:],curr[bi,:,:,:],bigger_mask[bi,:,:,:],data[bi,:,:,:,:]  ) ,range(batch_num)))
 
-def save_single_arr(args ):
-    image_array,batch_idd, bn, c,for_explore,name,typee=args
-    # im= sitk.GetImageFromArray(image_array)
-    folder=f"{for_explore}/{int(batch_idd)*100+int(bn)}/{name}/{c}"
-    Path(folder).mkdir( parents=True, exist_ok=True )
-    path=f"{folder}/im_{name}_{c}.nii.gz"    
-    print(f"ffffffffff folder {folder} sh {image_array.shape}")
-    sitk.WriteImage(sitk.GetImageFromArray(image_array.astype(typee)), path)
-    return path
 
-def save_batched_to_file(for_explore,batch_ids,name,arr,typee):
-    batch_idd=batch_ids[0]
-    b_num_local=arr.shape[0]
-    c_num_local=arr.shape[1]
-    
-    listed=list(map(lambda bn: 
-                    list(map(lambda c: (arr[bn,c,:,:,:],batch_idd, bn, c ,for_explore,name,typee) ,range(c_num_local) )) 
-                    , range(b_num_local)))
-    listed=itertools.chain(*listed)
-    with mp.Pool(processes = mp.cpu_count()) as pool:
-        pool.map(save_single_arr,listed)
-    
-    return listed
-    
 
 
 def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_explore,to_save_files,batch_ids,anatomy_metr):
@@ -189,15 +218,11 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     my_sensitivity=np.zeros(1)
     my_specificity=np.zeros(1)
     shapp= target.shape
+    batch_idd=int(batch_ids[0])
 
-    if(to_save_files):
-        os.makedirs(for_explore,exist_ok=True)
-        shutil.rmtree(for_explore)   
-        os.makedirs(for_explore,exist_ok=True)
-        target_to_save=np.concatenate([(target==1),(target==2)],axis=1)
-        save_batched_to_file(for_explore,batch_ids,"predicted_segmentation_onehot",np.expand_dims(predicted_segmentation_onehot,1),np.uint8)
-        save_batched_to_file(for_explore,batch_ids,"data",data,float)
-        save_batched_to_file(for_explore,batch_ids,"target",target_to_save,np.uint8)
+
+
+
     ####### full anatomy metrics
     if(anatomy_metr):
         arrs=list(map(lambda bi: (predicted_segmentation_onehot[bi,:,:,:],target[bi,:,:,:]) ,range(shapp[0])))
@@ -205,7 +230,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         labels = {1: 'segmentation' }
         evaluator = eval_.SegmentationEvaluator(metrics, labels)      
         metr_res ='/workspaces/konwersjaJsonData/explore/metr.csv'
-        batch_idd=int(batch_ids[0])
+        # batch_idd=int(batch_ids[0])
         list(map(lambda bi:evaluator.evaluate(sitk.GetImageFromArray(predicted_segmentation_onehot[bi,:,:,:])
                                                 , sitk.GetImageFromArray(target[bi,:,:,:])
                                                 , (batch_idd*100)+bi) ,range(shapp[0])))        
@@ -244,7 +269,8 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     percent_out=np.array([percent_out]).flatten()
     percent_covered=np.array([percent_covered]).flatten()    
     
-    arrs=prep_arr_list(inn,twos,curr,bigger_mask,shapp[0])
+
+    arrs=prep_arr_list(inn,twos,curr,bigger_mask,data,shapp[0])
     
     del inn
     del twos
@@ -252,8 +278,9 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     del bigger_mask
     
     with mp.Pool(processes = mp.cpu_count()) as pool:
-        my_sensitivity=pool.map(get_my_sensitivity,arrs)
-        my_specificity=pool.map(get_my_specifity,arrs)
+        pool.map(partial(get_sensitivity_and_specificity(for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files)),enumerate(arrs))
+        # my_sensitivity=pool.map(get_my_sensitivity,arrs)
+        # my_specificity=pool.map(get_my_specifity,arrs)
 
     
     # with mp.Pool(processes = mp.cpu_count()) as pool:
