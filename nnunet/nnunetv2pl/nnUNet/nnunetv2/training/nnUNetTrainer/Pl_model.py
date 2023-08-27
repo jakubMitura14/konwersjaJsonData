@@ -72,7 +72,6 @@ from optuna.integration import PyTorchLightningPruningCallback
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
-from warmup_scheduler_pytorch import WarmUpScheduler
 from .custom_eval import *
 
 

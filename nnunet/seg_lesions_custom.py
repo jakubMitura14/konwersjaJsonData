@@ -514,7 +514,7 @@ p.wait()
 #### image_processing_oneformer is modified
 
 
-# my_proj_name="seg lesions 5" tag="l4a swin kernel 3" my_proj_desc="l4a swinkernel 3" nnUNetv2_train 101 3d_lowres 0 -tr My_pl_trainer
+# my_proj_name="seg lesions 4" tag="l4a test" my_proj_desc="l4a test" nnUNetv2_train 101 3d_lowres 0 -tr My_pl_trainer
 
 
 #with masked binary_cross_entropy_with_logits
