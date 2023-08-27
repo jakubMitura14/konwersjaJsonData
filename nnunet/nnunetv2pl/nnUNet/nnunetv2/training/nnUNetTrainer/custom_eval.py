@@ -174,7 +174,7 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
     if(batch_nums.shape[0]<3):
         batch_nums=np.array_split(batch_nums, 1)
     else:
-        batch_nums=np.array_split(batch_nums, 4)    
+        batch_nums=np.array_split(batch_nums, 3)    
     # target=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/target"][:,:,:,:], batch_nums))
     # predicted_segmentation_onehot=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:], batch_nums))
 
@@ -275,9 +275,9 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     del twos
     del curr
     del bigger_mask
-    
+    print(f"before multiprocessss  ")
     with mp.Pool(processes = mp.cpu_count()) as pool:
-        my_specificity,my_sensitivity,num_components,in_inferred=pool.map(partial(get_sensitivity_and_specificity(for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files)),enumerate(arrs))
+        my_specificity,my_sensitivity,num_components,in_inferred=pool.map(partial(get_sensitivity_and_specificity,for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files),enumerate(arrs))
         # my_sensitivity=pool.map(get_my_sensitivity,arrs)
         # my_specificity=pool.map(get_my_specifity,arrs)
     # with mp.Pool(processes = mp.cpu_count()) as pool:
