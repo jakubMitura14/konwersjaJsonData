@@ -72,6 +72,7 @@ from optuna.integration import PyTorchLightningPruningCallback
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
+from warmup_scheduler_pytorch import WarmUpScheduler
 from .custom_eval import *
 
 
@@ -125,13 +126,26 @@ class Pl_Model(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate, weight_decay=self.weight_decay,
+        optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate/2, weight_decay=self.weight_decay,
                                     momentum=0.99, nesterov=True)
+        
+        
+        # lr_scheduler = CosineAnnealingLR(optimizer, T_max=100, eta_min=0.01)
+        # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=1000)
+        lr_scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=1000)
+        # warmup_scheduler = WarmUpScheduler(optimizer, lr_scheduler,
+        #                                 len_loader=len(self.dataloader_train),
+        #                                 warmup_steps=30,
+        #                                 warmup_start_lr=0.01,
+        #                                 warmup_mode='linear')
+        
+        
         # optimizer = torch.optim.AdamW(self.network.parameters(), 0.003311311214825908)#learning rate set by learning rate finder
         
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         #lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
-        lr_scheduler =pl_bolts.optimizers.lr_scheduler.LinearWarmupCosineAnnealingLR(optimizer)
+        # lr_scheduler =pl_bolts.optimizers.lr_scheduler.LinearWarmupCosineAnnealingLR(optimizer,20,1000) 
+        
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
 

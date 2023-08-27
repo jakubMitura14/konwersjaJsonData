@@ -146,6 +146,7 @@ def save_single_arr(args ):
     folder=f"{for_explore}/{int(batch_idd)*100+int(bn)}/{name}/{c}"
     Path(folder).mkdir( parents=True, exist_ok=True )
     path=f"{folder}/im_{name}_{c}.nii.gz"    
+    print(f"ffffffffff folder {folder} sh {image_array.shape}")
     sitk.WriteImage(sitk.GetImageFromArray(image_array.astype(typee)), path)
     return path
 
@@ -179,9 +180,9 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         shutil.rmtree(for_explore)   
         os.makedirs(for_explore,exist_ok=True)
         target_to_save=np.concatenate([(target==1),(target==2)],axis=1)
-        save_batched_to_file(for_explore,batch_ids,"predicted_segmentation_onehot",np.expand_dims(predicted_segmentation_onehot,1),int)
+        save_batched_to_file(for_explore,batch_ids,"predicted_segmentation_onehot",np.expand_dims(predicted_segmentation_onehot,1),np.uint8)
         save_batched_to_file(for_explore,batch_ids,"data",data,float)
-        save_batched_to_file(for_explore,batch_ids,"target",target_to_save,int)
+        save_batched_to_file(for_explore,batch_ids,"target",target_to_save,np.uint8)
 
 
     curr=predicted_segmentation_onehot
