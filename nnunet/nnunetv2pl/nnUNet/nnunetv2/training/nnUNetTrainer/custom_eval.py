@@ -119,7 +119,10 @@ def save_single_arr(image_array,batch_idd, bn, c,for_explore,name,typee ):
 
 def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_files):
     bn,arrs=arrs_tupl
-    specificity,num_components=get_my_specifity(arrs)
+    ress=get_my_specifity(arrs)
+    print(f"rrrrrrrrrr {ress}")
+    specificity=ress[0]
+    num_components=ress[1]
     sensitivity=get_my_sensitivity(arrs)
     # print(f"specificity {specificity} sensitivity {sensitivity}")
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
