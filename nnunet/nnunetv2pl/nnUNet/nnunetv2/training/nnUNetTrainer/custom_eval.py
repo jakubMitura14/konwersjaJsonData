@@ -121,6 +121,7 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
     bn,arrs=arrs_tupl
     num_components,specificity=get_my_specifity(arrs)
     sensitivity=get_my_sensitivity(arrs)
+    print(f"specificity {specificity} sensitivity {sensitivity}")
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
     if(to_save_files):
         save_single_arr(curr_in,batch_idd, bn, 0,for_explore,"curr_in",np.uint8 )
