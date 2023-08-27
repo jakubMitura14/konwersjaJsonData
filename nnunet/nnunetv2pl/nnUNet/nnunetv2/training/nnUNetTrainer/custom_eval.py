@@ -222,6 +222,10 @@ def prep_arr_list(inn,twos,curr,bigger_mask,data,batch_num):
     return list(map(lambda bi: (inn[bi,:,:,:],twos[bi,:,:,:],curr[bi,:,:,:],bigger_mask[bi,:,:,:],data[bi,:,:,:,:]  ) ,range(batch_num)))
 
 
+def save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore):
+    save_single_arr(predicted_segmentation_onehot,batch_idd[bn,:,:,:], bn, 0,for_explore,"predicted_segmentation_onehot",np.uint8 )
+    save_single_arr(target[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"target",np.uint8 )
+    save_single_arr(data[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"t2w",float )
 
 
 def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_explore,to_save_files,batch_ids,anatomy_metr):
@@ -253,6 +257,10 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         frame = pd.read_csv(metr_res,header=0,sep=";")
         rows = frame.iterrows()
         rows= list(map(lambda roww: (roww[1]['METRIC'],roww[1]['VALUE']),rows))
+        list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
+
+        
+
         return rows
     ####### lesions metrics
 
