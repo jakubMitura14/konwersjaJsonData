@@ -257,8 +257,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         rows = frame.iterrows()
         rows= list(map(lambda roww: (roww[1]['METRIC'],roww[1]['VALUE']),rows))
         list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
-
-        
+       
 
         return rows
     ####### lesions metrics

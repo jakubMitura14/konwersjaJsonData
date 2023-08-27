@@ -75,7 +75,7 @@ from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from .custom_eval import *
 
 
-class Pl_Model(pl.LightningModule):
+class Pl_anatomy_model(pl.LightningModule):
     def __init__(self,network
                  ,dataloader_train
                  ,dataloader_val
@@ -134,18 +134,6 @@ class Pl_Model(pl.LightningModule):
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
 
-    # def infer_train_ds_labels(self, batch):
-    #     x, y, numLesions = batch["train_ds_labels"]['chan3_col_name'] , batch["train_ds_labels"]['label'], batch["train_ds_labels"]['num_lesions_to_retain']
-    #     segmMap,regr = self.modelRegression(x)
-    #     return segmMap,regr, y, numLesions
-
-
-    # def infer_train_ds_no_labels(self, batch):
-    #     x, numLesions =batch["train_ds_no_labels"]['chan3_col_name'],batch["train_ds_no_labels"]['num_lesions_to_retain']
-    #     segmMap,regr = self.modelRegression(x)
-    #     return regr, numLesions
-
-
     def on_validation_epoch_start(self):
         self.network.eval()
 
@@ -159,7 +147,7 @@ class Pl_Model(pl.LightningModule):
         target = batch['target']
         output = self.network(data)
 
-        target=self.transform_gold(target)
+        # target=self.transform_gold(target)
         # print(f"tttt target {len(target)}   {target[0].shape}")
         
         epoch=self.current_epoch
@@ -200,15 +188,9 @@ class Pl_Model(pl.LightningModule):
         data = batch['data']
         target = batch['target']
         
-        target=self.transform_gold(target)
+        # target=self.transform_gold(target)
         
         
-        # if(isinstance(data,list)):
-        #     print(f"valll data 0 {data[0].shape} {data[1].shape} {data[2].shape}")
-        # else:
-        #     print(f"valll data 0 {data.shape}")
-
-
         epoch=self.current_epoch
         data = data.to(device, non_blocking=True)
         if isinstance(target, list):
@@ -239,32 +221,11 @@ class Pl_Model(pl.LightningModule):
         res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=True )
         list(map(lambda tupl : self.log(tupl[0], tupl[1]) ,res ))
         
-        # self.log("percent_in_val", res[0]) #,sync_dist=True
-        # self.log("percent_out_val", res[1]) #,sync_dist=True
-        # self.log("percent_covered_val", res[2]) #,sync_dist=True
-        # self.log("is_correct_val", res[3])#,sync_dist=True
-        # self.log("my_sensitivity_val", res[4])#,sync_dist=True
-        # self.log("my_specificity_val", res[5])#,sync_dist=True
-
-
-
-        # outputs=self.validation_step_outputs        
-        # list(map(lambda metr_name : self.parse_outputs(metr_name,outputs),
-        #          ['loss','percent_in','percent_out','percent_covered','is_correct','my_sensitivity','my_specificity'] ))#'tp_hard','fp_hard','fn_hard'
-        
-        # self.validation_step_outputs.clear()
 
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
             group_name='train'
             res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True )
             list(map(lambda tupl : self.log(tupl[0], tupl[1]) ,res ))
-
-            # self.log("percent_in_train", res[0]) #,sync_dist=True
-            # self.log("percent_out_train", res[1]) #,sync_dist=True
-            # self.log("percent_covered_train", res[2]) #,sync_dist=True
-            # self.log("is_correct_train", res[3])#,sync_dist=True
-            # self.log("my_sensitivity_train", res[4])#,sync_dist=True
-            # self.log("my_specificity_train", res[5])#,sync_dist=True
 
 
