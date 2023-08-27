@@ -285,6 +285,9 @@ class Pl_Model(pl.LightningModule):
         self.log("my_sensitivity_val", res[4])#,sync_dist=True
         self.log("my_specificity_val", res[5])#,sync_dist=True
 
+        self.log("num_components_val", res[6])#,sync_dist=True
+        self.log("in_inferred_val", res[7])#,sync_dist=True
+
 
 
         # outputs=self.validation_step_outputs        
@@ -303,5 +306,8 @@ class Pl_Model(pl.LightningModule):
             self.log("is_correct_train", res[3])#,sync_dist=True
             self.log("my_sensitivity_train", res[4])#,sync_dist=True
             self.log("my_specificity_train", res[5])#,sync_dist=True
+            self.log("num_components_train", res[6])#,sync_dist=True
+            self.log("in_inferred_train", res[7])#,sync_dist=True
+
 
 

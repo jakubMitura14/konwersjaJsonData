@@ -34,9 +34,6 @@ def analyze_single_label(uniq_num,centers, big_mask, connected,in_min):
     return res
 
 def get_my_specifity(arrs):
-    # centers= twos#[bi,:,:,:]
-    # inferred=curr#[bi,:,:,:]
-    # big_mask=bigger_mask#[bi,:,:,:]
 
     curr_in,centers,inferred,big_mask,data=arrs
     
@@ -49,7 +46,7 @@ def get_my_specifity(arrs):
     in_min=0.5
     res= list(map(lambda uniq_num: analyze_single_label(uniq_num,centers, big_mask, connected,in_min), uniqq))
     res= np.mean(np.array(res).astype(int))
-    return res
+    return res,len(uniqq)
 
 def is_sth_in_areas(uniq_num,arr,inferred):
 
@@ -122,7 +119,7 @@ def save_single_arr(image_array,batch_idd, bn, c,for_explore,name,typee ):
 
 def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_files):
     bn,arrs=arrs_tupl
-    specificity=get_my_specifity(arrs)
+    num_components,specificity=get_my_specifity(arrs)
     sensitivity=get_my_sensitivity(arrs)
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
     if(to_save_files):
@@ -136,7 +133,7 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
         save_single_arr(data[2,:,:,:],batch_idd, bn, 2,for_explore,"data",float)
         save_single_arr(data[3,:,:,:],batch_idd, bn, 3,for_explore,"data",float)
         save_single_arr(data[4,:,:,:],batch_idd, bn, 4,for_explore,"data",float)
-    return specificity,sensitivity
+    return specificity,sensitivity,num_components,np.sum(inferred.flatten())
 
 # def save_batched_to_file(for_explore,batch_ids,name,arr,typee):
 #     batch_idd=batch_ids[0]
@@ -279,10 +276,9 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     del bigger_mask
     
     with mp.Pool(processes = mp.cpu_count()) as pool:
-        my_specificity,my_sensitivity=pool.map(partial(get_sensitivity_and_specificity(for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files)),enumerate(arrs))
+        my_specificity,my_sensitivity,num_components,in_inferred=pool.map(partial(get_sensitivity_and_specificity(for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files)),enumerate(arrs))
         # my_sensitivity=pool.map(get_my_sensitivity,arrs)
         # my_specificity=pool.map(get_my_specifity,arrs)
-    
     # with mp.Pool(processes = mp.cpu_count()) as pool:
         
     
@@ -294,6 +290,8 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     if(len(my_sensitivity)>0):
         my_sensitivity= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_sensitivity))))
         my_specificity= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_specificity))))
+        num_components= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),num_components))))
+        in_inferred= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),in_inferred))))
         is_correct= (my_sensitivity*2+my_specificity)/3
     
   
@@ -302,7 +300,9 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
 
     my_sensitivity=np.array(np.nanmean(np.array(my_sensitivity).flatten()))
     my_specificity=np.array(np.nanmean(np.array(my_specificity).flatten()))
-
+    
+    num_components=np.array(np.nanmean(np.array(num_components).flatten()))
+    in_inferred=np.array(np.nanmean(np.array(in_inferred).flatten()))
 
 
     return np.array([np.nanmean(percent_in).flatten()
@@ -310,7 +310,11 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
                      ,np.nanmean(percent_covered).flatten()
                      ,np.nanmean(is_correct).flatten()
                      ,np.nanmean(my_sensitivity).flatten()
-                     ,np.nanmean(my_specificity).flatten()])
+                     ,np.nanmean(my_specificity).flatten()
+                     ,np.nanmean(num_components).flatten()
+                     ,np.nanmean(in_inferred).flatten()
+                     
+                     ])
 
 
 
