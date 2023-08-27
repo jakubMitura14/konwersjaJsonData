@@ -113,10 +113,10 @@ class My_pl_trainer(nnUNetTrainer):
         self.num_input_channels = determine_num_input_channels(self.plans_manager, self.configuration_manager,
                                                                 self.dataset_json)
 
-        # self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
-        #                                                 self.configuration_manager,
-        #                                                 self.num_input_channels,
-        #                                                 enable_deep_supervision=True).to(self.device)
+        self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
+                                                        self.configuration_manager,
+                                                        self.num_input_channels,
+                                                        enable_deep_supervision=True).to(self.device)
         # compile network for free speedup
 
 
