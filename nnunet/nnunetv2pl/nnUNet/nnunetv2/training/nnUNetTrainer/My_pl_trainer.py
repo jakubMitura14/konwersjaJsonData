@@ -118,9 +118,6 @@ class My_pl_trainer(nnUNetTrainer):
         #                                                 self.num_input_channels,
         #                                                 enable_deep_supervision=True).to(self.device)
         # compile network for free speedup
-        if self._do_i_compile():
-            self.print_to_log_file('Compiling network...')
-            self.network = torch.compile(self.network)
 
 
 
@@ -135,6 +132,9 @@ class My_pl_trainer(nnUNetTrainer):
         #             ,use_v2=True#
         #             ,img_size=(96, 96, 96))
 
+        if self._do_i_compile():
+            self.print_to_log_file('Compiling network...')
+            self.network = torch.compile(self.network)
 
         # self.save_hyperparameters()
         # self.pl_model= Pl_Model.load_from_checkpoint(self.output_folder)
