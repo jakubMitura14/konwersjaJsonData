@@ -286,7 +286,7 @@ RUN apt-get install -y ruby-dev  \
     && gem install aspera-cli 
 RUN ascli conf ascp install
 
-RUN python3 -m pip  --no-cache-dir install evalutils==0.3.0 https://github.com/DIAGNijmegen/picai_prep/archive/refs/tags/v1.3.2.zip
+RUN python3 -m pip  --no-cache-dir install evalutils==0.3.0 https://github.com/DIAGNijmegen/picai_prep/archive/refs/tags/v1.3.2.zip pytorch-ignite==0.4.12
 
 
 
