@@ -270,7 +270,9 @@ RUN mkdir ${HOME}/scripts \
     && mkdir ${HOME}/externalRepos \
     && mkdir ${HOME}/forLesionAnalysis \
     && mkdir ${HOME}/Swin3d \
-    && mkdir ${HOME}/connected_comp
+    && mkdir ${HOME}/connected_comp \
+    && mkdir ${HOME}/NBIA
+
 # RUN mkdir ${HOME}/connected_comp
 
 ## for downloads from cancer imaging archive
@@ -291,8 +293,39 @@ RUN python3 -m pip  --no-cache-dir install evalutils==0.3.0 https://github.com/D
 RUN mkdir /usr/share/desktop-directories/ \
 && wget -P ~/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb \
 && sudo apt-get -y install xdg-utils \
-&& dpkg -i ~/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb
+&& dpkg-deb -x ~/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb ${HOME}/NBIA
 
+# RUN apt-get update && \
+#     apt-get install -y openjdk-11-jdk ca-certificates-java && \
+#     apt-get clean && \
+#     update-ca-certificates -f
+# ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64/
+# RUN export JAVA_HOME
+
+
+# Install OpenJDK-8
+RUN apt-get update && \
+    apt-get install -y openjdk-8-jdk && \
+    apt-get install -y ant && \
+    apt-get clean;
+    
+# Fix certificate issues
+RUN apt-get update && \
+    apt-get install ca-certificates-java && \
+    apt-get clean && \
+    update-ca-certificates -f;
+
+# Setup JAVA_HOME -- useful for docker commandline
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
+RUN export JAVA_HOME
+
+
+# /home/sliceruser/NBIA/opt/nbia-data-retriever/nbia-data-retriever --cli /workspaces/konwersjaJsonData/nnunet/pretraining/manifests/UPENN-GBM_DownloadManifest20221129.tcia -d /home/sliceruser/preprocessed/raw -l /home/sliceruser/NBIA/passwd.txt -v –f
+
+
+# /home/sliceruser/NBIA/passwd.txt
+# userName=jmitura
+# passWord=Opihuih7&9668O3345373734
 
 
 # COPY etc/dpkg/dpkg.cfg.d/01_nodoc /etc/dpkg/dpkg.cfg.d/01_nodoc
