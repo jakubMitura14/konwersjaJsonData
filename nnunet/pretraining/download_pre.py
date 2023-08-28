@@ -370,3 +370,10 @@ if __name__ == '__main__':
 
 
 # python3 /workspaces/konwersjaJsonData/nnunet/pretraining/download_pre.py "/workspaces/konwersjaJsonData/explore/tcia_manifests/CPTAC-PDA_SourceImages_NegativeAssessments-manifest-07-05-2023.tcia" "/workspaces/konwersjaJsonData/explore/tcia_manifests/out_tcia"        
+
+
+# mkdir /usr/share/desktop-directories/
+# wget -P ~/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb
+# sudo apt-get -y install xdg-utils
+# sudo mkdir /usr/share/desktop-directories/
+# dpkg -i ~/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb

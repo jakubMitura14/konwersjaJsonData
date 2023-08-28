@@ -207,7 +207,7 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
     # predicted_segmentation_onehot=np.concatenate(predicted_segmentation_onehot,axis=0)
     if(to_save_files):
         os.makedirs(for_explore,exist_ok=True)
-        shutil.rmtree(for_explore)   
+        shutil.rmtree(for_explore,ignore_errors=True)   
         os.makedirs(for_explore,exist_ok=True)
 
 
@@ -233,9 +233,12 @@ def prep_arr_list(inn,twos,curr,bigger_mask,data,batch_num):
 
 
 def save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore):
-    save_single_arr(predicted_segmentation_onehot,batch_idd[bn,:,:,:], bn, 0,for_explore,"predicted_segmentation_onehot",np.uint8 )
+    save_single_arr(predicted_segmentation_onehot[bn,:,:,:],batch_idd, bn, 0,for_explore,"predicted_segmentation_onehot",np.uint8 )
     save_single_arr(target[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"target",np.uint8 )
     save_single_arr(data[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"t2w",float )
+
+def prep_anatomy_target(target):
+    return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)
 
 
 def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_explore,to_save_files,batch_ids,anatomy_metr):
@@ -255,19 +258,21 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     if(anatomy_metr):
         arrs=list(map(lambda bi: (predicted_segmentation_onehot[bi,:,:,:],target[bi,:,:,:]) ,range(shapp[0])))
         metrics = [metric.DiceCoefficient(), metric.HausdorffDistance(percentile=95, metric='HDRFDST95'), metric.VolumeSimilarity()]
-        labels = {1: 'segmentation' }
+        labels = {1: 'pz',2: 'tz' }
         evaluator = eval_.SegmentationEvaluator(metrics, labels)      
         metr_res ='/workspaces/konwersjaJsonData/explore/metr.csv'
         # batch_idd=int(batch_ids[0])
-        list(map(lambda bi:evaluator.evaluate(sitk.GetImageFromArray(predicted_segmentation_onehot[bi,:,:,:])
-                                                , sitk.GetImageFromArray(target[bi,:,:,:])
+
+        list(map(lambda bi:evaluator.evaluate(sitk.GetImageFromArray(predicted_segmentation_onehot[bi,:,:,:].astype(np.uint8))
+                                                , sitk.GetImageFromArray( prep_anatomy_target( target[bi,:,:,:]))
                                                 , (batch_idd*100)+bi) ,range(shapp[0])))        
         functions = {'MEAN': np.mean}
         writer.CSVStatisticsWriter(metr_res, functions=functions).write(evaluator.results)
         frame = pd.read_csv(metr_res,header=0,sep=";")
         rows = frame.iterrows()
         rows= list(map(lambda roww: (roww[1]['METRIC'],roww[1]['VALUE']),rows))
-        list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
+        if(to_save_files):
+            list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
        
 
         return rows

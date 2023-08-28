@@ -33,6 +33,7 @@ class FocalLossV2_orig(nn.Module):
                 raise ValueError('smooth value should be in [0,1]')
 
     def forward(self, logit, target):
+        print(f"llllllllllll logit {logit.shape} target {target.shape} ")
         if self.apply_nonlin is not None:
             logit = self.apply_nonlin(logit)
         num_class = logit.shape[1]
@@ -75,6 +76,7 @@ class FocalLossV2_orig(nn.Module):
         if self.smooth:
             one_hot_key = torch.clamp(
                 one_hot_key, self.smooth / (num_class - 1), 1.0 - self.smooth)
+        print(f"ooooooooooooooo one_hot_key {one_hot_key.shape} logit {logit.shape}")    
         pt = (one_hot_key * logit).sum(1) + self.smooth
         logpt = pt.log()
 

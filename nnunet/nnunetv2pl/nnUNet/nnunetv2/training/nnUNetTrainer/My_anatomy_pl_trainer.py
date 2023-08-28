@@ -113,10 +113,10 @@ class My_Anatomy_trainer(nnUNetTrainer):
         self.num_input_channels = determine_num_input_channels(self.plans_manager, self.configuration_manager,
                                                                 self.dataset_json)
 
-        # self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
-        #                                                 self.configuration_manager,
-        #                                                 self.num_input_channels,
-        #                                                 enable_deep_supervision=True).to(self.device)
+        self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
+                                                        self.configuration_manager,
+                                                        self.num_input_channels,
+                                                        enable_deep_supervision=True).to(self.device)
         # compile network for free speedup
 
 
@@ -203,23 +203,27 @@ class My_Anatomy_trainer(nnUNetTrainer):
         )
 
 
+    def configure_optimizers(self):
+        optimizer = torch.optim.SGD(self.network.parameters(), lr=self.initial_lr, weight_decay=self.weight_decay,
+                                    momentum=0.99, nesterov=True)
+        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs)
+        return optimizer, lr_scheduler
 
+    # def _build_loss(self):
+    #     loss= FocalLossV2_orig()
 
-    def _build_loss(self):
-        loss= FocalLossV2_orig()
+    #     deep_supervision_scales = self._get_deep_supervision_scales()
 
-        deep_supervision_scales = self._get_deep_supervision_scales()
+    #     # we give each output a weight which decreases exponentially (division by 2) as the resolution decreases
+    #     # this gives higher resolution outputs more weight in the loss
+    #     weights = np.array([1 / (2 ** i) for i in range(len(deep_supervision_scales))])
+    #     weights[-1] = 0
 
-        # we give each output a weight which decreases exponentially (division by 2) as the resolution decreases
-        # this gives higher resolution outputs more weight in the loss
-        weights = np.array([1 / (2 ** i) for i in range(len(deep_supervision_scales))])
-        weights[-1] = 0
-
-        # we don't use the lowest 2 outputs. Normalize weights so that they sum to 1
-        weights = weights / weights.sum()
-        # now wrap the loss
-        loss = DeepSupervisionWrapper(loss, weights)
-        return loss    
+    #     # we don't use the lowest 2 outputs. Normalize weights so that they sum to 1
+    #     weights = weights / weights.sum()
+    #     # now wrap the loss
+    #     loss = DeepSupervisionWrapper(loss, weights)
+    #     return loss    
 
 
 
