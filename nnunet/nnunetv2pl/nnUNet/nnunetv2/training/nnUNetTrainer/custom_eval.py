@@ -199,7 +199,7 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
     if(batch_nums.shape[0]<3):
         batch_nums=np.array_split(batch_nums, 1)
     else:
-        batch_nums=np.array_split(batch_nums, 3)    
+        batch_nums=np.array_split(batch_nums, 2)    
     # target=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/target"][:,:,:,:], batch_nums))
     # predicted_segmentation_onehot=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:], batch_nums))
 
@@ -220,11 +220,12 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
         res= itertools.chain(*res)
         metrics_names= np.unique(np.array(list(map(lambda tupl:tupl[0] ,res))))
         filtered=list(map(lambda name: list(filter(lambda tupl: tupl[0]==name ,res ))  , metrics_names))
-        filtered= list(map( lambda listt: np.mean(np.array(list(map(lambda tupl :tupl[1] ,listt )))) ,filtered))
+        filtered= list(map( lambda listt: np.nanmean(np.array(list(map(lambda tupl :tupl[1] ,listt )))) ,filtered))
         return list(zip(metrics_names,filtered))
     res=np.concatenate(res,axis=-1)
     # res= list(map(lambda batch_ids: calc_custom_metrics_inner(f[f"{group_name}/{batch_id}/target"][:,:,:,:],f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:]),batch_nums))
-    res= np.mean(res,axis=-1)
+    res= np.nanmean(res,axis=-1)
+    res= np.nan_to_num(res)
     return res
 
 def prep_arr_list(inn,twos,curr,bigger_mask,data,batch_num):

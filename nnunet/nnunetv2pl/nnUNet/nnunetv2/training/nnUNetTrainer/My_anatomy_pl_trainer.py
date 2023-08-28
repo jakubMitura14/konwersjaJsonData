@@ -72,7 +72,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=5
+        self.log_every_n=1
         self.num_batch_to_eval=10
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
@@ -171,14 +171,14 @@ class My_Anatomy_trainer(nnUNetTrainer):
         )
 
 
-        toMonitor="is_correct_val"
+        toMonitor="HDRFDST95_val"
         checkpoint_callback = ModelCheckpoint(dirpath= join(self.output_folder),mode='max', save_top_k=1, monitor=toMonitor)
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
         stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=1e-3)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
-            patience=5,
+            patience=15,
             mode="max",
             #divergence_threshold=(-0.1)
         )
@@ -188,7 +188,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             max_epochs=1000,
             #gpus=1,
             #precision=experiment.get_parameter("precision"), 
-            callbacks=[ early_stopping,checkpoint_callback], #stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[checkpoint_callback,early_stopping], # early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       

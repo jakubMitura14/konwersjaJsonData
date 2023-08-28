@@ -218,14 +218,17 @@ class Pl_anatomy_model(pl.LightningModule):
 
     def on_validation_epoch_end(self):
         group_name='val'
+        print(f"vvvvvvv ")
         res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=True )
-        list(map(lambda tupl : self.log(tupl[0], tupl[1]) ,res ))
-        
+        print(f"vvvvvvv 22")
+        list(map(lambda tupl : self.log(f"{tupl[0]}_val", tupl[1]) ,res ))
+        print(f"vvvvvvv 33")
+
 
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
             group_name='train'
             res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True )
-            list(map(lambda tupl : self.log(tupl[0], tupl[1]) ,res ))
+            list(map(lambda tupl : self.log(f"{tupl[0]}_train", tupl[1]) ,res ))
 
 
