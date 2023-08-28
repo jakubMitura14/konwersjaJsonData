@@ -178,7 +178,7 @@ class My_pl_trainer(nnUNetTrainer):
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
-            patience=5,
+            patience=20,
             mode="max",
             #divergence_threshold=(-0.1)
         )
