@@ -182,7 +182,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
             patience=15,
-            mode="max",
+            mode="min",
             #divergence_threshold=(-0.1)
         )
         # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
