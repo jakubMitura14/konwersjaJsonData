@@ -137,7 +137,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             self.network=SwinUNETR(in_channels=self.num_input_channels
                         ,out_channels=self.label_manager.num_segmentation_heads
                         ,use_v2=True#
-                        ,img_size=(28, 256, 256))
+                        ,img_size=(32, 256, 256))
 
         if self._do_i_compile():
             self.print_to_log_file('Compiling network...')
