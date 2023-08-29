@@ -173,7 +173,7 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
                                                               ,f,for_explore,to_save_files,batch_ids,anatomy_metr=anatomy_metr,tempdir=tempdir),batch_nums))
 
     if(anatomy_metr):
-        res= itertools.chain(*res)
+        res= list(itertools.chain(*res))
         print(f"yyyyyyyyyyyy cumulated res {res}")
         metrics_names= np.unique(np.array(list(map(lambda tupl:tupl[0] ,res))))
         filtered=list(map(lambda name: list(filter(lambda tupl: tupl[0]==name ,res ))  , metrics_names))
