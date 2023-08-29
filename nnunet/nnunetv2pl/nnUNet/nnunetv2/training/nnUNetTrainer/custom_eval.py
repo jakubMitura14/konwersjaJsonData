@@ -225,7 +225,7 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
     res=np.concatenate(res,axis=-1)
     # res= list(map(lambda batch_ids: calc_custom_metrics_inner(f[f"{group_name}/{batch_id}/target"][:,:,:,:],f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:]),batch_nums))
     res= np.nanmean(res,axis=-1)
-    res= np.nan_to_num(res)
+    res= np.nan_to_num(res,posinf=0.0, neginf=0.0)
     return res
 
 def prep_arr_list(inn,twos,curr,bigger_mask,data,batch_num):
@@ -268,10 +268,13 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
                                                 , sitk.GetImageFromArray( prep_anatomy_target( target[bi,:,:,:]))
                                                 , (batch_idd*100)+bi) ,range(shapp[0])))        
         functions = {'MEAN': np.mean}
-        writer.CSVStatisticsWriter(metr_res, functions=functions).write(evaluator.results)
+        # writer.CSVStatisticsWriter(metr_res, functions=functions).write(evaluator.results)
+        writer.CSVWriter(metr_res).write(evaluator.results)
         frame = pd.read_csv(metr_res,header=0,sep=";")
-        rows = frame.iterrows()
-        rows= list(map(lambda roww: (roww[1]['METRIC'],roww[1]['VALUE']),rows))
+        rows= [("DICE",np.nanmean(frame["DICE"].to_numpy().flatten()))  ,("HDRFDST95",np.nanmean(frame["HDRFDST95"].to_numpy().flatten())) ,("VOLSMTY",np.nanmean(frame["VOLSMTY"].to_numpy().flatten())) ]
+        #DICE   HDRFDST95  VOLSMTY
+        # rows = frame.iterrows()
+        # rows= list(map(lambda roww: (roww[1]['METRIC'],roww[1]['VALUE']),rows))
         if(to_save_files):
             list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
        

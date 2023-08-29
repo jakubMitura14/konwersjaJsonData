@@ -7,7 +7,7 @@ import numpy as np
 from scipy import ndimage
 from scipy.optimize import linear_sum_assignment
 from tqdm import tqdm
-
+import math
 try:
     import numpy.typing as npt
 except ImportError:  # pragma: no cover
@@ -216,19 +216,22 @@ class Pl_anatomy_model(pl.LightningModule):
             
         return l
 
+    def my_anato_log(self,tupl,name): 
+        print(f"ttt {tupl} {name}")       
+        if(np.isnan(tupl[1])):
+            self.log(f"{tupl[0]}_{name}", 0.00000001)
+        self.log(f"{tupl[0]}_{name}", tupl[1])
+        
     def on_validation_epoch_end(self):
         group_name='val'
-        print(f"vvvvvvv ")
         res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=True )
-        print(f"vvvvvvv 22")
-        list(map(lambda tupl : self.log(f"{tupl[0]}_val", tupl[1]) ,res ))
-        print(f"vvvvvvv 33")
+        list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
 
 
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
             group_name='train'
             res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True )
-            list(map(lambda tupl : self.log(f"{tupl[0]}_train", tupl[1]) ,res ))
+            list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
 
 
