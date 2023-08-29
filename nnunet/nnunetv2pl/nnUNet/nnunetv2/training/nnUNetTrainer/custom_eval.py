@@ -174,12 +174,12 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
 
     if(anatomy_metr):
         res= list(itertools.chain(*res))
-        grouped_by_metr_name=  dict(groupby(lambda row : row[0],res)).items()
-        print(f"yyyyyyyyyyyy grouped_by_metr_name  {grouped_by_metr_name}")
-        grouped_by_metr_name =list(map(lambda tupl: (tupl[0],list(map(lambda inner_tupl: inner_tupl[1], tupl[1])) )   ,grouped_by_metr_name))
-        grouped_by_metr_name =list(map(lambda tupl: (tupl[0],np.nanmean(tupl[1]))  ,grouped_by_metr_name))
+        res= list(itertools.chain(*res))
 
-        print(f"yyyyyyyyyyyy 2222 grouped_by_metr_name  {grouped_by_metr_name}")
+        grouped_by_metr_name=  list(dict(groupby(lambda row : row[0],res)).items())
+        grouped_by_metr_name =list(map(lambda tupl: (tupl[0],list(map(lambda inner_tupl: inner_tupl[1], tupl[1])) )   ,grouped_by_metr_name))
+        grouped_by_metr_name =list(map(lambda tupl: (tupl[0],np.nanmean(np.array(tupl[1])))  ,grouped_by_metr_name))
+
 
 
         # filtered=list(map(lambda name: list(filter(lambda tupl: tupl[0]==name ,res ))  , metrics_names))
@@ -245,7 +245,6 @@ def evaluate_single_anatomy_case(arrs,tempdir):
                ,("tz_VOLSMTY", tz_df["VOLSMTY"].to_numpy()[0] )
                  ]
     
-    print(f"rrrrrrrrrrrr {res}")
     return res
 
 
@@ -410,7 +409,6 @@ def save_to_hdf5_anatomy(f,inner_id,group_name,batch_id,target,output,data):
     predicted_segmentation_onehot.scatter_(1, output_seg, 1)
     del output_seg   
     curr=predicted_segmentation_onehot.round().bool()
-    print(f"predicted_segmentation_onehot {predicted_segmentation_onehot.shape}")
     target_str= f"{group_name}/{batch_id}/target"
     predicted_segmentation_onehot_str= f"{group_name}/{batch_id}/predicted_segmentation_onehot"
     data_str= f"{group_name}/{batch_id}/data"
