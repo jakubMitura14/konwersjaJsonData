@@ -174,11 +174,17 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
 
     if(anatomy_metr):
         res= list(itertools.chain(*res))
-        print(f"yyyyyyyyyyyy cumulated res {res}")
-        metrics_names= np.unique(np.array(list(map(lambda tupl:tupl[0] ,res))))
-        filtered=list(map(lambda name: list(filter(lambda tupl: tupl[0]==name ,res ))  , metrics_names))
-        filtered= list(map( lambda listt: np.nanmean(np.array(list(map(lambda tupl :tupl[1] ,listt )))) ,filtered))
-        return list(zip(metrics_names,filtered))
+        grouped_by_metr_name=  dict(groupby(lambda row : row[0],res)).items()
+        print(f"yyyyyyyyyyyy grouped_by_metr_name  {grouped_by_metr_name}")
+        grouped_by_metr_name =list(map(lambda tupl: (tupl[0],list(map(lambda inner_tupl: inner_tupl[1], tupl[1])) )   ,grouped_by_metr_name))
+        grouped_by_metr_name =list(map(lambda tupl: (tupl[0],np.nanmean(tupl[1]))  ,grouped_by_metr_name))
+
+        print(f"yyyyyyyyyyyy 2222 grouped_by_metr_name  {grouped_by_metr_name}")
+
+
+        # filtered=list(map(lambda name: list(filter(lambda tupl: tupl[0]==name ,res ))  , metrics_names))
+        # filtered= list(map( lambda listt: np.nanmean(np.array(list(map(lambda tupl :tupl[1] ,listt )))) ,filtered))
+        return grouped_by_metr_name
     res=np.concatenate(res,axis=-1)
     # res= list(map(lambda batch_ids: calc_custom_metrics_inner(f[f"{group_name}/{batch_id}/target"][:,:,:,:],f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:]),batch_nums))
     res= np.nanmean(res,axis=-1)
@@ -194,8 +200,10 @@ def prep_arr_list_anatomy(predicted_segmentation_onehot,target,batch_num):
     return list(map(lambda bi: (bi,predicted_segmentation_onehot[bi,:,:,:,:],target[bi,:,:,:]) ,range(batch_num)))
 
 def save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore):
-    save_single_arr(predicted_segmentation_onehot[bn,:,:,:],batch_idd, bn, 0,for_explore,"predicted_segmentation_onehot",np.uint8 )
-    save_single_arr(target[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"target",np.uint8 )
+    save_single_arr(predicted_segmentation_onehot[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"inferred_pz",np.uint8 )
+    save_single_arr(predicted_segmentation_onehot[bn,2,:,:,:],batch_idd, bn, 0,for_explore,"inferred_tz",np.uint8 )
+    save_single_arr(target[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"target_pz",np.uint8 )
+    save_single_arr(target[bn,2,:,:,:],batch_idd, bn, 0,for_explore,"target_tz",np.uint8 )
     save_single_arr(data[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"t2w",float )
 
 # def prep_anatomy_target(target):
@@ -226,7 +234,6 @@ def evaluate_single_anatomy_case(arrs,tempdir):
     mean_frame =  get_frame_from_arrs(evaluator,( predicted_segmentation_onehot[1,:,:,:]+predicted_segmentation_onehot[2,:,:,:])>0
                                       ,(target[1,:,:,:]+target[2,:,:,:])>0,metr_res)
 
-    print(f"fffffffffffffffff {mean_frame}")
     res= [     ("DICE", mean_frame["DICE"].to_numpy()[0] )
                ,("HDRFDST95", mean_frame["HDRFDST95"].to_numpy()[0] )
                ,("VOLSMTY", mean_frame["VOLSMTY"].to_numpy()[0] )
