@@ -211,11 +211,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
             default_root_dir= self.default_root_dir,
             # auto_scale_batch_size="binsearch",
             check_val_every_n_epoch=self.log_every_n,
-            accumulate_grad_batches= 1,
+            accumulate_grad_batches= 10,
             gradient_clip_val = 3.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
             # ,reload_dataloaders_every_n_epochs=1
-            #strategy='dp'
+            strategy="deepspeed_stage_2"
         )
 
 
