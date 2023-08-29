@@ -217,7 +217,7 @@ def save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for
 # def prep_anatomy_target(target):
 #     return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)*2
 
-def get_Metrics(evaluator,one_hot,target,metr_res,name):
+def get_Metrics(one_hot,target,name):
  
     quality=dict()
     labelPred=sitk.GetImageFromArray(one_hot.astype(np.uint8))
@@ -234,10 +234,10 @@ def get_Metrics(evaluator,one_hot,target,metr_res,name):
 
 def evaluate_single_anatomy_case(arrs,tempdir):
     bi,predicted_segmentation_onehot,target=arrs
-    pz_metr = get_Metrics(predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:])
-    tz_metr = get_Metrics(predicted_segmentation_onehot[2,:,:,:],target[2,:,:,:])
+    pz_metr = get_Metrics(predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:],'pz')
+    tz_metr = get_Metrics(predicted_segmentation_onehot[2,:,:,:],target[2,:,:,:],'tz')
     mean_metr =  get_Metrics(( predicted_segmentation_onehot[1,:,:,:]+predicted_segmentation_onehot[2,:,:,:])>0
-                                      ,(target[1,:,:,:]+target[2,:,:,:])>0)
+                                      ,(target[1,:,:,:]+target[2,:,:,:])>0,'all')
     res= itertools.chain(*[pz_metr,tz_metr,mean_metr])
     print(f"rrrrrrrrrrrr {res}")
     return res
@@ -263,7 +263,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
             
         # metr_res ='/workspaces/konwersjaJsonData/explore/metr.csv'
         # batch_idd=int(batch_ids[0])
-        anatomy_arrs=prep_arr_list_anatomy(predicted_segmentation_onehot,target,shapp[0])
+        anatomy_arrs=prep_arr_list_anatomy(predicted_segmentation_onehot,target,shapp[0],batch_idd)
         res=list(map(partial(evaluate_single_anatomy_case,tempdir=tempdir),anatomy_arrs))
         # with mp.Pool(processes = mp.cpu_count()) as pool:
 
