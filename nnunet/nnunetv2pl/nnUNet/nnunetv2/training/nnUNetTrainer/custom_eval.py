@@ -94,7 +94,7 @@ def get_my_sensitivity(arrs):
 def save_single_arr(image_array,batch_idd, bn, c,for_explore,name,typee ):
     # image_array,batch_idd, bn, c,for_explore,name,typee=args
     # im= sitk.GetImageFromArray(image_array)
-    folder=f"{for_explore}/{int(batch_idd)*100+int(bn)}" #/{name}_{c}
+    folder=f"{for_explore}/{(int(batch_idd)*100)+int(bn)}" #/{name}_{c}
     Path(folder).mkdir( parents=True, exist_ok=True )
     path=f"{folder}/im_{name}_{c}.nii.gz"    
     # print(f"ffffffffff folder {folder} sh {image_array.shape}")
@@ -147,10 +147,13 @@ def concat_local_data(batch_ids,f,group_name,name):
 
 def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=False):    
     batch_nums= np.array(list(f[group_name].keys()))
-    if(batch_nums.shape[0]<3):
-        batch_nums=np.array_split(batch_nums, 1)
-    else:
-        batch_nums=np.array_split(batch_nums, 2)    
+    print(f"111 batch_nums {batch_nums}")
+    # if(batch_nums.shape[0]<3):
+    #     batch_nums=np.array_split(batch_nums, 1)
+    # else:
+    #     batch_nums=np.array_split(batch_nums, 2)    
+    # print(f"2222 batch_nums {batch_nums}")
+    
     # target=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/target"][:,:,:,:], batch_nums))
     # predicted_segmentation_onehot=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:], batch_nums))
 
@@ -166,12 +169,16 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
     os.makedirs(tempdir,exist_ok=True)
     
 
-
-    res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
-                                                              ,concat_local(batch_ids,f,group_name,"predicted_segmentation_onehot")
-                                                              ,concat_local_data(batch_ids,f,group_name,"data")
-                                                              ,f,for_explore,to_save_files,batch_ids,anatomy_metr=anatomy_metr,tempdir=tempdir),batch_nums))
-
+    if(anatomy_metr):
+        res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
+                                                                ,concat_local_data(batch_ids,f,group_name,"predicted_segmentation_onehot")
+                                                                ,concat_local_data(batch_ids,f,group_name,"data")
+                                                                ,f,for_explore,to_save_files,batch_ids,anatomy_metr=anatomy_metr,tempdir=tempdir),batch_nums))
+    else:
+        res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
+                                                                ,concat_local(batch_ids,f,group_name,"predicted_segmentation_onehot")
+                                                                ,concat_local_data(batch_ids,f,group_name,"data")
+                                                                ,f,for_explore,to_save_files,batch_ids,anatomy_metr=anatomy_metr,tempdir=tempdir),batch_nums))
     if(anatomy_metr):
         res= list(itertools.chain(*res))
         res= list(itertools.chain(*res))
@@ -200,6 +207,7 @@ def prep_arr_list_anatomy(predicted_segmentation_onehot,target,batch_num):
     return list(map(lambda bi: (bi,predicted_segmentation_onehot[bi,:,:,:,:],target[bi,:,:,:]) ,range(batch_num)))
 
 def save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore):
+    print(f"ssssss saving file batch_idd {batch_idd} bn {bn}   calced {(int(batch_idd)*100)+int(bn)}")
     save_single_arr(predicted_segmentation_onehot[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"inferred_pz",np.uint8 )
     save_single_arr(predicted_segmentation_onehot[bn,2,:,:,:],batch_idd, bn, 0,for_explore,"inferred_tz",np.uint8 )
     save_single_arr(target[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"target_pz",np.uint8 )
@@ -258,7 +266,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     my_specificity=np.zeros(1)
     shapp= target.shape
     batch_idd=int(batch_ids[0])
-
+    print(f"bbbbatch_idd {batch_idd} batch_ids {batch_ids}")
 
 
 
@@ -270,18 +278,10 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         # batch_idd=int(batch_ids[0])
         anatomy_arrs=prep_arr_list_anatomy(predicted_segmentation_onehot,target,shapp[0])
         res=list(map(partial(evaluate_single_anatomy_case,tempdir=tempdir),anatomy_arrs))
+        # res=[]
         # with mp.Pool(processes = mp.cpu_count()) as pool:
-        # list(map(lambda bi:evaluator.evaluate(sitk.GetImageFromArray(predicted_segmentation_onehot[bi,:,:,:].astype(np.uint8))
-        #                                         , sitk.GetImageFromArray( prep_anatomy_target( target[bi,:,:,:]))
-        #                                         , (batch_idd*100)+bi) ,range(shapp[0])))        
-        # functions = {'MEAN': np.mean}
-        # writer.CSVStatisticsWriter(metr_res, functions=functions).write(evaluator.results)
-        # writer.CSVWriter(metr_res).write(evaluator.results)
-        # frame = pd.read_csv(metr_res,header=0,sep=";")
-        # rows= [("DICE",np.nanmean(frame["DICE"].to_numpy().flatten()))  ,("HDRFDST95",np.nanmean(frame["HDRFDST95"].to_numpy().flatten())) ,("VOLSMTY",np.nanmean(frame["VOLSMTY"].to_numpy().flatten())) ]
-        #DICE   HDRFDST95  VOLSMTY
-        # rows = frame.iterrows()
-        # rows= list(map(lambda roww: (roww[1]['METRIC'],roww[1]['VALUE']),rows))
+        #     res=pool.map(partial(evaluate_single_anatomy_case,tempdir=tempdir),anatomy_arrs)
+
         if(to_save_files):
             list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
        
@@ -334,17 +334,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     num_components=ress[:,2]
     in_inferred=ress[:,3]
     
-    # list(map(lambda arrs_tupl :save_files(arrs_tupl,for_explore,batch_idd,to_save_files),enumerate(arrs)))
-    
-    # my_specificity,my_sensitivity,num_components,in_inferred=list(map(partial(get_sensitivity_and_specificity,for_explore=for_explore,batch_idd=batch_idd,to_save_files=to_save_files),enumerate(arrs)))
-        # my_sensitivity=pool.map(get_my_sensitivity,arrs)
-        # my_specificity=pool.map(get_my_specifity,arrs)
-    # with mp.Pool(processes = mp.cpu_count()) as pool:
-        
-    
-    # my_sensitivity=list(map(partial(get_my_sensitivity,inn=inn,twos=twos,curr=curr,bigger_mask=bigger_mask),range(shapp[0])))
-    # my_specificity=list(map(partial(get_my_specifity,inn=inn,twos=twos,curr=curr,bigger_mask=bigger_mask),range(shapp[0])))
-    
+
 
     my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
     if(len(my_sensitivity)>0):
@@ -355,7 +345,6 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         is_correct= (my_sensitivity*2+my_specificity)/3
     
   
-    # print(f"tttttt is_correct {is_correct} total {total} ((curr) & (twos)).sum() {((curr) & (twos)).sum()}  (curr) & (~bigger_mask) {((curr) & (~bigger_mask)).sum()}")
     is_correct=np.array(is_correct).flatten()
 
     my_sensitivity=np.array(np.nanmean(np.array(my_sensitivity).flatten()))
@@ -390,6 +379,7 @@ def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data):
     target_str= f"{group_name}/{batch_id}/target"
     predicted_segmentation_onehot_str= f"{group_name}/{batch_id}/predicted_segmentation_onehot"
     data_str= f"{group_name}/{batch_id}/data"
+    
     if(group_name not in f.keys()):
         f.create_group(group_name)
     if(f"{batch_id}" not in f[group_name].keys() ):
@@ -410,6 +400,8 @@ def save_to_hdf5_anatomy(f,inner_id,group_name,batch_id,target,output,data):
     del output_seg   
     curr=predicted_segmentation_onehot.round().bool()
     target_str= f"{group_name}/{batch_id}/target"
+    
+
     predicted_segmentation_onehot_str= f"{group_name}/{batch_id}/predicted_segmentation_onehot"
     data_str= f"{group_name}/{batch_id}/data"
     if(group_name not in f.keys()):
