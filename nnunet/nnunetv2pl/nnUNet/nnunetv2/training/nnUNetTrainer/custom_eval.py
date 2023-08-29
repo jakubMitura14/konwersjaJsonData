@@ -147,12 +147,12 @@ def concat_local_data(batch_ids,f,group_name,name):
 
 def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=False):    
     batch_nums= np.array(list(f[group_name].keys()))
-    print(f"111 batch_nums {batch_nums}")
-    # if(batch_nums.shape[0]<3):
-    #     batch_nums=np.array_split(batch_nums, 1)
-    # else:
-    #     batch_nums=np.array_split(batch_nums, 2)    
-    # print(f"2222 batch_nums {batch_nums}")
+    # print(f"111 batch_nums {batch_nums} group_name {group_name}")
+    if(batch_nums.shape[0]<3):
+        batch_nums=np.array_split(batch_nums, 1)
+    else:
+        batch_nums=np.array_split(batch_nums, 2)    
+    print(f"2222 batch_nums {batch_nums}")
     
     # target=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/target"][:,:,:,:], batch_nums))
     # predicted_segmentation_onehot=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:], batch_nums))
@@ -203,8 +203,8 @@ def prep_arr_list(inn,twos,curr,bigger_mask,data,batch_num):
     return list(map(lambda bi: (inn[bi,:,:,:],twos[bi,:,:,:],curr[bi,:,:,:],bigger_mask[bi,:,:,:],data[bi,:,:,:,:]  ) ,range(batch_num)))
 
 
-def prep_arr_list_anatomy(predicted_segmentation_onehot,target,batch_num):
-    return list(map(lambda bi: (bi,predicted_segmentation_onehot[bi,:,:,:,:],target[bi,:,:,:]) ,range(batch_num)))
+def prep_arr_list_anatomy(predicted_segmentation_onehot,target,batch_num,batch_idd):
+    return list(map(lambda bi: ((batch_idd*100)+bi,predicted_segmentation_onehot[bi,:,:,:,:],target[bi,:,:,:]) ,range(batch_num)))
 
 def save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore):
     print(f"ssssss saving file batch_idd {batch_idd} bn {bn}   calced {(int(batch_idd)*100)+int(bn)}")
@@ -276,11 +276,11 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
             
         # metr_res ='/workspaces/konwersjaJsonData/explore/metr.csv'
         # batch_idd=int(batch_ids[0])
-        anatomy_arrs=prep_arr_list_anatomy(predicted_segmentation_onehot,target,shapp[0])
-        res=list(map(partial(evaluate_single_anatomy_case,tempdir=tempdir),anatomy_arrs))
+        anatomy_arrs=prep_arr_list_anatomy(predicted_segmentation_onehot,target,shapp[0],batch_idd)
+        # res=list(map(partial(evaluate_single_anatomy_case,tempdir=tempdir),anatomy_arrs))
         # res=[]
-        # with mp.Pool(processes = mp.cpu_count()) as pool:
-        #     res=pool.map(partial(evaluate_single_anatomy_case,tempdir=tempdir),anatomy_arrs)
+        with mp.Pool(processes = mp.cpu_count()) as pool:
+            res=pool.map(partial(evaluate_single_anatomy_case,tempdir=tempdir),anatomy_arrs)
 
         if(to_save_files):
             list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
