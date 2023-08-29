@@ -174,8 +174,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
         )
 
 
-        toMonitor="HDRFDST95_val"
-        checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode='max', save_top_k=1, monitor=toMonitor)
+        toMonitor="avgHausdorff_all"
+        checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode='min', save_top_k=1, monitor=toMonitor)
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
         stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=1e-3)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
