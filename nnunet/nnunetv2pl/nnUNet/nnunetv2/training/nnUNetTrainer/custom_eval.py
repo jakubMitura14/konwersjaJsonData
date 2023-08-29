@@ -209,42 +209,28 @@ def save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for
 # def prep_anatomy_target(target):
 #     return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)*2
 
-def get_frame_from_arrs(evaluator,one_hot,target,metr_res):
-    evaluator.evaluate(sitk.GetImageFromArray(one_hot.astype(np.uint8))                        
-                                                    , sitk.GetImageFromArray(target.astype(np.uint8))
-                                                    , 0)    
-    writer.CSVWriter(metr_res).write(evaluator.results)
-    frame = pd.read_csv(metr_res,header=0,sep=";")
-    return frame
+def get_Metrics(evaluator,one_hot,target,metr_res,name):
+ 
+    quality=dict()
+    labelPred=sitk.GetImageFromArray(one_hot.astype(np.uint8))
+    labelTrue=sitk.GetImageFromArray(target.astype(np.uint8))
+    hausdorffcomputer=sitk.HausdorffDistanceImageFilter()
+    hausdorffcomputer.Execute(labelTrue>0.5,labelPred>0.5)
+    quality[f"avgHausdorff_{name}"]=hausdorffcomputer.GetAverageHausdorffDistance()
+    # quality["Hausdorff"]=hausdorffcomputer.GetHausdorffDistance()
+    dicecomputer=sitk.LabelOverlapMeasuresImageFilter()
+    dicecomputer.Execute(labelTrue>0.5,labelPred>0.5)
+    quality[f"dice_{name}"]=dicecomputer.GetDiceCoefficient()
+    quality[f"volume_similarity_{name}"]=dicecomputer.GetVolumeSimilarity()
+    return list(quality.items())
 
 def evaluate_single_anatomy_case(arrs,tempdir):
     bi,predicted_segmentation_onehot,target=arrs
-    curr_dir= f"{tempdir}/{bi}"
-    os.makedirs(curr_dir,exist_ok=True)
-    metr_res=f"{curr_dir}/loc_res.csv"
-    metrics = [metric.DiceCoefficient(), metric.HausdorffDistance(percentile=95, metric='HDRFDST95'), metric.VolumeSimilarity()]
-    labels = {1: 'target'}
-    
-    evaluator = eval_.SegmentationEvaluator(metrics, labels)  
-
-
-    pz_df = get_frame_from_arrs(evaluator,predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:],metr_res)
-    tz_df = get_frame_from_arrs(evaluator,predicted_segmentation_onehot[2,:,:,:],target[2,:,:,:],metr_res)
-
-    mean_frame =  get_frame_from_arrs(evaluator,( predicted_segmentation_onehot[1,:,:,:]+predicted_segmentation_onehot[2,:,:,:])>0
-                                      ,(target[1,:,:,:]+target[2,:,:,:])>0,metr_res)
-
-    res= [     ("DICE", mean_frame["DICE"].to_numpy()[0] )
-               ,("HDRFDST95", mean_frame["HDRFDST95"].to_numpy()[0] )
-               ,("VOLSMTY", mean_frame["VOLSMTY"].to_numpy()[0] )
-               ,("pz_DICE", pz_df["DICE"].to_numpy()[0] )
-               ,("pz_HDRFDST95", pz_df["HDRFDST95"].to_numpy()[0] )
-               ,("pz_VOLSMTY", pz_df["VOLSMTY"].to_numpy()[0] )
-                ,("tz_DICE", tz_df["DICE"].to_numpy()[0] )
-               ,("tz_HDRFDST95", tz_df["HDRFDST95"].to_numpy()[0] )
-               ,("tz_VOLSMTY", tz_df["VOLSMTY"].to_numpy()[0] )
-                 ]
-    
+    pz_metr = get_Metrics(predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:])
+    tz_metr = get_Metrics(predicted_segmentation_onehot[2,:,:,:],target[2,:,:,:])
+    mean_metr =  get_Metrics(( predicted_segmentation_onehot[1,:,:,:]+predicted_segmentation_onehot[2,:,:,:])>0
+                                      ,(target[1,:,:,:]+target[2,:,:,:])>0)
+    res= itertools.chain(*[pz_metr,tz_metr,mean_metr])
     print(f"rrrrrrrrrrrr {res}")
     return res
 
@@ -272,17 +258,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         anatomy_arrs=prep_arr_list_anatomy(predicted_segmentation_onehot,target,shapp[0])
         res=list(map(partial(evaluate_single_anatomy_case,tempdir=tempdir),anatomy_arrs))
         # with mp.Pool(processes = mp.cpu_count()) as pool:
-        # list(map(lambda bi:evaluator.evaluate(sitk.GetImageFromArray(predicted_segmentation_onehot[bi,:,:,:].astype(np.uint8))
-        #                                         , sitk.GetImageFromArray( prep_anatomy_target( target[bi,:,:,:]))
-        #                                         , (batch_idd*100)+bi) ,range(shapp[0])))        
-        # functions = {'MEAN': np.mean}
-        # writer.CSVStatisticsWriter(metr_res, functions=functions).write(evaluator.results)
-        # writer.CSVWriter(metr_res).write(evaluator.results)
-        # frame = pd.read_csv(metr_res,header=0,sep=";")
-        # rows= [("DICE",np.nanmean(frame["DICE"].to_numpy().flatten()))  ,("HDRFDST95",np.nanmean(frame["HDRFDST95"].to_numpy().flatten())) ,("VOLSMTY",np.nanmean(frame["VOLSMTY"].to_numpy().flatten())) ]
-        #DICE   HDRFDST95  VOLSMTY
-        # rows = frame.iterrows()
-        # rows= list(map(lambda roww: (roww[1]['METRIC'],roww[1]['VALUE']),rows))
+
         if(to_save_files):
             list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
        
