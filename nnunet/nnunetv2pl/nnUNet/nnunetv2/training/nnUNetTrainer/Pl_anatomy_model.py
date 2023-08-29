@@ -73,7 +73,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from .custom_eval import *
-
+import ignite
 
 class Pl_anatomy_model(pl.LightningModule):
     def __init__(self,network
@@ -143,6 +143,8 @@ class Pl_anatomy_model(pl.LightningModule):
         
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
+        if(self.is_swin):
+            lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*100, warmup_duration=30)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
 
