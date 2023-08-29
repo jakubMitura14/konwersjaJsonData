@@ -209,18 +209,23 @@ def evaluate_single_anatomy_case(arrs,tempdir):
     metrics = [metric.DiceCoefficient(), metric.HausdorffDistance(percentile=95, metric='HDRFDST95'), metric.VolumeSimilarity()]
     labels = {1: 'pz',2: 'tz' }
     evaluator = eval_.SegmentationEvaluator(metrics, labels)  
-    evaluator.evaluate(sitk.GetImageFromArray(predicted_segmentation_onehot.astype(np.uint8))
-                        
+    evaluator.evaluate(sitk.GetImageFromArray(prep_anatomy_target(predicted_segmentation_onehot))                        
                                                     , sitk.GetImageFromArray( prep_anatomy_target( target))
                                                     , 0)    
     writer.CSVWriter(metr_res).write(evaluator.results)
     frame = pd.read_csv(metr_res,header=0,sep=";")
     pz_df = frame.loc[frame['LABEL'] == 'pz']
     tz_df = frame.loc[frame['LABEL'] == 'tz']
+    evaluator = eval_.SegmentationEvaluator(metrics, labels)  
+    evaluator.evaluate( sitk.GetImageFromArray( (prep_anatomy_target( predicted_segmentation_onehot)>0).astype(np.uint8) )
+                       , sitk.GetImageFromArray( (prep_anatomy_target( target)>0).astype(np.uint8)   )
+                                                    , 0)    
+    mean_frame = pd.read_csv(metr_res,header=0,sep=";")
+
     print(f"fffffffffffffffff {frame}")
-    res= [("DICE_mean",np.nanmean(frame["DICE"].to_numpy().flatten())) 
-             ,("HDRFDST95_mean",np.nanmean(frame["HDRFDST95"].to_numpy().flatten()))
-               ,("VOLSMTY_mean",np.nanmean(frame["VOLSMTY"].to_numpy().flatten()))
+    res= [     ("DICE", mean_frame["DICE"].to_numpy()[0] )
+               ,("HDRFDST95", mean_frame["HDRFDST95"].to_numpy()[0] )
+               ,("VOLSMTY", mean_frame["VOLSMTY"].to_numpy()[0] )
                ,("pz_DICE", pz_df["DICE"].to_numpy()[0] )
                ,("pz_HDRFDST95", pz_df["HDRFDST95"].to_numpy()[0] )
                ,("pz_VOLSMTY", pz_df["VOLSMTY"].to_numpy()[0] )
