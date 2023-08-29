@@ -198,8 +198,16 @@ def save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for
     save_single_arr(target[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"target",np.uint8 )
     save_single_arr(data[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"t2w",float )
 
-def prep_anatomy_target(target):
-    return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)*2
+# def prep_anatomy_target(target):
+#     return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)*2
+
+def get_frame_from_arrs(evaluator,one_hot,target,metr_res):
+    evaluator.evaluate(sitk.GetImageFromArray(one_hot.astype(np.uint8))                        
+                                                    , sitk.GetImageFromArray(target.astype(np.uint8))
+                                                    , 0)    
+    writer.CSVWriter(metr_res).write(evaluator.results)
+    frame = pd.read_csv(metr_res,header=0,sep=";")
+    return frame
 
 def evaluate_single_anatomy_case(arrs,tempdir):
     bi,predicted_segmentation_onehot,target=arrs
@@ -207,22 +215,18 @@ def evaluate_single_anatomy_case(arrs,tempdir):
     os.makedirs(curr_dir,exist_ok=True)
     metr_res=f"{curr_dir}/loc_res.csv"
     metrics = [metric.DiceCoefficient(), metric.HausdorffDistance(percentile=95, metric='HDRFDST95'), metric.VolumeSimilarity()]
-    labels = {1: 'pz',2: 'tz' }
+    labels = {1: 'target'}
+    
     evaluator = eval_.SegmentationEvaluator(metrics, labels)  
-    evaluator.evaluate(sitk.GetImageFromArray(prep_anatomy_target(predicted_segmentation_onehot))                        
-                                                    , sitk.GetImageFromArray( prep_anatomy_target( target))
-                                                    , 0)    
-    writer.CSVWriter(metr_res).write(evaluator.results)
-    frame = pd.read_csv(metr_res,header=0,sep=";")
-    pz_df = frame.loc[frame['LABEL'] == 'pz']
-    tz_df = frame.loc[frame['LABEL'] == 'tz']
-    evaluator = eval_.SegmentationEvaluator(metrics, labels)  
-    evaluator.evaluate( sitk.GetImageFromArray( (prep_anatomy_target( predicted_segmentation_onehot)>0).astype(np.uint8) )
-                       , sitk.GetImageFromArray( (prep_anatomy_target( target)>0).astype(np.uint8)   )
-                                                    , 0)    
-    mean_frame = pd.read_csv(metr_res,header=0,sep=";")
 
-    print(f"fffffffffffffffff {frame}")
+
+    pz_df = get_frame_from_arrs(evaluator,predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:],metr_res)
+    tz_df = get_frame_from_arrs(evaluator,predicted_segmentation_onehot[2,:,:,:],target[2,:,:,:],metr_res)
+
+    mean_frame =  get_frame_from_arrs(evaluator,( predicted_segmentation_onehot[1,:,:,:]+predicted_segmentation_onehot[2,:,:,:])>0
+                                      ,(target[1,:,:,:]+target[2,:,:,:])>0,metr_res)
+
+    print(f"fffffffffffffffff {mean_frame}")
     res= [     ("DICE", mean_frame["DICE"].to_numpy()[0] )
                ,("HDRFDST95", mean_frame["HDRFDST95"].to_numpy()[0] )
                ,("VOLSMTY", mean_frame["VOLSMTY"].to_numpy()[0] )
