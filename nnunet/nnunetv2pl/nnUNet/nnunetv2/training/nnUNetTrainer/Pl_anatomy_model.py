@@ -89,6 +89,7 @@ class Pl_anatomy_model(pl.LightningModule):
                  ,val_eval_folder
                  ,hf5_path
                  ,for_explore
+                 ,batch_size
 
                  ):
         super().__init__()
@@ -108,6 +109,7 @@ class Pl_anatomy_model(pl.LightningModule):
         # self.validation_step_outputs = []
         # self.test_step_outputs = []
 
+        self.batch_size=batch_size
 
 
     def setup(self, stage=None):
@@ -224,14 +226,14 @@ class Pl_anatomy_model(pl.LightningModule):
         
     def on_validation_epoch_end(self):
         group_name='val'
-        res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=True )
+        res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=True,batch_size=self.batch_size )
         list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
 
 
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
             group_name='train'
-            res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True )
+            res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True,batch_size=self.batch_size )
             list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
 
 

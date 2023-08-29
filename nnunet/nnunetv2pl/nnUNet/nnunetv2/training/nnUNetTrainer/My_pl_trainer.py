@@ -161,7 +161,8 @@ class My_pl_trainer(nnUNetTrainer):
                                 ,val_eval_folder=val_eval_folder
                                 ,hf5_path=self.hf5_path
                                 ,for_explore=for_explore
-                                ,is_plain_conv=self.is_plain_conv)
+                                ,is_plain_conv=self.is_plain_conv
+                                ,batch_size=self.batch_size)
 
         comet_logger = CometLogger(
             api_key="yB0irIjdk9t7gbpTlSUPnXBd4",

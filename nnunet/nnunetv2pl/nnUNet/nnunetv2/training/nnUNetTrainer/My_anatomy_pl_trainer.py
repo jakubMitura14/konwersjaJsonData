@@ -74,6 +74,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         """
         self.log_every_n=1
         self.num_batch_to_eval=10
+        
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
         ligtning_logs_folder='/workspaces/konwersjaJsonData/explore'
@@ -161,7 +162,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
                                 ,train_eval_folder=train_eval_folder 
                                 ,val_eval_folder=val_eval_folder
                                 ,hf5_path=self.hf5_path
-                                ,for_explore=for_explore)
+                                ,for_explore=for_explore
+                                ,batch_size=self.batch_size)
         # print(f"oooooooooooooo {self.output_folder}")
         # self.pl_model=Pl_anatomy_model.load_from_checkpoint(self.output_folder)
         
@@ -174,7 +176,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         )
 
 
-        toMonitor="avgHausdorff_all"
+        toMonitor="avgHausdorff_all_val"
         checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode='min', save_top_k=1, monitor=toMonitor)
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
         stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=1e-3)
