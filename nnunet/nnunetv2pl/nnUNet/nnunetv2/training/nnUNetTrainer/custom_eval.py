@@ -199,7 +199,7 @@ def save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for
     save_single_arr(data[bn,1,:,:,:],batch_idd, bn, 0,for_explore,"t2w",float )
 
 def prep_anatomy_target(target):
-    return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)
+    return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)*2
 
 def evaluate_single_anatomy_case(arrs,tempdir):
     bi,predicted_segmentation_onehot,target=arrs
@@ -209,8 +209,9 @@ def evaluate_single_anatomy_case(arrs,tempdir):
     metrics = [metric.DiceCoefficient(), metric.HausdorffDistance(percentile=95, metric='HDRFDST95'), metric.VolumeSimilarity()]
     labels = {1: 'pz',2: 'tz' }
     evaluator = eval_.SegmentationEvaluator(metrics, labels)  
-    evaluator.evaluate(sitk.GetImageFromArray(predicted_segmentation_onehot[bi,:,:,:].astype(np.uint8))
-                                                    , sitk.GetImageFromArray( prep_anatomy_target( target[bi,:,:,:]))
+    evaluator.evaluate(sitk.GetImageFromArray(predicted_segmentation_onehot.astype(np.uint8))
+                        
+                                                    , sitk.GetImageFromArray( prep_anatomy_target( target))
                                                     , 0)    
     writer.CSVWriter(metr_res).write(evaluator.results)
     frame = pd.read_csv(metr_res,header=0,sep=";")
