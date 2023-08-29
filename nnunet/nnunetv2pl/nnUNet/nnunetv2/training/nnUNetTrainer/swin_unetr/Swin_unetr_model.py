@@ -502,7 +502,7 @@ class WindowAttention(nn.Module):
 
     def forward(self, x, mask):
         b, n, c = x.shape
-        print(f"wwwwwwwwwwwindow attention input {x.shape}")
+        # print(f"wwwwwwwwwwwindow attention input {x.shape}")
 
         qkv = self.qkv(x).reshape(b, n, 3, self.num_heads, c // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]

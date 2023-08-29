@@ -179,9 +179,10 @@ class Pl_anatomy_model(pl.LightningModule):
         shape_2 =(shape_1[0]//2,shape_1[1]//2,shape_1[2]//2)
         shape_3 =(shape_2[0]//2,shape_2[1]//2,shape_2[2]//2)
         shape_4 =(shape_3[0]//2,shape_3[1]//2,shape_3[2]//2)
-        
+        shape_5 =(shape_4[0]//2,shape_4[1]//2,shape_4[2]//2)
+
         targets=[target[0]]
-        shapes=[shape_0,shape_1,shape_2,shape_3,shape_4]     
+        shapes=[shape_0,shape_1,shape_2,shape_3,shape_4,shape_5]     
         # print(f"ttttttttttt {target[0].shape}")   
         for j in range(len(target)):
             if(j>0):
