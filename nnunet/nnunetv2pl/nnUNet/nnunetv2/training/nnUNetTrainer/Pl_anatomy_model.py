@@ -155,7 +155,7 @@ class Pl_anatomy_model(pl.LightningModule):
 
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
-                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train")
+                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train",True)
        
         return l
 
@@ -206,7 +206,7 @@ class Pl_anatomy_model(pl.LightningModule):
             output = network(data)
             # del data
             l = loss(output, target)
-            save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val")
+            save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)
         self.log("val loss",l.detach().cpu().item())
         # we only need the output with the highest output resolution
         # output = output[0]
