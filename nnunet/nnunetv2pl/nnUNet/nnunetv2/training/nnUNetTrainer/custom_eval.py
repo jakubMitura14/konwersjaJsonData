@@ -156,7 +156,6 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
     else:
         chunk_size=max(10//batch_size,1)
         batch_nums=np.array_split(batch_nums, math.ceil(batch_nums.shape[0]/chunk_size))
-    print(f"2222 batch_nums {batch_nums} group_name {group_name} ")
     
     # target=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/target"][:,:,:,:], batch_nums))
     # predicted_segmentation_onehot=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:], batch_nums))
@@ -209,14 +208,16 @@ def prep_arr_list(inn,twos,curr,bigger_mask,data,batch_num):
 
 
 def prep_arr_list_anatomy(predicted_segmentation_onehot,target,data,batch_num,batch_idd):
-    return list(map(lambda bi: ((batch_idd*100)+bi,predicted_segmentation_onehot[bi,:,:,:,:],target[bi,:,:,:],data[bi,:,:,:,:]) ,range(batch_num)))
+    return list(map(lambda bi: ((batch_idd*100)+bi,predicted_segmentation_onehot[bi,:,:,:,:],target[bi,:,:,:],data[bi,:,:,:,:]) ,range(data.shape[0])))
 
 def save_arrs_anatomy(predicted_segmentation_onehot,data,target,batch_idd,for_explore,hd):
-    print(f"ssssss saving file batch_idd {batch_idd}")
-    save_single_arr(predicted_segmentation_onehot[1,:,:,:],batch_idd, 0, 0,for_explore,"inferred_pz",np.uint8 ,hd)
-    save_single_arr(predicted_segmentation_onehot[2,:,:,:],batch_idd, 0, 0,for_explore,"inferred_tz",np.uint8 ,hd)
-    save_single_arr(target[1,:,:,:],batch_idd, 0, 0,for_explore,"target_pz",np.uint8,hd )
-    save_single_arr(target[2,:,:,:],batch_idd, 0, 0,for_explore,"target_tz",np.uint8,hd )
+    save_single_arr(predicted_segmentation_onehot[0,:,:,:],batch_idd, 0, 0,for_explore,"inferred_pz",np.uint8 ,hd)
+    save_single_arr(predicted_segmentation_onehot[1,:,:,:],batch_idd, 0, 0,for_explore,"inferred_tz",np.uint8 ,hd)
+    save_single_arr(predicted_segmentation_onehot[2,:,:,:],batch_idd, 0, 0,for_explore,"inferred_sum",np.uint8 ,hd)
+
+    save_single_arr(target[0,:,:,:],batch_idd, 0, 0,for_explore,"target_pz",np.uint8,hd )
+    save_single_arr(target[1,:,:,:],batch_idd, 0, 0,for_explore,"target_tz",np.uint8,hd )
+    save_single_arr(target[2,:,:,:],batch_idd, 0, 0,for_explore,"target_sum",np.uint8,hd )
     save_single_arr(data[1,:,:,:],batch_idd, 0, 0,for_explore,"t2w",float,hd )
 
 # def prep_anatomy_target(target):
@@ -239,10 +240,10 @@ def get_Metrics(one_hot,target,name):
 
 def evaluate_single_anatomy_case(arrs,tempdir,for_explore,to_save_files):
     bi,predicted_segmentation_onehot,target,data=arrs
-    pz_metr,hd = get_Metrics(predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:],'pz')
-    tz_metr,hd = get_Metrics(predicted_segmentation_onehot[2,:,:,:],target[2,:,:,:],'tz')
-    mean_metr ,hd=  get_Metrics(( predicted_segmentation_onehot[1,:,:,:]+predicted_segmentation_onehot[2,:,:,:])>0
-                                      ,(target[1,:,:,:]+target[2,:,:,:])>0,'all')
+    pz_metr,hd = get_Metrics(predicted_segmentation_onehot[0,:,:,:],target[0,:,:,:],'pz')
+    tz_metr,hd = get_Metrics(predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:],'tz')
+    mean_metr,hd = get_Metrics(predicted_segmentation_onehot[2,:,:,:],target[2,:,:,:],'all')
+
     res= list(itertools.chain(*[pz_metr,tz_metr,mean_metr]))
     if(to_save_files):
         save_arrs_anatomy(predicted_segmentation_onehot,data,target,bi,for_explore,hd)

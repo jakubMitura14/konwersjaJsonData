@@ -304,7 +304,7 @@ class Pl_Model(pl.LightningModule):
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
             group_name='train'
-            res= calc_custom_metrics(group_name,self.f,self.for_explore,True,batch_size=self.batch_size ).flatten()
+            res= calc_custom_metrics(group_name,self.f,self.for_explore,False,batch_size=self.batch_size ).flatten()
             self.log("percent_in_train", res[0]) #,sync_dist=True
             self.log("percent_out_train", res[1]) #,sync_dist=True
             self.log("percent_covered_train", res[2]) #,sync_dist=True
