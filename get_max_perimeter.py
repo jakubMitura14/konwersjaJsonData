@@ -67,8 +67,6 @@ settings = {'binWidth': 25,
             'interpolator': sitk.sitkBSpline,
             'resampledPixelSpacing': None}
 
-
-
 def groupByMaster(rowws):
     grouped_by_master= groupby(lambda row : row[1]['masterolds'],rowws)
     # grouped_by_master=[(key,list(group)) for key, group in grouped_by_master]
@@ -80,20 +78,7 @@ def get_2d_stats(image_arr, mask_arr,new_spacing):
     image.SetSpacing(new_spacing)
     mask.SetSpacing(new_spacing)
 
-    # statistics = label_statistics(image, mask, 
-    #                             shape=True, 
-    #                             perimeter=True, 1
-    #                             position=True,
-    #                             moments=True)
 
-    # df = pd.DataFrame(statistics)
-    # print(df)
-    # shapeFeatures = shape2D.RadiomicsShape2D(mask, mask)#,force2D=True
-    # # shapeFeatures = shape2D.RadiomicsShape2D(image, mask)#,force2D=True
-
-    # shapeFeatures.enableAllFeatures()
-    # results = shapeFeatures.execute()
-    # return results['Perimeter']
 
 
     stats = sitk.LabelShapeStatisticsImageFilter()

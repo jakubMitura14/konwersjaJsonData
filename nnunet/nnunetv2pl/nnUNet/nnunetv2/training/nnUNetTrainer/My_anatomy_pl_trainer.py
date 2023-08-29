@@ -74,6 +74,10 @@ class My_Anatomy_trainer(nnUNetTrainer):
         """
         self.log_every_n=5
         self.num_batch_to_eval=20
+
+        self.is_classic_nnunet=False
+        self.is_swin=True
+        self.is_med_next=False
         
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
@@ -114,10 +118,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
         self.num_input_channels = determine_num_input_channels(self.plans_manager, self.configuration_manager,
                                                                 self.dataset_json)
 
-        self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
-                                                        self.configuration_manager,
-                                                        self.num_input_channels,
-                                                        enable_deep_supervision=True).to(self.device)
+        if(self.is_classic_nnunet):
+            self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
+                                                            self.configuration_manager,
+                                                            self.num_input_channels,
+                                                            enable_deep_supervision=True).to(self.device)
         # compile network for free speedup
 
 
@@ -128,11 +133,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
         #                                     ,num_classes=self.label_manager.num_segmentation_heads
         #                                     ,kernel_size= 3
         #                                     ,ds= True)
-        
-        # self.network=SwinUNETR(in_channels=self.num_input_channels
-        #             ,out_channels=self.label_manager.num_segmentation_heads
-        #             ,use_v2=True#
-        #             ,img_size=(96, 96, 96))
+        if(self.is_swin):
+            self.network=SwinUNETR(in_channels=self.num_input_channels
+                        ,out_channels=self.label_manager.num_segmentation_heads
+                        ,use_v2=True#
+                        ,img_size=(28, 256, 256))
 
         if self._do_i_compile():
             self.print_to_log_file('Compiling network...')
@@ -163,7 +168,13 @@ class My_Anatomy_trainer(nnUNetTrainer):
                                 ,val_eval_folder=val_eval_folder
                                 ,hf5_path=self.hf5_path
                                 ,for_explore=for_explore
-                                ,batch_size=self.batch_size)
+                                ,batch_size=self.batch_size
+                                ,is_classic_nnunet=self.is_classic_nnunet
+                                ,is_swin=self.is_swin
+                                ,is_med_next=self.is_med_next)
+        
+
+
         # print(f"oooooooooooooo {self.output_folder}")
         # self.pl_model=Pl_anatomy_model.load_from_checkpoint(self.output_folder)
         
@@ -235,9 +246,9 @@ class My_Anatomy_trainer(nnUNetTrainer):
     def run_training(self):
         self.on_train_start()
 
-        # tuner = Tuner(self.trainer)
+        tuner = Tuner(self.trainer)
         # to set to your own hparams.my_value
-        # tuner.lr_find(self.pl_model, attr_name="learning_rate")
+        tuner.lr_find(self.pl_model, attr_name="learning_rate")
         self.trainer.fit(self.pl_model)
         
         self.on_train_end()

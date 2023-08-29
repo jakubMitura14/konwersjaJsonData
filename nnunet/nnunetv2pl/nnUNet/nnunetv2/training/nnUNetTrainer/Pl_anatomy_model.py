@@ -90,8 +90,13 @@ class Pl_anatomy_model(pl.LightningModule):
                  ,hf5_path
                  ,for_explore
                  ,batch_size
-
+                 ,is_classic_nnunet
+                 ,is_swin
+                 ,is_med_next
                  ):
+        
+
+        
         super().__init__()
         self.network=network
         self.dataloader_train=dataloader_train
@@ -106,10 +111,11 @@ class Pl_anatomy_model(pl.LightningModule):
         self.val_eval_folder =val_eval_folder
         self.hf5_path=hf5_path
         self.for_explore=for_explore
-        # self.validation_step_outputs = []
-        # self.test_step_outputs = []
-
         self.batch_size=batch_size
+
+        self.is_classic_nnunet=is_classic_nnunet
+        self.is_swin=is_swin
+        self.is_med_next=is_med_next
 
 
     def setup(self, stage=None):
@@ -127,9 +133,11 @@ class Pl_anatomy_model(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate, weight_decay=self.weight_decay,
-                                    momentum=0.99, nesterov=True)
-        # optimizer = torch.optim.AdamW(self.network.parameters(), 0.003311311214825908)#learning rate set by learning rate finder
+        if(self.is_classic_nnunet):
+            optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate, weight_decay=self.weight_decay,
+                                        momentum=0.99, nesterov=True)
+        else:    
+            optimizer = torch.optim.AdamW(self.network.parameters(), 0.003311311214825908)#learning rate set by learning rate finder
         
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
@@ -148,8 +156,9 @@ class Pl_anatomy_model(pl.LightningModule):
         data = batch['data']
         target = batch['target']
         output = self.network(data)
+        if(not self.is_classic_nnunet):
+            target=self.transform_gold(target)
 
-        # target=self.transform_gold(target)
         # print(f"tttt target {len(target)}   {target[0].shape}")
         
         epoch=self.current_epoch
@@ -189,8 +198,8 @@ class Pl_anatomy_model(pl.LightningModule):
 
         data = batch['data']
         target = batch['target']
-        
-        # target=self.transform_gold(target)
+        if(not self.is_classic_nnunet):
+            target=self.transform_gold(target)
         
         
         epoch=self.current_epoch

@@ -245,12 +245,10 @@ def evaluate_single_anatomy_case(arrs,tempdir,for_explore,to_save_files):
     pz_metr,hd = get_Metrics(predicted_segmentation_onehot[0,:,:,:],target[0,:,:,:],'pz')
     tz_metr,hd = get_Metrics(predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:],'tz')
     mean_metr,hd = get_Metrics(predicted_segmentation_onehot[2,:,:,:],target[2,:,:,:],'all')
-
+    
     res= list(itertools.chain(*[pz_metr,tz_metr,mean_metr]))
     if(to_save_files):
-        save_arrs_anatomy(predicted_segmentation_onehot,data,target,bi,for_explore,hd)
-    
-    
+        save_arrs_anatomy(predicted_segmentation_onehot,data,target,bi,for_explore,hd)  
     
     return res
 
