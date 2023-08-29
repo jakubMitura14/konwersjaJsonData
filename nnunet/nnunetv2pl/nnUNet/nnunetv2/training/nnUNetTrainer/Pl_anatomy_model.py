@@ -144,7 +144,10 @@ class Pl_anatomy_model(pl.LightningModule):
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
         if(self.is_swin):
-            lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*100, warmup_duration=30)
+            # lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*40, warmup_duration=30)
+            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=25)
+            
+            lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[25])
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
 
@@ -235,7 +238,7 @@ class Pl_anatomy_model(pl.LightningModule):
     def my_anato_log(self,tupl,name): 
         print(f"ttt {tupl} {name}")       
         if(np.isnan(tupl[1])):
-            self.log(f"{tupl[0]}_{name}", 0.00000001)
+            self.log(f"{tupl[0]}_{name}", 0.00000001,sync_dist=True)
         self.log(f"{tupl[0]}_{name}", tupl[1])
         
     def on_validation_epoch_end(self):
