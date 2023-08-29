@@ -215,7 +215,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             gradient_clip_val = 3.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n,
             # ,reload_dataloaders_every_n_epochs=1
-            # strategy="deepspeed_stage_2"
+            strategy="deepspeed_stage_1"
         )
 
 
@@ -248,8 +248,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
 
         tuner = Tuner(self.trainer)
         # to set to your own hparams.my_value
-        tuner.lr_find(self.pl_model, attr_name="learning_rate")
-        self.trainer.fit(self.pl_model)
+        # tuner.lr_find(self.pl_model, attr_name="learning_rate")
+        # self.trainer.fit(self.pl_model)
         
         self.on_train_end()
         # shutil.rmtree(self.default_root_dir)
