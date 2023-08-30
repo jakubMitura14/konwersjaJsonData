@@ -366,14 +366,24 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
 
 
 
+def get_pred_one_hot(output,is_regions):
+    if(is_regions):
+        predicted_segmentation_onehot = (torch.sigmoid(output) > 0.5).long()
+        return predicted_segmentation_onehot
+    else:
+        
+        output_seg = output.argmax(1)[:, None]
+        predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
+        predicted_segmentation_onehot.scatter_(1, output_seg, 1)
+        return predicted_segmentation_onehot
+        
 
-
-def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data):
+def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data,is_regions):
+    
+    
     output=torch.stack([output[:,0,:,:,:],output[:,2,:,:,:]],dim=1)
-    output_seg = output.argmax(1)[:, None]
-    predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
-    predicted_segmentation_onehot.scatter_(1, output_seg, 1)
-    del output_seg   
+    predicted_segmentation_onehot=get_pred_one_hot(output,False)
+    
     curr=predicted_segmentation_onehot.round().bool()[:,1,:,:,:]  
     target_str= f"{group_name}/{batch_id}/target"
     predicted_segmentation_onehot_str= f"{group_name}/{batch_id}/predicted_segmentation_onehot"
@@ -393,10 +403,9 @@ def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data):
 
 def save_to_hdf5_anatomy(f,inner_id,group_name,batch_id,target,output,data):
     
-    output_seg = output.argmax(1)[:, None]
-    predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
-    predicted_segmentation_onehot.scatter_(1, output_seg, 1)
-    del output_seg   
+    output=torch.stack([output[:,0,:,:,:],output[:,2,:,:,:]],dim=1)
+    predicted_segmentation_onehot=get_pred_one_hot(output,False)
+    
     curr=predicted_segmentation_onehot.round().bool()
     target_str= f"{group_name}/{batch_id}/target"
     

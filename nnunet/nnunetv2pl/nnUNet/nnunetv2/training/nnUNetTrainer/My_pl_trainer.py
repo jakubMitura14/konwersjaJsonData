@@ -228,7 +228,16 @@ class My_pl_trainer(nnUNetTrainer):
         loss = DeepSupervisionWrapper(loss, weights)
         return loss    
 
-
+    def set_deep_supervision_enabled(self, enabled: bool):
+        """
+        This function is specific for the default architecture in nnU-Net. If you change the architecture, there are
+        chances you need to change this as well!
+        """
+        if(self.is_classic_nnunet):
+            if self.is_ddp:
+                self.network.module.decoder.deep_supervision = enabled
+            else:
+                self.network.decoder.deep_supervision = enabled
     @staticmethod
     def get_training_transforms(patch_size: Union[np.ndarray, Tuple[int]],
                                 rotation_for_DA: dict,
