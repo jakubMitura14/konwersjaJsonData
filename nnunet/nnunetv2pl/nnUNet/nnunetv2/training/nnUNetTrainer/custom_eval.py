@@ -227,7 +227,7 @@ def get_Metrics(one_hot,target,name):
     
     quality=dict()
     if(np.sum(one_hot.flatten())==0 or np.sum(target.flatten())==0):
-        return list(quality.items())
+        return list(quality.items()),-1.0
     labelPred=sitk.GetImageFromArray(one_hot.astype(np.uint8))
     labelTrue=sitk.GetImageFromArray(target.astype(np.uint8))
     hausdorffcomputer=sitk.HausdorffDistanceImageFilter()
