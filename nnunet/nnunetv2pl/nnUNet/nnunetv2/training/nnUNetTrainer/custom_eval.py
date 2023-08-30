@@ -224,7 +224,8 @@ def save_arrs_anatomy(predicted_segmentation_onehot,data,target,batch_idd,for_ex
 #     return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)*2
 
 def get_Metrics(one_hot,target,name):
-    
+    labelPred=sitk.GetImageFromArray(one_hot.astype(np.uint8))
+    labelTrue=sitk.GetImageFromArray(target.astype(np.uint8))
     quality=dict()
     dicecomputer=sitk.LabelOverlapMeasuresImageFilter()
     dicecomputer.Execute(labelTrue>0.5,labelPred>0.5)
@@ -233,8 +234,7 @@ def get_Metrics(one_hot,target,name):
 
     if(np.sum(one_hot.flatten())==0 or np.sum(target.flatten())==0):
         return list(quality.items()),quality[f"dice_{name}"]
-    labelPred=sitk.GetImageFromArray(one_hot.astype(np.uint8))
-    labelTrue=sitk.GetImageFromArray(target.astype(np.uint8))
+
     hausdorffcomputer=sitk.HausdorffDistanceImageFilter()
     hausdorffcomputer.Execute(labelTrue>0.5,labelPred>0.5)
     quality[f"avgHausdorff_{name}"]=hausdorffcomputer.GetAverageHausdorffDistance()

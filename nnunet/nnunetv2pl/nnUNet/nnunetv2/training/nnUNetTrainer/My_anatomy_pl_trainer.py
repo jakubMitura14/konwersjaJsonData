@@ -146,7 +146,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
 
 
         # self.save_hyperparameters()
-        # self.pl_model= Pl_Model.load_from_checkpoint(self.output_folder)
+
 
         self.optimizer, self.lr_scheduler = self.configure_optimizers()
         # if ddp, wrap in DDP wrapper
@@ -155,6 +155,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
             self.network = DDP(self.network, device_ids=[self.local_rank])
 
 
+        # self.network = torch.load('/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/checkpoint_final.pth')
+        # self.network = torch.load('/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=4-step=125.ckpt')
 
         self.pl_model= Pl_anatomy_model(network=self.network
                                 ,dataloader_train=self.dataloader_train
@@ -174,6 +176,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
                                 ,is_swin=self.is_swin
                                 ,is_med_next=self.is_med_next)
         
+        # self.pl_model= Pl_anatomy_model.load_from_checkpoint('/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=4-step=125.ckpt')        
 
 
         # print(f"oooooooooooooo {self.output_folder}")
@@ -214,8 +217,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
             check_val_every_n_epoch=self.log_every_n,
             accumulate_grad_batches= 10,
             gradient_clip_val = 3.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
-            log_every_n_steps=self.log_every_n,
-            # ,reload_dataloaders_every_n_epochs=1
+            log_every_n_steps=self.log_every_n
+                        # ,reload_dataloaders_every_n_epochs=1
             #  strategy="deepspeed_stage_1"
         )
     def set_deep_supervision_enabled(self, enabled: bool):
@@ -259,7 +262,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
 
         # tuner = Tuner(self.trainer)
         # tuner.lr_find(self.pl_model, attr_name="learning_rate")
-        self.trainer.fit(self.pl_model)
+        self.trainer.fit(self.pl_model, ckpt_path='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=4-step=125.ckpt'
+)
         
         self.on_train_end()
         # shutil.rmtree(self.default_root_dir)
