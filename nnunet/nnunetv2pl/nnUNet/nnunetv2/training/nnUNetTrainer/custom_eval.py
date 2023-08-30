@@ -226,19 +226,21 @@ def save_arrs_anatomy(predicted_segmentation_onehot,data,target,batch_idd,for_ex
 def get_Metrics(one_hot,target,name):
     
     quality=dict()
+    dicecomputer=sitk.LabelOverlapMeasuresImageFilter()
+    dicecomputer.Execute(labelTrue>0.5,labelPred>0.5)
+    quality[f"dice_{name}"]=dicecomputer.GetDiceCoefficient()
+    quality[f"volume_similarity_{name}"]=dicecomputer.GetVolumeSimilarity()
+
     if(np.sum(one_hot.flatten())==0 or np.sum(target.flatten())==0):
-        return list(quality.items()),-1.0
+        return list(quality.items()),quality[f"dice_{name}"]
     labelPred=sitk.GetImageFromArray(one_hot.astype(np.uint8))
     labelTrue=sitk.GetImageFromArray(target.astype(np.uint8))
     hausdorffcomputer=sitk.HausdorffDistanceImageFilter()
     hausdorffcomputer.Execute(labelTrue>0.5,labelPred>0.5)
     quality[f"avgHausdorff_{name}"]=hausdorffcomputer.GetAverageHausdorffDistance()
     # quality["Hausdorff"]=hausdorffcomputer.GetHausdorffDistance()
-    dicecomputer=sitk.LabelOverlapMeasuresImageFilter()
-    dicecomputer.Execute(labelTrue>0.5,labelPred>0.5)
-    quality[f"dice_{name}"]=dicecomputer.GetDiceCoefficient()
-    quality[f"volume_similarity_{name}"]=dicecomputer.GetVolumeSimilarity()
-    return list(quality.items()),quality[f"avgHausdorff_{name}"]
+
+    return list(quality.items()),quality[f"dice_{name}"]
 
 def evaluate_single_anatomy_case(arrs,tempdir,for_explore,to_save_files):
     bi,predicted_segmentation_onehot,target,data=arrs
