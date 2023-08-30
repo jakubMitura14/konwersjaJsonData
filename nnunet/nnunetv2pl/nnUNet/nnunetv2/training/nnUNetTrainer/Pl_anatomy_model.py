@@ -147,7 +147,7 @@ class Pl_anatomy_model(pl.LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
         if(self.is_swin):
             # lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*40, warmup_duration=30)
-            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=25)
+            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=1)
             
             lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[25])
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
@@ -237,23 +237,29 @@ class Pl_anatomy_model(pl.LightningModule):
             # if(batch_idx<self.num_batch_to_eval):
             
         return l
-
-    def my_anato_log(self,tupl,name): 
+    def my_anato_log(self,tupl,name,main_to_monitor): 
         print(f"ttt {tupl} {name}")       
         if(np.isnan(tupl[1])):
-            self.log(f"{tupl[0]}_{name}", 0.00000001,sync_dist=True)
-        self.log(f"{tupl[0]}_{name}", tupl[1])
+            self.log(f"{tupl[0]}_{name}", 100.0,sync_dist=True)
+        if(tupl[0]=="avgHausdorff_all" ):
+            return True
+        self.log(f"{tupl[0]}_{name}", tupl[1],sync_dist=True)
+        return False
         
     def on_validation_epoch_end(self):
         group_name='val'
         res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True,batch_size=self.batch_size )
-        list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
-
-
+        
+        main_to_monitor="avgHausdorff_all_val"
+        is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val',main_to_monitor) ,res ))
+        if(np.sum(np.array(is_there))==0):
+             self.log(main_to_monitor, 0.00000001,sync_dist=True)
+             
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
             group_name='train'
             res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=True,batch_size=self.batch_size )
             list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
+
 
 

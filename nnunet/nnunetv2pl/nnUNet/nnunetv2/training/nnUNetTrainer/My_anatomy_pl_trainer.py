@@ -262,11 +262,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
 
         # tuner = Tuner(self.trainer)
         # tuner.lr_find(self.pl_model, attr_name="learning_rate")
-        self.trainer.fit(self.pl_model, ckpt_path='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=4-step=125.ckpt'
-)
+        self.trainer.fit(self.pl_model)#, ckpt_path='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=14-step=375.ckpt')
         
         self.on_train_end()
         # shutil.rmtree(self.default_root_dir)
         # self.f.close()
 
 
+#my_proj_name="seg anatomy" tag="l4b swin" my_proj_desc=" l4b swin" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
