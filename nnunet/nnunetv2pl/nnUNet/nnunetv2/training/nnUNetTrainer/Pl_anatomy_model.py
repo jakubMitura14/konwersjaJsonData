@@ -139,7 +139,9 @@ class Pl_anatomy_model(pl.LightningModule):
         elif(self.is_swin):    
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.003311311214825908)#learning rate set by learning rate finder
             optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-        
+        elif(self.is_med_next):    
+
+            optimizer = torch.optim.AdamW(self.network.parameters(), 0.0019054607179632484)
         
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )

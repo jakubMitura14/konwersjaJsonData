@@ -1,3 +1,4 @@
+import comet_ml
 import os
 import socket
 from typing import Union, Optional

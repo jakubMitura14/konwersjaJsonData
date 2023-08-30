@@ -74,10 +74,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
         """
         self.log_every_n=5
         self.num_batch_to_eval=20
-
+        # self.batch_size=2
+        
         self.is_classic_nnunet=False
-        self.is_swin=True
-        self.is_med_next=False
+        self.is_swin=False
+        self.is_med_next=True
         
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
@@ -128,11 +129,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
 
 
 
-
-        # self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
-        #                                     ,num_classes=self.label_manager.num_segmentation_heads
-        #                                     ,kernel_size= 3
-        #                                     ,ds= True)
+        if(self.is_med_next):
+            self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
+                                                ,num_classes=self.label_manager.num_segmentation_heads
+                                                ,kernel_size= 7
+                                                ,ds= True)
         if(self.is_swin):
             self.network=SwinUNETR(in_channels=self.num_input_channels
                         ,out_channels=self.label_manager.num_segmentation_heads
@@ -215,7 +216,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             gradient_clip_val = 3.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n,
             # ,reload_dataloaders_every_n_epochs=1
-             strategy="deepspeed_stage_1"
+            #  strategy="deepspeed_stage_1"
         )
 
 
@@ -247,7 +248,6 @@ class My_Anatomy_trainer(nnUNetTrainer):
         self.on_train_start()
 
         # tuner = Tuner(self.trainer)
-        # to set to your own hparams.my_value
         # tuner.lr_find(self.pl_model, attr_name="learning_rate")
         self.trainer.fit(self.pl_model)
         
