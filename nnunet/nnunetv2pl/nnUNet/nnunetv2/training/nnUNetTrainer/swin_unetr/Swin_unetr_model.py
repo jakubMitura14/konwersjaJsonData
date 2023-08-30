@@ -551,6 +551,7 @@ class SwinTransformerBlock(nn.Module):
         act_layer: str = "GELU",
         norm_layer: type[LayerNorm] = nn.LayerNorm,
         use_checkpoint: bool = False,
+        i:int=0
     ) -> None:
         """
         Args:
@@ -589,7 +590,8 @@ class SwinTransformerBlock(nn.Module):
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(hidden_size=dim, mlp_dim=mlp_hidden_dim, act=act_layer, dropout_rate=drop, dropout_mode="swin")
-
+        self.i =i
+        
     def forward_part1(self, x, mask_matrix):
         x_shape = x.size()
         x = self.norm1(x)
@@ -624,7 +626,7 @@ class SwinTransformerBlock(nn.Module):
             shifted_x = x
             attn_mask = None
         x_windows = window_partition(shifted_x, window_size)
-        # print(f"before attention {x.shape}  num_heads {self.num_heads} x_windows {x_windows.shape} window_size {window_size} shifted_x {shifted_x.shape}")
+        print(f"before attention i {self.i} x {x.shape}  num_heads {self.num_heads}  shift_size {self.shift_size} x_windows {x_windows.shape} window_size {window_size} shifted_x {shifted_x.shape}")
         attn_windows = self.attn(x_windows, mask=attn_mask)
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))
         shifted_x = window_reverse(attn_windows, window_size, dims)
@@ -873,6 +875,7 @@ class BasicLayer(nn.Module):
                     drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
                     norm_layer=norm_layer,
                     use_checkpoint=use_checkpoint,
+                    i=i
                 )
                 for i in range(depth)
             ]
