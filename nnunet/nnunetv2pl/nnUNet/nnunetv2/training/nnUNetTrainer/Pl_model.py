@@ -131,6 +131,8 @@ class Pl_Model(pl.LightningModule):
 
 
     def configure_optimizers(self):
+
+        TODO change
         optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate/2, weight_decay=self.weight_decay,
                                     momentum=0.99, nesterov=True)
         
@@ -267,6 +269,8 @@ class Pl_Model(pl.LightningModule):
         # So autocast will only be active if we have a cuda device.
         with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
             output = network(data)
+            TODO check is softmax/sigmoid needed
+
             # del data
             l = loss(output, target)
             save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val")

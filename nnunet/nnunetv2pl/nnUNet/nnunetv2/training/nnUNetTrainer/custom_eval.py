@@ -403,8 +403,7 @@ def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data,is_regions):
 
 def save_to_hdf5_anatomy(f,inner_id,group_name,batch_id,target,output,data):
     
-    output=torch.stack([output[:,0,:,:,:],output[:,2,:,:,:]],dim=1)
-    predicted_segmentation_onehot=get_pred_one_hot(output,False)
+    predicted_segmentation_onehot=get_pred_one_hot(output,True)
     
     curr=predicted_segmentation_onehot.round().bool()
     target_str= f"{group_name}/{batch_id}/target"

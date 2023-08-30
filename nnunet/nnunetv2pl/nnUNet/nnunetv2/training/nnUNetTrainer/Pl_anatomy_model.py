@@ -225,6 +225,7 @@ class Pl_anatomy_model(pl.LightningModule):
         # So autocast will only be active if we have a cuda device.
         with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
             output = network(data)
+            print(f"ooooooo max {output[0].max()} min {output[0].min()}")
             # del data
             l = loss(output, target)
             save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)

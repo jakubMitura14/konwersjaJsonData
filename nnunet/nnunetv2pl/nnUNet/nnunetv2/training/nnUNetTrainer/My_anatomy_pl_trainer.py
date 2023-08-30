@@ -77,8 +77,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
         # self.batch_size=2
         
         self.is_classic_nnunet=False
-        self.is_swin=True
-        self.is_med_next=False
+        self.is_swin=False
+        self.is_med_next=True
         
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
