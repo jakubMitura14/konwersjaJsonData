@@ -175,7 +175,7 @@ def for_filter_unwanted(group):
 
 grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
-#my_proj_name="seg anatomy" tag="l4d mednext" my_proj_desc=" l4d mednext" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
+#my_proj_name="seg debug" tag="pc debug" my_proj_desc="pc debug" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
 
 #nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset281_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered -d 281 -c '3d_fullres' 
 

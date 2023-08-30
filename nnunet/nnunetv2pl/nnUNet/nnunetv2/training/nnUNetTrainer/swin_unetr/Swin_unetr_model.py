@@ -502,7 +502,7 @@ class WindowAttention(nn.Module):
 
     def forward(self, x, mask):
         b, n, c = x.shape
-        # print(f"wwwwwwwwwwwindow attention input {x.shape}")
+        print(f"wwwwwwwwwwwindow attention input {x.shape}")
 
         qkv = self.qkv(x).reshape(b, n, 3, self.num_heads, c // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
@@ -624,6 +624,7 @@ class SwinTransformerBlock(nn.Module):
             shifted_x = x
             attn_mask = None
         x_windows = window_partition(shifted_x, window_size)
+        print(f"before attention {x.shape}  num_heads {self.num_heads} x_windows {x_windows.shape} window_size {window_size} shifted_x {shifted_x.shape}")
         attn_windows = self.attn(x_windows, mask=attn_mask)
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))
         shifted_x = window_reverse(attn_windows, window_size, dims)
