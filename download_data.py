@@ -160,15 +160,15 @@ downloading data from mdai client
 """
 import mdai
 
-
-mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
-p = mdai_client.project('gaq3y0Rl', path='/home/sliceruser/workspaces/konwersjaJsonData/out')
 datasetId='D_gQm1nQ'
+mdai_client = mdai.Client(domain='public.md.ai', access_token="1d48dd3c05ce6d59759915d9328fe769")
+p = mdai_client.project('gaq3y0Rl', path='/home/sliceruser/workspaces/konwersjaJsonData/out',dataset_id=datasetId)
+
 p.set_labels_dict(labels_dict)
 dataset = p.get_dataset_by_id(datasetId)
 dataset.prepare()
 
-# cp /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_annotations_2023-07-18-083817.json /home/sliceruser/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_2023-07-18-083817.json
+# cp mdai_public_project_gaq3y0Rl_annotations_dataset_D_gQm1nQ_2023-08-30-151027.json /home/sliceruser/workspaces/konwersjaJsonData/mdai_public_project_gaq3y0Rl_annotations_2023-07-18-083817.json
 
 # p.set_labels_dict(labels_dict)
 
@@ -211,10 +211,10 @@ download csvs ...
 
 
 
-# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_dataset_D_gQm1nQ_2023-07-12-142231_part1of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_dataset_D_gQm1nQ_2023-08-30-151028_part1of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
 
-# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_dataset_D_gQm1nQ_2023-07-12-142231_part2of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_dataset_D_gQm1nQ_2023-08-30-151028_part2of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
 
-# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_dataset_D_gQm1nQ_2023-07-12-142231_part3of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
+# cp -a /home/sliceruser/workspaces/konwersjaJsonData/out/mdai_public_project_gaq3y0Rl_images_dataset_D_gQm1nQ_2023-08-30-151028_part3of3/. /home/sliceruser/workspaces/konwersjaJsonData/data/
 
 
