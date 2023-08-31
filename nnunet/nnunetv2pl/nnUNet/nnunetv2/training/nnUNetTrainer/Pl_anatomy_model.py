@@ -237,13 +237,14 @@ class Pl_anatomy_model(pl.LightningModule):
             # if(batch_idx<self.num_batch_to_eval):
             
         return l
-    def my_anato_log(self,tupl,name,main_to_monitor): 
+    def my_anato_log(self,tupl,name): 
         print(f"ttt {tupl} {name}")       
         if(np.isnan(tupl[1])):
             self.log(f"{tupl[0]}_{name}", 100.0,sync_dist=True)
+        self.log(f"{tupl[0]}_{name}", tupl[1],sync_dist=True)
         if(tupl[0]=="avgHausdorff_all" ):
             return True
-        self.log(f"{tupl[0]}_{name}", tupl[1],sync_dist=True)
+        
         return False
         
     def on_validation_epoch_end(self):
@@ -251,9 +252,10 @@ class Pl_anatomy_model(pl.LightningModule):
         res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True,batch_size=self.batch_size )
         
         main_to_monitor="avgHausdorff_all_val"
-        is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val',main_to_monitor) ,res ))
+        is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
+        
         if(np.sum(np.array(is_there))==0):
-             self.log(main_to_monitor, 0.00000001,sync_dist=True)
+             self.log(main_to_monitor, 100.0,sync_dist=True)
              
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):
