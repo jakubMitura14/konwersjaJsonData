@@ -72,7 +72,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=1
+        self.log_every_n=5
         self.num_batch_to_eval=20
         # self.batch_size=2
         
