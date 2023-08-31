@@ -74,6 +74,7 @@ from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from .custom_eval import *
 import ignite
+import deepspeed
 
 class Pl_anatomy_model(pl.LightningModule):
     def __init__(self,network
@@ -136,9 +137,12 @@ class Pl_anatomy_model(pl.LightningModule):
         if(self.is_classic_nnunet):
             optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate, weight_decay=self.weight_decay,
                                         momentum=0.99, nesterov=True)
+            # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
+            
         elif(self.is_swin):    
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.003311311214825908)#learning rate set by learning rate finder
-            optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), 0.07585775750291836)
         elif(self.is_med_next):    
 
             optimizer = torch.optim.AdamW(self.network.parameters(), 0.0019054607179632484)

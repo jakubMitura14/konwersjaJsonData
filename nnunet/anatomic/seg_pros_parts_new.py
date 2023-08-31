@@ -103,7 +103,7 @@ modalities_of_intrest=['t2w','adc','hbv']
 non_mri_inputs=[]
 # prostate_col= new_col_name # name of the column with segmentaton of whole prostate gland
 
-anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg']
+anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg','sv_l_noSeg','sv_r_noSeg','ur_noSeg']
 # anatomic_cols=['afs_noSeg']
 
 label_cols=anatomic_cols
@@ -119,9 +119,13 @@ label_names= {
     "background": 0,
     "pz": 1,
     "tz": 2,
+    "sv_l" :3,
+    "sv_r" :4,
+    "ignore":5,#'ur'    
     "full_prost":[1,2]
     }
 
+# sv_l_noSeg 'ur' 
 # label_names= {  # THIS IS DIFFERENT NOW!
 #     "background": 0,
 #     "afs": 1,
@@ -142,6 +146,13 @@ def get_int_arr_from_path(pathh):
         index=1
     elif('tz' in pathh):
         index=2
+    elif('sv_l' in pathh):
+        index=3    
+    elif('sv_r' in pathh):
+        index=4          
+    elif('ur' in pathh):
+        print(f"urethra path {pathh}")
+        index=5          
     else:
         to_ignore=True
 
