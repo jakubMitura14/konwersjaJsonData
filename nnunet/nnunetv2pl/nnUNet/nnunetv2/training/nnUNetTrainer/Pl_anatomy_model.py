@@ -165,6 +165,7 @@ class Pl_anatomy_model(pl.LightningModule):
         data = batch['data']
         target = batch['target']
         output = self.network(data)
+        
         if(not self.is_classic_nnunet):
             target=self.transform_gold(target)
 
@@ -172,7 +173,7 @@ class Pl_anatomy_model(pl.LightningModule):
         
         epoch=self.current_epoch
         l=self.loss(output, target)
-
+        self.log("train loss",l.detach().cpu().item())
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
                 save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train",True)
@@ -223,12 +224,12 @@ class Pl_anatomy_model(pl.LightningModule):
         # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
         # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
         # So autocast will only be active if we have a cuda device.
-        with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
-            output = network(data)
-            print(f"ooooooo max {output[0].max()} min {output[0].min()}")
-            # del data
-            l = loss(output, target)
-            save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)
+        # with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
+        output = network(data)
+        # print(f"ooooooo max {output[0].max()} min {output[0].min()}")
+        # del data
+        l = loss(output, target)
+        save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)
         self.log("val loss",l.detach().cpu().item())
         # we only need the output with the highest output resolution
         # output = output[0]

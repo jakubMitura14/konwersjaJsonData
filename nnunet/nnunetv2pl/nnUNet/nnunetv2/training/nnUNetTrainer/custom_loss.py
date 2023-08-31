@@ -76,7 +76,6 @@ class FocalLossV2_orig(nn.Module):
         if self.smooth:
             one_hot_key = torch.clamp(
                 one_hot_key, self.smooth / (num_class - 1), 1.0 - self.smooth)
-        print(f"ooooooooooooooo one_hot_key {one_hot_key.shape} logit {logit.shape}")    
         pt = (one_hot_key * logit).sum(1) + self.smooth
         logpt = pt.log()
 
