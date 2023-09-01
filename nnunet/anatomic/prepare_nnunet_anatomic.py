@@ -384,7 +384,7 @@ def add_files(group,main_modality,modalities_of_intrest,reg_prop,elacticPath,tra
                 for path in mris_for_sample
             ],
             settings=PreprocessingSettings(
-                physical_size=[180.0, 192.0, 192.0],
+                physical_size=[138.0, 128.0, 124.0],
                 crop_only=True
             )
             )
