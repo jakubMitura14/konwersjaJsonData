@@ -610,23 +610,27 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     plans = json.load(f)
     plans['configurations']['3d_lowres'] = {
         "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time
-        'inherits_from': '3d_fullres',
- 'preprocessor_name': 'DefaultPreprocessor'
- , 'batch_size': 1, "patch_size": [48, 192, 160], "median_image_size_in_voxels": [42.0, 164.0, 159.0]
-, "spacing": [3.299999952316284, 0.78125, 0.78125]
-, "normalization_schemes": ["ZScoreNormalization", "ZScoreNormalization", "ZScoreNormalization"]
-, "use_mask_for_norm": [False, False, False], "UNet_class_name": "PlainConvUNet", "UNet_base_num_features": 104
-, "n_conv_per_stage_encoder": [2, 2, 2, 2, 2, 2]
-, "n_conv_per_stage_decoder": [2, 2, 2, 2, 2], "num_pool_per_axis": [3, 5, 5]
-, "pool_op_kernel_sizes": [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
-, "conv_kernel_sizes": [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
-, "unet_max_num_features": 320, "resampling_fn_data": "resample_data_or_seg_to_shape"
-, "resampling_fn_seg": "resample_data_or_seg_to_shape"
-, "resampling_fn_data_kwargs": {"is_seg": False, "order": 3, "order_z": 0, "force_separate_z": None}
-, "resampling_fn_seg_kwargs": {"is_seg": False, "order": 1, "order_z": 0, "force_separate_z": None}
-, "resampling_fn_probabilities": "resample_data_or_seg_to_shape"
-, "resampling_fn_probabilities_kwargs": {"is_seg": False, "order": 1, "order_z": 0, "force_separate_z": None}
-, "batch_dice": False}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             , "2": {"max": 100.0, "mean": 12.48489761352539, "median": 12.0, "min": 0.0, "percentile_00_5": 3.0, "percentile_99_5": 29.0, "std": 4.605309009552002}}
+        'inherits_from': '3d_fullres', 'preprocessor_name': 'DefaultPreprocessor'
+            , 'batch_size': 1, "patch_size": [48, 192, 160], "median_image_size_in_voxels": [42.0, 164.0, 159.0]
+            , "spacing": [3.299999952316284, 0.78125, 0.78125]
+            , "normalization_schemes": ["ZScoreNormalization", "ZScoreNormalization", "ZScoreNormalization"]
+            , "use_mask_for_norm": [False, False, False], "UNet_class_name": "PlainConvUNet"
+            , "UNet_base_num_features": 104
+            , "n_conv_per_stage_encoder": [2, 2, 2, 2, 2, 2]
+            , "n_conv_per_stage_decoder": [2, 2, 2, 2, 2], "num_pool_per_axis": [3, 5, 5]
+            , "pool_op_kernel_sizes": [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
+            , "conv_kernel_sizes": [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
+            , "unet_max_num_features": 320
+            , "resampling_fn_data": "resample_data_or_seg_to_shape"
+            , "resampling_fn_seg": "resample_data_or_seg_to_shape"
+    
+            , "resampling_fn_data_kwargs": {"is_seg": False, "order": 3, "order_z": 0, "force_separate_z": None}
+            , "resampling_fn_seg_kwargs": {"is_seg": False, "order": 1, "order_z": 0, "force_separate_z": None}
+            , "resampling_fn_probabilities": "resample_data_or_seg_to_shape"
+            , "resampling_fn_probabilities_kwargs": {"is_seg": False, "order": 1, "order_z": 0, "force_separate_z": None}
+            , "batch_dice": False
+    }
+            # , "batch_dice": False}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             , "2": {"max": 100.0, "mean": 12.48489761352539, "median": 12.0, "min": 0.0, "percentile_00_5": 3.0, "percentile_99_5": 29.0, "std": 4.605309009552002}}
 
 
     json_string = json.dumps(plans,sort_keys=False)     
