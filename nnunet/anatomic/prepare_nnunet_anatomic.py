@@ -556,6 +556,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
                                 )
 
     label_paths= list(itertools.chain(*label_paths))
+    print(f"llllllllabel_paths {len(label_paths)}")
     # label_paths= list(itertools.chain(*label_paths))
 
     data = { 
@@ -563,7 +564,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     "labels": label_names,  
     "file_ending": ".nii.gz",
     "overwrite_image_reader_writer": "SimpleITKIO",
-    "regions_class_order": [3,2,1],  
+    "regions_class_order": [5,4,3,2,1],  
     "normalization_schemes" : ["zscore","noNorm","noNorm"],
     "numTraining" : len(label_paths),
     "nnUNetPlans" : ['2d','3d_lowres','3d_cascade_fullres', '3d_fullres']
@@ -591,15 +592,15 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     
 
     # .dumps() as a string
-    if(generate_plans):
-        json_string = json.dumps(data)
-        with open(json_path, 'w') as outfile:
-            outfile.write(json_string)
-        
+    json_string = json.dumps(data)
+    with open(json_path, 'w') as outfile:
+        outfile.write(json_string)
+    
 
-        cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
-        p = Popen(cmd_terminal, shell=True)
-        p.wait()
+    cmd_terminal=f"nnUNetv2_plan_and_preprocess -d {dataset_id} --verify_dataset_integrity"
+    print(f"ccccc {cmd_terminal} \n")
+    p = Popen(cmd_terminal, shell=True)
+    p.wait()
 
 
 
@@ -615,7 +616,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
  , 'spacing': [3.29999995, 0.78125   , 0.78125   ]
  , 'normalization_schemes': ['ZScoreNormalization', 'ZScoreNormalization', 'ZScoreNormalization']
  , 'use_mask_for_norm': [False, False, False], 'UNet_class_name': 'PlainConvUNet'
- , 'UNet_base_num_features': 128, 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2, 2, 2)
+ , 'UNet_base_num_features': 104, 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2, 2, 2)
  , 'n_conv_per_stage_decoder': (2, 2, 2, 2, 2, 2), 'num_pool_per_axis': [2, 6, 6]
  , 'pool_op_kernel_sizes': [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2], [1, 2, 2], [1, 2, 2]]
  , 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]

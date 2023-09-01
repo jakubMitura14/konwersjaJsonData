@@ -103,7 +103,7 @@ modalities_of_intrest=['t2w','adc','hbv']
 non_mri_inputs=[]
 # prostate_col= new_col_name # name of the column with segmentaton of whole prostate gland
 
-anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg']
+anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg','sv_l_noSeg','sv_r_noSeg','ur_noSeg']
 # anatomic_cols=['afs_noSeg']
 
 label_cols=anatomic_cols
@@ -119,9 +119,13 @@ label_names= {
     "background": 0,
     "pz": 1,
     "tz": 2,
+    "sv_l" :3,
+    "sv_r" :4,
+    "ignore":5,#'ur'    
     "full_prost":[1,2]
     }
 
+# sv_l_noSeg 'ur' 
 # label_names= {  # THIS IS DIFFERENT NOW!
 #     "background": 0,
 #     "afs": 1,
@@ -142,6 +146,13 @@ def get_int_arr_from_path(pathh):
         index=1
     elif('tz' in pathh):
         index=2
+    elif('sv_l' in pathh):
+        index=3    
+    elif('sv_r' in pathh):
+        index=4          
+    elif('ur' in pathh):
+        print(f"urethra path {pathh}")
+        index=5          
     else:
         to_ignore=True
 
@@ -175,7 +186,7 @@ def for_filter_unwanted(group):
 
 grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
-#my_proj_name="seg debug" tag="debug" my_proj_desc=" l4d mednextdebug" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
+#my_proj_name="seg anatomy" tag="l4b classic 100" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
 
 
 #nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset281_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered -d 281 -c '3d_fullres' 

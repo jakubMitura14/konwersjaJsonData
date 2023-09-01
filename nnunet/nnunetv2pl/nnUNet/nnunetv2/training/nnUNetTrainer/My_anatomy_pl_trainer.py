@@ -76,8 +76,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
         self.num_batch_to_eval=20
         # self.batch_size=2
         
-        self.is_classic_nnunet=False
-        self.is_swin=True
+        self.is_classic_nnunet=True
+        self.is_swin=False
         self.is_med_next=False
         
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
@@ -124,8 +124,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
                                                             self.configuration_manager,
                                                             self.num_input_channels,
                                                             enable_deep_supervision=True).to(self.device)
-        # compile network for free speedup
-
+            if self.is_ddp:
+                self.network.module.decoder.deep_supervision = True
+            else:
+                self.network.decoder.deep_supervision = True
+        
 
 
 
@@ -136,6 +139,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
                                                 ,ds= True)
         if(self.is_swin):
             self.network=SwinUNETR(in_channels=self.num_input_channels
+                                   ,num_heads= (6, 12, 24, 24)
                         ,out_channels=self.label_manager.num_segmentation_heads
                         ,use_v2=True#
                         ,img_size=(32, 256, 256))
@@ -179,7 +183,6 @@ class My_Anatomy_trainer(nnUNetTrainer):
         # self.pl_model= Pl_anatomy_model.load_from_checkpoint('/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=4-step=125.ckpt')        
 
 
-        # print(f"oooooooooooooo {self.output_folder}")
         # self.pl_model=Pl_anatomy_model.load_from_checkpoint(self.output_folder)
         
 
@@ -215,22 +218,22 @@ class My_Anatomy_trainer(nnUNetTrainer):
             default_root_dir= self.default_root_dir,
             # auto_scale_batch_size="binsearch",
             check_val_every_n_epoch=self.log_every_n,
-            accumulate_grad_batches= 10,
-            gradient_clip_val = 3.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
+            accumulate_grad_batches= 8,
+            gradient_clip_val = 2.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
                         # ,reload_dataloaders_every_n_epochs=1
-            #  strategy="deepspeed_stage_1"
+            ,strategy="deepspeed_stage_3"#_offload
         )
-    def set_deep_supervision_enabled(self, enabled: bool):
-        """
-        This function is specific for the default architecture in nnU-Net. If you change the architecture, there are
-        chances you need to change this as well!
-        """
-        if(self.is_classic_nnunet):
-            if self.is_ddp:
-                self.network.module.decoder.deep_supervision = enabled
-            else:
-                self.network.decoder.deep_supervision = enabled
+    # def set_deep_supervision_enabled(self, enabled: bool):
+    #     """
+    #     This function is specific for the default architecture in nnU-Net. If you change the architecture, there are
+    #     chances you need to change this as well!
+    #     """
+    #     if(self.is_classic_nnunet):
+    #         if self.is_ddp:
+    #             self.network.module.decoder.deep_supervision = enabled
+    #         else:
+    #             self.network.decoder.deep_supervision = enabled
         
 
     def configure_optimizers(self):
