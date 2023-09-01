@@ -58,7 +58,7 @@ rootFolder_lesion_analysis='/home/sliceruser/workspaces/konwersjaJsonData/forLes
 mainFoldDirMha='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont'
 mainFoldDirSeg='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_dicom'
 #folder with definitions for dicom segs
-jsonFolder='/home/sliceruser/code/dicomSeg'
+jsonFolder='/workspaces/konwersjaJsonData/dicomSeg'
 #csv witch indicates what lesions should not be included and what should be the lesions numbering
 correctionsCSVDir= '/home/sliceruser/workspaces/konwersjaJsonData/metaDataProject/valid_lesion_mapping.csv'
 neededNumbersCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/metaDataProject/AI4AR_PCa_radiological.csv'# 'AI4A4_PCa_clinical.csv' #frame where we will get those ids that we are intrested in

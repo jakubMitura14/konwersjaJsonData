@@ -290,19 +290,6 @@ RUN ascli conf ascp install
 
 RUN python3 -m pip  --no-cache-dir install evalutils==0.3.0 https://github.com/DIAGNijmegen/picai_prep/archive/refs/tags/v1.3.2.zip pytorch-ignite==0.4.12
 
-RUN mkdir /usr/share/desktop-directories/ \
-&& wget -P ~/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb \
-&& sudo apt-get -y install xdg-utils \
-&& dpkg-deb -x ~/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb ${HOME}/NBIA
-
-# RUN apt-get update && \
-#     apt-get install -y openjdk-11-jdk ca-certificates-java && \
-#     apt-get clean && \
-#     update-ca-certificates -f
-# ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64/
-# RUN export JAVA_HOME
-
-
 # Install OpenJDK-8
 RUN apt-get update && \
     apt-get install -y openjdk-8-jdk && \
@@ -319,103 +306,19 @@ RUN apt-get update && \
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
 RUN export JAVA_HOME
 
+RUN mkdir /usr/share/desktop-directories/ \
+&& wget -P ~/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb \
+&& sudo apt-get -y install xdg-utils \
+&& dpkg-deb -x ~/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb ${HOME}/NBIA
+
+
 
 # /home/sliceruser/NBIA/opt/nbia-data-retriever/nbia-data-retriever --cli /workspaces/konwersjaJsonData/nnunet/pretraining/manifests/UPENN-GBM_DownloadManifest20221129.tcia -d /home/sliceruser/preprocessed/raw -l /home/sliceruser/NBIA/passwd.txt -v –f
 
 
-# /home/sliceruser/NBIA/passwd.txt
-# userName=jmitura
-# passWord=Opihuih7&9668O3345373734
 
 
-# COPY etc/dpkg/dpkg.cfg.d/01_nodoc /etc/dpkg/dpkg.cfg.d/01_nodoc
-# RUN echo 'APT::Install-Recommends "0" ; APT::Install-Suggests "0" ;' >> /etc/apt/apt.conf && \
-#     echo 'Dir::Cache::pkgcache "";\nDir::Cache::srcpkgcache "";' | tee /etc/apt/apt.conf.d/00_disable-cache-files
-
-
-# ARG SLICER_DOWNLOAD_URL=https://download.slicer.org/bitstream/6286ce04e8408647b39f803a
-
-# RUN curl -JL "$SLICER_DOWNLOAD_URL" | tar xz -C /tmp && mv /tmp/Slicer* Slicer
-
-# ENV VNCPORT=49053
-# ENV JUPYTERPORT=8888
-# ENV DISPLAY=:10
-
-# COPY xorg.conf .
-
-# ################################################################################
-# # Set up remote desktop access - step 1/2
-
-# # Build rebind.so (required by websockify)
-# RUN set -x && \
-#     apt-get update -q -y && \
-#     apt-get install -y build-essential --no-install-recommends && \
-#     mkdir src && \
-#     cd src && \
-#     git clone https://github.com/novnc/websockify websockify && \
-#     cd websockify && \
-#     make && \
-#     cp rebind.so /usr/lib/ && \
-#     cd .. && \
-#     rm -rf websockify && \
-#     cd .. && \
-#     rmdir src && \
-#     apt-get purge -y --auto-remove build-essential
-
-# # Set up launcher for websockify
-# # (websockify must run in  Slicer's Python environment)
-# RUN chmod +x ${HOME}/Slicer/bin/websockify
-
-
-# RUN mkdir ${HOME}/install
-# COPY start-xorg.sh ${HOME}/install/start-xorg.sh
-# COPY install.sh ${HOME}/install/install.sh
-# RUN chmod +rwx -R ${HOME}/install
-# RUN ${HOME}/install/install.sh ${HOME}/Slicer/Slicer 
-
-# # Now install websockify and jupyter-server-proxy (fixed at tag v1.6.0)
-# RUN /home/sliceruser/Slicer/bin/PythonSlicer -m pip install --upgrade websockify && \
-#     cp /usr/lib/rebind.so /home/sliceruser/Slicer/lib/Python/lib/python3.9/site-packages/websockify/ && \
-#     /home/sliceruser/Slicer/bin/PythonSlicer -m pip install notebook jupyterhub jupyterlab && \
-#     /home/sliceruser/Slicer/bin/PythonSlicer -m pip install -e \
-#         git+https://github.com/lassoan/jupyter-desktop-server#egg=jupyter-desktop-server \
-#         git+https://github.com/jupyterhub/jupyter-server-proxy@v1.6.0#egg=jupyter-server-proxy
-
-
-
-# ################################################################################
-# EXPOSE $VNCPORT $JUPYTERPORT
-
-
-################################################################################
-# these go after installs to avoid trivial invalidation
-
-
-# CUDA_HOME=/usr/local/cuda-X.X
-
-
-# RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
-# RUN mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
-# RUN wget https://developer.download.nvidia.com/compute/cuda/12.2.0/local_installers/cuda-repo-ubuntu2004-12-2-local_12.2.0-465.19.01-1_amd64.deb
-# RUN dpkg -i cuda-repo-ubuntu2004-11-3-local_11.3.0-465.19.01-1_amd64.deb
-# RUN apt-key add /var/cuda-repo-ubuntu2004-11-3-local/7fa2af80.pub
-# RUN apt-get update
-# RUN apt-get -y install cuda-11.3
-# RUN apt-key add /var/cuda-repo-ubuntu2004-11-3-local/7fa2af80.pub
-
-
-# RUN git clone https://github.com/zsef123/Connected_components_PyTorch.git ${HOME}/connected_comp \
-# && cd ${HOME}/connected_comp \
-# && python3 setup.py install
-
-# RUN python3 -m pip install ninja timm==0.4.9 -U git+https://github.com/NVIDIA/MinkowskiEngine --no-deps
-# RUN git clone https://github.com/microsoft/Swin3D.git ${HOME}/Swin3d \
-# && cd ${HOME}/Swin3d \
-# && python3 -m pip install -r requirements.txt \
-# && python3 setup.py install
-
-
-# RUN python3 -m pip install transformers datasets deepspeed==0.10.1 ctviewer lightning==2.0.7 more_itertools==10.1.0 tcia_utils==1.6.9
+RUN python3 -m pip install xformers==0.0.21 triton
 
 
 
