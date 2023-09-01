@@ -564,7 +564,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     "labels": label_names,  
     "file_ending": ".nii.gz",
     "overwrite_image_reader_writer": "SimpleITKIO",
-    "regions_class_order": [5,4,3,2,1],  
+    "regions_class_order": [1,2,3,4,5],  
     "normalization_schemes" : ["zscore","noNorm","noNorm"],
     "numTraining" : len(label_paths),
     "nnUNetPlans" : ['2d','3d_lowres','3d_cascade_fullres', '3d_fullres']
@@ -592,7 +592,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     
 
     # .dumps() as a string
-    json_string = json.dumps(data)
+    json_string = json.dumps(data,sort_keys=False)
     with open(json_path, 'w') as outfile:
         outfile.write(json_string)
     
@@ -628,7 +628,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
  , 'resampling_fn_probabilities_kwargs': {'is_seg': False, 'order': 1, 'order_z': 0, 'force_separate_z': None}, 'batch_dice': False}
 
 
-    json_string = json.dumps(plans)     
+    json_string = json.dumps(plans,sort_keys=False)     
     print(f"aaaaaaaaaaaaa {json_string} \n \n \n ppppppppppppppppppppppppppppppppppp")
         
     with open(plans_path, 'w') as outfile:

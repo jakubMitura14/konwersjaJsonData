@@ -103,7 +103,7 @@ modalities_of_intrest=['t2w','adc','hbv']
 non_mri_inputs=[]
 # prostate_col= new_col_name # name of the column with segmentaton of whole prostate gland
 
-anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg','sv_l_noSeg','sv_r_noSeg','ur_noSeg']
+anatomic_cols=['afs_noSeg','cz_noSeg','pz_noSeg','tz_noSeg','sv_l_noSeg','sv_r_noSeg','ur_noSeg','pg_noSeg']
 # anatomic_cols=['afs_noSeg']
 
 label_cols=anatomic_cols
@@ -119,7 +119,7 @@ label_names= {
     "background": 0,
     "pz": 1,
     "tz": 2,
-    "sv_l" :3,
+    "sv" :3,
     "sv_r" :4,
     "ignore":5,#'ur'    
     "full_prost":[1,2]
@@ -149,24 +149,54 @@ def get_int_arr_from_path(pathh):
     elif('sv_l' in pathh):
         index=3    
     elif('sv_r' in pathh):
-        index=4          
+        index=3          
+    # elif('pg_t2w' in pathh):
+    #     print(f"pg path {pathh}")
+
+    #     index=9                 
     elif('ur' in pathh):
-        print(f"urethra path {pathh}")
-        index=5          
+        index=8          
     else:
         to_ignore=True
-
     imageA=sitk.ReadImage(pathh)
     imageA=sitk.GetArrayFromImage(imageA)
     if(to_ignore):
         return np.zeros_like(imageA)
     return np.array(imageA.astype(bool).astype(np.uint8) *(index))
 
+def get_int_arr_from_path_full_prostate(pathh):
+
+    index=15
+    to_ignore=False      
+    if('pg_t2w' in pathh):
+        print(f"pg path {pathh}")
+
+        index=9                 
+    # elif('ur' in pathh):
+    #     index=8          
+    else:
+        to_ignore=True
+    imageA=sitk.ReadImage(pathh)
+    imageA=sitk.GetArrayFromImage(imageA)
+    if(to_ignore):
+        return np.zeros_like(imageA)
+    return np.array(imageA.astype(bool).astype(np.uint8) *(index))
+
+
 def process_labels_prim(labels,group,main_modality,label_new_path,zipped_modalit_path,out_pathsDict):
     # we get the sum of all labels 
     arrays= list(map(get_int_arr_from_path,labels))
     # arrays= list(map(list,arrays))
     reduced = np.sum(np.stack(arrays,axis=0),axis=0).astype(np.uint8)
+    arrays_b= list(map(get_int_arr_from_path_full_prostate,labels))
+    reduced_b= np.sum(np.stack(arrays_b,axis=0),axis=0).astype(np.uint8)
+    #in spots where urethra is set in prostate we set it as tz
+    mask=np.logical_and((reduced_b==9),(reduced==8))
+    reduced[mask]=2
+    #we romeve rest of urethra
+    mask= (reduced==8)
+    reduced[mask]=0
+
     print(np.unique(reduced))
     save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
     return [label_new_path],zipped_modalit_path
@@ -186,7 +216,7 @@ def for_filter_unwanted(group):
 
 grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
-#my_proj_name="seg anatomy" tag="l4b classic 100" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
+#my_proj_name="seg anatomy" tag="l4c swin with sv" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
 
 
 #nnUNetv2_predict -i /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_raw/Dataset281_Prostate/imagesTr -o /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_parts_infered -d 281 -c '3d_fullres' 

@@ -213,15 +213,13 @@ def prep_arr_list_anatomy(predicted_segmentation_onehot,target,data,batch_num,ba
 def save_arrs_anatomy(predicted_segmentation_onehot,data,target,batch_idd,for_explore,hd):
     save_single_arr(predicted_segmentation_onehot[0,:,:,:],batch_idd, 0, 0,for_explore,"inferred_pz",np.uint8 ,hd)
     save_single_arr(predicted_segmentation_onehot[1,:,:,:],batch_idd, 0, 0,for_explore,"inferred_tz",np.uint8 ,hd)
-    save_single_arr(predicted_segmentation_onehot[2,:,:,:],batch_idd, 0, 0,for_explore,"inferred_sv_l",np.uint8 ,hd)
-    save_single_arr(predicted_segmentation_onehot[3,:,:,:],batch_idd, 0, 0,for_explore,"inferred_sv_r",np.uint8 ,hd)     
-    save_single_arr(predicted_segmentation_onehot[4,:,:,:],batch_idd, 0, 0,for_explore,"inferred_sum",np.uint8 ,hd)
+    save_single_arr(predicted_segmentation_onehot[3,:,:,:],batch_idd, 0, 0,for_explore,"inferred_sv",np.uint8 ,hd)
+    save_single_arr(predicted_segmentation_onehot[2,:,:,:],batch_idd, 0, 0,for_explore,"inferred_sum",np.uint8 ,hd)
 
     save_single_arr(target[0,:,:,:],batch_idd, 0, 0,for_explore,"target_pz",np.uint8,hd )
     save_single_arr(target[1,:,:,:],batch_idd, 0, 0,for_explore,"target_tz",np.uint8,hd )
-    save_single_arr(target[2,:,:,:],batch_idd, 0, 0,for_explore,"target_sv_l",np.uint8,hd )
-    save_single_arr(target[3,:,:,:],batch_idd, 0, 0,for_explore,"target_sv_r",np.uint8,hd )
-    save_single_arr(target[4,:,:,:],batch_idd, 0, 0,for_explore,"target_sum",np.uint8,hd )
+    save_single_arr(target[3,:,:,:],batch_idd, 0, 0,for_explore,"target_sv",np.uint8,hd )
+    save_single_arr(target[2,:,:,:],batch_idd, 0, 0,for_explore,"target_sum",np.uint8,hd )
     save_single_arr(data[1,:,:,:],batch_idd, 0, 0,for_explore,"t2w",float,hd )
 
 # def prep_anatomy_target(target):
@@ -250,11 +248,10 @@ def evaluate_single_anatomy_case(arrs,tempdir,for_explore,to_save_files):
     bi,predicted_segmentation_onehot,target,data=arrs
     pz_metr,hd = get_Metrics(predicted_segmentation_onehot[0,:,:,:],target[0,:,:,:],'pz')
     tz_metr,hd = get_Metrics(predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:],'tz')
-    sv_l_metr,hd = get_Metrics(predicted_segmentation_onehot[2,:,:,:],target[1,:,:,:],'sv_l')
-    sv_r_metr,hd = get_Metrics(predicted_segmentation_onehot[3,:,:,:],target[1,:,:,:],'sv_r')
-    mean_metr,hd = get_Metrics(predicted_segmentation_onehot[4,:,:,:],target[2,:,:,:],'all')
+    sv_metr,hd = get_Metrics(predicted_segmentation_onehot[3,:,:,:],target[2,:,:,:],'sv')
+    mean_metr,hd = get_Metrics(predicted_segmentation_onehot[2,:,:,:],target[3,:,:,:],'all')
     
-    res= list(itertools.chain(*[pz_metr,tz_metr,mean_metr,sv_l_metr,sv_r_metr]))
+    res= list(itertools.chain(*[pz_metr,tz_metr,mean_metr,sv_metr]))
     if(to_save_files):
         save_arrs_anatomy(predicted_segmentation_onehot,data,target,bi,for_explore,hd)  
     

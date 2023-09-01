@@ -306,7 +306,6 @@ class SwinUNETR(nn.Module):
             )
 
     def forward(self, x_in):
-        
         hidden_states_out = self.swinViT(x_in, self.normalize)
         enc0 = self.encoder1(x_in)
         enc1 = self.encoder2(hidden_states_out[0])
@@ -494,21 +493,18 @@ class WindowAttention(nn.Module):
 
         relative_position_index = relative_coords.sum(-1)
         self.register_buffer("relative_position_index", relative_position_index)
-        self.qkv = nn.Linear(dim+1, dim * 3, bias=qkv_bias)
+        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
         trunc_normal_(self.relative_position_bias_table, std=0.02)
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x, mask,is_text_token):
+    def forward(self, x, mask):
         b, n, c = x.shape
-        # print(f"wwwwwwwwwwwindow attention input {x.shape}")
-
         qkv = self.qkv(x).reshape(b, n, 3, self.num_heads, c // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
         q = q * self.scale
-        # print(f"qqqqqqqq q {q.shape}  x.shape {x.shape}")
         attn = q @ k.transpose(-2, -1)
         relative_position_bias = self.relative_position_bias_table[
             self.relative_position_index.clone()[:n, :n].reshape(-1)  # type: ignore
@@ -524,12 +520,7 @@ class WindowAttention(nn.Module):
             attn = self.softmax(attn)
 
         attn = self.attn_drop(attn).to(v.dtype)
-        x = (attn @ v).transpose(1, 2)
-        # print(f"xxxxxxxxxxxxxxxxxxxxxx x {x.shape} b {b} n {n} c {c}")
-        if(is_text_token):
-            x= x.reshape(b, n, c-1)
-        else:
-            x= x.reshape(b, n, c)
+        x = (attn @ v).transpose(1, 2).reshape(b, n, c)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
@@ -557,7 +548,6 @@ class SwinTransformerBlock(nn.Module):
         act_layer: str = "GELU",
         norm_layer: type[LayerNorm] = nn.LayerNorm,
         use_checkpoint: bool = False,
-        i:int=0
     ) -> None:
         """
         Args:
@@ -596,17 +586,10 @@ class SwinTransformerBlock(nn.Module):
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(hidden_size=dim, mlp_dim=mlp_hidden_dim, act=act_layer, dropout_rate=drop, dropout_mode="swin")
-        self.i =i
-        self.is_text_token=False
 
     def forward_part1(self, x, mask_matrix):
         x_shape = x.size()
         x = self.norm1(x)
-        if(self.is_text_token):
-            dummy= torch.ones((x_shape[0],x_shape[1],x_shape[2],x_shape[3],1)).to(device='cuda')
-            x= torch.concatenate([x,dummy],dim=-1)
-
-        print(f"x before padding {x.shape}")
         if len(x_shape) == 5:
             b, d, h, w, c = x.shape
             window_size, shift_size = get_window_size((d, h, w), self.window_size, self.shift_size)
@@ -614,7 +597,6 @@ class SwinTransformerBlock(nn.Module):
             pad_d1 = (window_size[0] - d % window_size[0]) % window_size[0]
             pad_b = (window_size[1] - h % window_size[1]) % window_size[1]
             pad_r = (window_size[2] - w % window_size[2]) % window_size[2]
-            # print(f"pppppppppp pad_d1 {pad_d1} pad_b {pad_b} pad_r {pad_r}")
             x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b, pad_d0, pad_d1))
             _, dp, hp, wp, _ = x.shape
             dims = [b, dp, hp, wp]
@@ -639,9 +621,7 @@ class SwinTransformerBlock(nn.Module):
             shifted_x = x
             attn_mask = None
         x_windows = window_partition(shifted_x, window_size)
-        # print(f"shifted_x {shifted_x.shape} x_windows {x_windows.shape}")
-
-        attn_windows = self.attn(x_windows, mask=attn_mask,is_text_token=self.is_text_token)
+        attn_windows = self.attn(x_windows, mask=attn_mask)
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))
         shifted_x = window_reverse(attn_windows, window_size, dims)
         if any(i > 0 for i in shift_size):
@@ -658,8 +638,6 @@ class SwinTransformerBlock(nn.Module):
         elif len(x_shape) == 4:
             if pad_r > 0 or pad_b > 0:
                 x = x[:, :h, :w, :].contiguous()
-
-        # print(f"before attention {x_shape} num_heads {self.num_heads} x_windows {x_windows.shape} window_size {window_size} shifted_x {shifted_x.shape}")
 
         return x
 
@@ -701,8 +679,6 @@ class SwinTransformerBlock(nn.Module):
             self.mlp.linear2.bias.copy_(weights["state_dict"][root + block_names[13]])
 
     def forward(self, x, mask_matrix):
-        x_beg_shape=x.shape
-
         shortcut = x
         if self.use_checkpoint:
             x = checkpoint.checkpoint(self.forward_part1, x, mask_matrix)
@@ -713,7 +689,6 @@ class SwinTransformerBlock(nn.Module):
             x = x + checkpoint.checkpoint(self.forward_part2, x)
         else:
             x = x + self.forward_part2(x)
-
         return x
 
 
@@ -894,7 +869,6 @@ class BasicLayer(nn.Module):
                     drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
                     norm_layer=norm_layer,
                     use_checkpoint=use_checkpoint,
-                    i=i
                 )
                 for i in range(depth)
             ]
