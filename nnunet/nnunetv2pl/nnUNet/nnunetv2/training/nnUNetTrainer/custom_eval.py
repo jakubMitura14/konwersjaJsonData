@@ -225,6 +225,22 @@ def save_arrs_anatomy(predicted_segmentation_onehot,data,target,batch_idd,for_ex
 # def prep_anatomy_target(target):
 #     return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)*2
 
+def get_largest_connected_component(binary_image):
+    if(np.sum(binary_image.flatten())==0):
+        return binary_image
+    binary_image=sitk.GetImageFromArray(binary_image)
+    #taken from https://discourse.itk.org/t/simpleitk-extract-largest-connected-component-from-binary-image/4958
+    # 1. Convert binary image into a connected component image, each component has an integer label.
+    # 2. Relabel components so that they are sorted according to size (there is an
+    #    optional minimumObjectSize parameter to get rid of small components).
+    # 3. Get largest connected componet, label==1 in sorted component image.
+    component_image = sitk.ConnectedComponent(binary_image)
+    sorted_component_image = sitk.RelabelComponent(component_image, sortByObjectSize=True)
+    largest_component_binary_image = sorted_component_image == 1
+    return sitk.GetArrayFromImage(largest_component_binary_image)
+    
+
+
 def get_Metrics(one_hot,target,name):
     labelPred=sitk.GetImageFromArray(one_hot.astype(np.uint8))
     labelTrue=sitk.GetImageFromArray(target.astype(np.uint8))
@@ -246,6 +262,10 @@ def get_Metrics(one_hot,target,name):
 
 def evaluate_single_anatomy_case(arrs,tempdir,for_explore,to_save_files):
     bi,predicted_segmentation_onehot,target,data=arrs
+    
+    predicted_segmentation_onehot=list(map(lambda i: get_largest_connected_component(predicted_segmentation_onehot[i,:,:,:]) , range(predicted_segmentation_onehot.shape[0])))
+    predicted_segmentation_onehot= np.stack(predicted_segmentation_onehot)
+    
     pz_metr,hd = get_Metrics(predicted_segmentation_onehot[0,:,:,:],target[0,:,:,:],'pz')
     tz_metr,hd = get_Metrics(predicted_segmentation_onehot[1,:,:,:],target[1,:,:,:],'tz')
     sv_metr,hd = get_Metrics(predicted_segmentation_onehot[3,:,:,:],target[2,:,:,:],'sv')
@@ -404,6 +424,10 @@ def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data,is_regions):
         f[target_str][:] = target.detach().cpu().numpy()
         f[predicted_segmentation_onehot_str][:]= curr.detach().cpu().numpy()
         f[data_str][:] = data.detach().cpu().numpy()
+
+
+
+
 
 
 def save_to_hdf5_anatomy(f,inner_id,group_name,batch_id,target,output,data):
