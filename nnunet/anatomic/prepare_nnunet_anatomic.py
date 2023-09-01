@@ -612,7 +612,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
         "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time
         'inherits_from': '3d_fullres',
  'preprocessor_name': 'DefaultPreprocessor'
- , 'batch_size': 1, 'patch_size': [ 32, 256, 256], 'median_image_size_in_voxels': [ 32., 246., 246.]
+ , 'batch_size': 1, 'patch_size': [ 48., 192., 160.], 'median_image_size_in_voxels': [ 42., 164., 159.]
  , 'spacing': [3.29999995, 0.78125   , 0.78125   ]
  , 'normalization_schemes': ['ZScoreNormalization', 'ZScoreNormalization', 'ZScoreNormalization']
  , 'use_mask_for_norm': [False, False, False], 'UNet_class_name': 'PlainConvUNet'
