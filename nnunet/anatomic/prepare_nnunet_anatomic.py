@@ -564,7 +564,9 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     "labels": label_names,  
     "file_ending": ".nii.gz",
     "overwrite_image_reader_writer": "SimpleITKIO",
-    "regions_class_order": [1,2,3,4],  
+    # "regions_class_order": [1,2,3,4],  
+    "regions_class_order": [4,3,2,1],  
+    
     "normalization_schemes" : ["zscore","noNorm","noNorm"],
     "numTraining" : len(label_paths),
     "nnUNetPlans" : ['2d','3d_lowres','3d_cascade_fullres', '3d_fullres']
