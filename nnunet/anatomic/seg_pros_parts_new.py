@@ -120,8 +120,6 @@ label_names= {
     "pz": 1,
     "tz": 2,
     "sv" :3,
-    "sv_r" :4,
-    "ignore":5,#'ur'    
     "full_prost":[1,2]
     }
 
@@ -169,8 +167,6 @@ def get_int_arr_from_path_full_prostate(pathh):
     index=15
     to_ignore=False      
     if('pg_t2w' in pathh):
-        print(f"pg path {pathh}")
-
         index=9                 
     # elif('ur' in pathh):
     #     index=8          
