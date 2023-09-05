@@ -220,7 +220,7 @@ def save_arrs_anatomy(predicted_segmentation_onehot,data,target,batch_idd,for_ex
     save_single_arr(target[1,:,:,:],batch_idd, 0, 0,for_explore,"target_tz",np.uint8,hd )
     save_single_arr(target[2,:,:,:],batch_idd, 0, 0,for_explore,"target_sv",np.uint8,hd )
     save_single_arr(target[3,:,:,:],batch_idd, 0, 0,for_explore,"target_sum",np.uint8,hd )
-    save_single_arr(data[1,:,:,:],batch_idd, 0, 0,for_explore,"t2w",float,hd )
+    save_single_arr(data[0,:,:,:],batch_idd, 0, 0,for_explore,"t2w",float,hd )
 
 # def prep_anatomy_target(target):
 #     return target[1,:,:,:].astype(np.uint8)+target[2,:,:,:].astype(np.uint8)*2
