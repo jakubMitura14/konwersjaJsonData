@@ -38,6 +38,11 @@ import xformers.components.attention.attention_patterns as AP
 import scipy
 import einops
 from monai.networks.layers.factories import Act, Norm
+import xformers.ops as xops
+
+from xformers.factory import xFormerEncoderBlock, xFormerEncoderConfig
+from xformers.factory.model_factory import xFormer, xFormerConfig
+
 
 rearrange, _ = optional_import("einops", name="rearrange")
 
@@ -574,8 +579,8 @@ class BasicLayer(nn.Module):
         self.calced_input_size=calced_input_size
         in_attention_distance=10-self.i_layer
         # print(f"sssssssssssss {calced_input_size}")
-        pat=local_nd_pattern(calced_input_size[2],calced_input_size[3],calced_input_size[4],distance=in_attention_distance)
-        self.attn_mask = SparseCS(pat, torch.device("cuda"))
+        # pat=local_nd_pattern(calced_input_size[2],calced_input_size[3],calced_input_size[4],distance=in_attention_distance)
+        # self.attn_mask = SparseCS(pat, torch.device("cuda"))
 
         proj_drop=0.0
         self.scale = num_heads**-0.5
@@ -592,6 +597,44 @@ class BasicLayer(nn.Module):
             self.downsample = downsample(dim=dim, norm_layer=norm_layer, spatial_dims=len(self.window_size))
 
  
+
+        # BATCH = self.batch_size
+        # SEQ = dim
+        # EMB = dim
+
+        # encoder_config = {
+        #     "dim_model": EMB,
+        #     "residual_norm_style": "pre/post",  # Optional, pre/post
+        #     # "position_encoding_config": {
+        #     #     "name": "vocab",  # whatever position encodinhg makes sense
+        #     #     "seq_len": SEQ,
+        #     #     "vocab_size": VOCAB,
+        #     # },
+        #     "multi_head_config": {
+        #         "num_heads": self.num_heads,
+        #         "residual_dropout": 0,
+        #         "attention": {
+        #             "name": "memory_efficient_attention",  # whatever attention mechanism 
+        #             "dropout": 0,
+        #             "seq_len": SEQ,
+        #         },
+        #     },
+        #     "feedforward_config": {
+        #         "name": "fused_mlp",
+        #         "dropout": 0,
+        #         "activation": "gelu",
+        #         "hidden_layer_multiplier": 4,
+        #     },
+        # }
+
+        # "constructing" the config will lead to a lot of type checking,
+        # which could catch some errors early on
+        config = xFormerEncoderConfig(**encoder_config)
+
+        self.encoder = xFormerEncoderBlock(config)
+
+
+
         # self.embed_dim=embed_dim
         # self.i_layer=i_layer
 
@@ -618,10 +661,13 @@ class BasicLayer(nn.Module):
         
         # x = scaled_dot_product_attention(q, k, v, self.attn_mask.to(device='cuda'), dropout=self.attn_drop)
         # with torch.autocast('cuda', enabled=True):
-        out =  self.attn_mask._mat.to('cuda')
-        attn_mask=type( self.attn_mask)._wrap(out)
+        # out =  self.attn_mask._mat.to('cuda')
+        # attn_mask=type( self.attn_mask)._wrap(out)
+        # x = scaled_dot_product_attention(q.to(device='cuda'), k.to(device='cuda'), v.to(device='cuda'), attn_mask, dropout=self.attn_drop.to(device='cuda'))        
     
-        x = scaled_dot_product_attention(q.to(device='cuda'), k.to(device='cuda'), v.to(device='cuda'), attn_mask, dropout=self.attn_drop.to(device='cuda'))        
+    
+        x = xops.memory_efficient_attention(q, k, v, op=None)
+    
         x = x.reshape(B, self.num_heads, N, C // self.num_heads)
 
         x = x.transpose(1, 2).reshape(B, N, C)
@@ -854,14 +900,14 @@ class SwinTransformer(nn.Module):
 
 
 
-network=SwinUNETR(in_channels=3
-                                   ,num_heads= (6, 6, 6, 6)
-                                #    ,num_heads= (6, 12, 12, 24)
+# network=SwinUNETR(in_channels=3
+#                                    ,num_heads= (6, 6, 6, 6)
+#                                 #    ,num_heads= (6, 12, 12, 24)
 
-                        ,out_channels=3
-                        ,use_v2=True#
-                        ,img_size=(48,48,48)
-                        ,patch_size=(2,2,2)
-                        ,batch_size=1).to(device='cuda')
+#                         ,out_channels=3
+#                         ,use_v2=True#
+#                         ,img_size=(48, 192, 160)
+#                         ,patch_size=(2,2,2)
+#                         ,batch_size=1).to(device='cuda')
 
-network(torch.ones((1,3,48,48,48)).float().to(device='cuda'))
+# network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'))

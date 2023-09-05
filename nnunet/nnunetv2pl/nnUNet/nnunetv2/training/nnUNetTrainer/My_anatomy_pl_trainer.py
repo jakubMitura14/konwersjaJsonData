@@ -146,7 +146,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
                         ,out_channels=self.label_manager.num_segmentation_heads
                         ,use_v2=True#
                         ,img_size=(48, 192, 160)
-                        ,patch_size=(4,4,4)
+                        ,patch_size=(2,2,2)
                         ,batch_size=self.batch_size)
 
         if self._do_i_compile():
