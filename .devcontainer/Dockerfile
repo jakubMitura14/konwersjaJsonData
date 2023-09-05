@@ -356,3 +356,5 @@ ARG VCS_URL
 
 # cd /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet
 # python3 -m pip  install -e .
+
+# cp /home/sliceruser/nnunetMainFolder/nnUNet_raw/Dataset294_Prostate/labelsTr/9002700.nii.gz /workspaces/konwersjaJsonData/explore/for_explore/9002700.nii.gz

@@ -564,8 +564,12 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     "labels": label_names,  
     "file_ending": ".nii.gz",
     "overwrite_image_reader_writer": "SimpleITKIO",
-    # "regions_class_order": [1,2,3,4],  
-    "regions_class_order": [4,3,2,1],  
+    # "regions_class_order": [3,2,1],  
+    "regions_class_order": [1,2,4,3],  
+    # "regions_class_order": [3,1,2,4],
+        # "regions_class_order": [4,3,2,1],  
+  
+
     
     "normalization_schemes" : ["zscore","noNorm","noNorm"],
     "numTraining" : len(label_paths),
@@ -613,26 +617,55 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
     plans['configurations']['3d_lowres'] = {
         "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time
         'inherits_from': '3d_fullres', 'preprocessor_name': 'DefaultPreprocessor'
-            , 'batch_size': 1, "patch_size": [48, 192, 160], "median_image_size_in_voxels": [42.0, 164.0, 159.0]
-            , "spacing": [3.299999952316284, 0.78125, 0.78125]
-            , "normalization_schemes": ["ZScoreNormalization", "ZScoreNormalization", "ZScoreNormalization"]
-            , "use_mask_for_norm": [False, False, False], "UNet_class_name": "PlainConvUNet"
+            , 'batch_size': 1, "patch_size": [48, 192, 160]
+            # , "median_image_size_in_voxels": [42.0, 164.0, 159.0]
+            # , "spacing": [3.299999952316284, 0.78125, 0.78125]
+            # , "normalization_schemes": ["ZScoreNormalization", 'NoNormalization', 'NoNormalization']
+            # , "use_mask_for_norm": [False, False, False], "UNet_class_name": "PlainConvUNet"
             , "UNet_base_num_features": 104
-            , "n_conv_per_stage_encoder": [2, 2, 2, 2, 2, 2]
-            , "n_conv_per_stage_decoder": [2, 2, 2, 2, 2], "num_pool_per_axis": [3, 5, 5]
-            , "pool_op_kernel_sizes": [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
-            , "conv_kernel_sizes": [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
-            , "unet_max_num_features": 320
-            , "resampling_fn_data": "resample_data_or_seg_to_shape"
-            , "resampling_fn_seg": "resample_data_or_seg_to_shape"
-    
-            , "resampling_fn_data_kwargs": {"is_seg": False, "order": 3, "order_z": 0, "force_separate_z": None}
-            , "resampling_fn_seg_kwargs": {"is_seg": False, "order": 1, "order_z": 0, "force_separate_z": None}
-            , "resampling_fn_probabilities": "resample_data_or_seg_to_shape"
-            , "resampling_fn_probabilities_kwargs": {"is_seg": False, "order": 1, "order_z": 0, "force_separate_z": None}
-            , "batch_dice": False
+    #         , "n_conv_per_stage_encoder": [2, 2, 2, 2, 2, 2]
+    #         , "n_conv_per_stage_decoder": [2, 2, 2, 2, 2]
+    #         , "num_pool_per_axis": [3, 5, 5]
+    #         , "pool_op_kernel_sizes": [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
+    #         , "conv_kernel_sizes": [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
+    #         , "unet_max_num_features": 320
+    # , 'resampling_fn_data': 'resample_data_or_seg_to_shape'
+    # , 'resampling_fn_seg': 'resample_data_or_seg_to_shape'
+    # , 'resampling_fn_data_kwargs': {'is_seg': False, 'order': 3, 'order_z': 0, 'force_separate_z': None}
+    # , 'resampling_fn_seg_kwargs': {'is_seg': True, 'order': 1, 'order_z': 0, 'force_separate_z': None}
+    # , 'resampling_fn_probabilities': 'resample_data_or_seg_to_shape'
+    # , 'resampling_fn_probabilities_kwargs': {'is_seg': False, 'order': 1, 'order_z': 0, 'force_separate_z': None}, 'batch_dice': False
     }
+
             # , "batch_dice": False}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             , "2": {"max": 100.0, "mean": 12.48489761352539, "median": 12.0, "min": 0.0, "percentile_00_5": 3.0, "percentile_99_5": 29.0, "std": 4.605309009552002}}
+#    plans['configurations']['3d_lowres'] = {
+#         "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time
+#         'inherits_from': '3d_fullres',
+#     'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 12, 'patch_size': [32, 96, 96]
+#         #   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 2, 'patch_size': [96, 96, 96] # for swin
+#                                                     , 'median_image_size_in_voxels': [32., 84., 95.]
+#     , 'spacing': [0.78125, 0.78125   , 0.78125   ] #for swin
+#     # , 'spacing': [3.30000019, 0.78125   , 0.78125   ]
+
+#     , 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
+#     , 'use_mask_for_norm': [False, False, False, False, False]
+#     , 'UNet_class_name': 'PlainConvUNet'
+#     , 'UNet_base_num_features': 32
+#     , 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2)
+#     , 'n_conv_per_stage_decoder': (2, 2, 2, 2)
+#     , 'num_pool_per_axis': [2, 4, 4]
+#     , 'pool_op_kernel_sizes': [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
+#     # , 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
+#     , 'conv_kernel_sizes': [[1, 5, 5], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
+#     , 'unet_max_num_features': 320
+#     , 'resampling_fn_data': 'resample_data_or_seg_to_shape'
+#     , 'resampling_fn_seg': 'resample_data_or_seg_to_shape'
+#     , 'resampling_fn_data_kwargs': {'is_seg': False, 'order': 3, 'order_z': 0, 'force_separate_z': None}
+#     , 'resampling_fn_seg_kwargs': {'is_seg': True, 'order': 1, 'order_z': 0, 'force_separate_z': None}
+#     , 'resampling_fn_probabilities': 'resample_data_or_seg_to_shape'
+#     , 'resampling_fn_probabilities_kwargs': {'is_seg': False, 'order': 1, 'order_z': 0, 'force_separate_z': None}, 'batch_dice': False}
+
+
 
 
     json_string = json.dumps(plans,sort_keys=False)     
