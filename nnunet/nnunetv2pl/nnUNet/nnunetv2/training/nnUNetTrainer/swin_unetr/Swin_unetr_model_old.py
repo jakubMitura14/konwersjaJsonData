@@ -316,7 +316,7 @@ class SwinUNETR(nn.Module):
         dec2 = self.decoder4(dec3, enc3)
         dec1 = self.decoder3(dec2, enc2)
         dec0 = self.decoder2(dec1, enc1)
-        out = self.decoder1(dec0, enc0)
+        out = self.decoder1(enc0,dec0)
 
         
         # print(f" dec4 {dec4.shape} dec3 {dec3.shape} dec2 {dec2.shape} dec1 {dec1.shape} dec0 {dec0.shape} out {out.shape}")

@@ -123,7 +123,7 @@ class Pl_anatomy_model(pl.LightningModule):
         self.logger.experiment.log_text(os.getenv('my_proj_desc'))
         self.logger.experiment.add_tag(os.getenv('tag'))
         self.f = h5py.File(self.hf5_path, 'w',driver='mpio', comm=MPI.COMM_WORLD)
-
+        self.save_hyperparameters()
 
 
     def train_dataloader(self):
@@ -140,8 +140,8 @@ class Pl_anatomy_model(pl.LightningModule):
             # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
             
         elif(self.is_swin):    
-            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-            optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), 0.07585775750291836)
+            optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), 0.07585775750291836)
         elif(self.is_med_next):    
 
             optimizer = torch.optim.AdamW(self.network.parameters(), 0.0019054607179632484)
@@ -212,6 +212,8 @@ class Pl_anatomy_model(pl.LightningModule):
 
         data = batch['data']
         target = batch['target']
+
+
         if(not self.is_classic_nnunet):
             target=self.transform_gold(target)
         
@@ -229,6 +231,12 @@ class Pl_anatomy_model(pl.LightningModule):
         # So autocast will only be active if we have a cuda device.
         # with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
         output = network(data)
+
+        for i,dat in enumerate(output):
+            print(f"oooo data {i}   {dat.shape}")
+        for i,dat in enumerate(target):
+            print(f"ttt target {i}   {dat.shape}")
+
         # print(f"ooooooo max {output[0].max()} min {output[0].min()}")
         # del data
         l = loss(output, target)

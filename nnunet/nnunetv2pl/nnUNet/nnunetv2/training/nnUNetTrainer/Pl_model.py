@@ -120,7 +120,7 @@ class Pl_Model(pl.LightningModule):
         self.logger.experiment.log_text(os.getenv('my_proj_desc'))
         self.logger.experiment.add_tag(os.getenv('tag'))
         self.f = h5py.File(self.hf5_path, 'w',driver='mpio', comm=MPI.COMM_WORLD)
-
+        self.save_hyperparameters()
 
 
     def train_dataloader(self):

@@ -318,9 +318,14 @@ RUN mkdir /usr/share/desktop-directories/ \
 
 
 
-RUN python3 -m pip install xformers==0.0.21 triton
+RUN python3 -m pip install xformers==0.0.21 triton fairscale==0.4.13 hiddenlayer==0.3
 
-
+RUN mkdir ${HOME}/bolts \
+&& cd ${HOME}/bolts \
+&& git clone https://github.com/Lightning-Universe/lightning-bolts.git ${HOME}/bolts \
+&& python3 -m pip  install -e .
+# cd /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet
+# python3 -m pip  install -e .
 
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
