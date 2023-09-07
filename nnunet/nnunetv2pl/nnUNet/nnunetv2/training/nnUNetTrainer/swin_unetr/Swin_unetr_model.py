@@ -63,7 +63,9 @@ __all__ = [
     "SwinTransformer",
 ]
 
-def load_sparse_sputnik(group_to_load):
+def load_sparse_sputnik(h5f,group_name):
+    print(f"gggggggg group_name {group_name}")
+    group_to_load=h5f[group_name]
     values=torch.tensor(group_to_load['values'][()])
     shape=tuple(group_to_load['shape'][()])
     # shape=(values.shape[0],) + shape
@@ -87,13 +89,13 @@ def load_attn_mask_from_h5(h5f,is_swin,is_local_iso,is_local_non_iso ,window_siz
     group_name=f"{int(img_size_curr[0])}_{int(img_size_curr[1])}_{int(img_size_curr[2])}"
     if(is_swin):
         group_name=f"{group_name}/window_{window_size}/main"
-        return load_sparse_sputnik(h5f[group_name])
+        return load_sparse_sputnik(h5f,group_name)
     if(is_local_iso):
         group_name=f"{group_name}/dist_{distance}/iso_vol"
-        return load_sparse_sputnik(h5f[group_name])       
+        return load_sparse_sputnik(h5f,group_name)       
     if(is_local_non_iso):
         group_name=f"{group_name}/dist_{distance}_spacing_{spacing[0]}_{spacing[1]}_{spacing[2]}/non_iso_vol"
-        return load_sparse_sputnik(h5f[group_name])   
+        return load_sparse_sputnik(h5f,group_name)   
 
 
 def get_conv_layer(
@@ -623,16 +625,16 @@ class BasicLayer(nn.Module):
         # self.rel_pos_embedding=Relative_position_embedding_3d(dim,num_heads,(calced_input_size[2],calced_input_size[3],calced_input_size[4]))
         self.norm_layer0=nn.LayerNorm(calced_input_size[1])
         self.norm_layer1=nn.LayerNorm(calced_input_size[1])
-        
+        print(f"dddd distances {distances}  i_layer {i_layer}")
         # self.attn_mask = SparseCSRTensor._wrap(shape, values, row_indices, row_offsets, column_indices, _transp_info)
         self.attn_mask = load_attn_mask_from_h5(h5f=attn_masks_h5f
-                                                ,is_swin
-                                                ,is_local_iso
-                                                ,is_local_non_iso
+                                                ,is_swin=is_swin
+                                                ,is_local_iso=is_local_iso
+                                                ,is_local_non_iso=is_local_non_iso
                                                  ,window_size=window_size[0]
                                                  ,distance=distances[i_layer]
                                                 , img_size_curr=(calced_input_size[2],calced_input_size[3],calced_input_size[4])
-                                                ,spacing ):
+                                                ,spacing=spacing )
 
         # self.softmax = nn.Softmax(dim=-1)
 
@@ -646,7 +648,7 @@ class BasicLayer(nn.Module):
         SEQ=int(calced_input_size[2]*calced_input_size[3]*calced_input_size[4])
         # print(f"ooooo EMB {EMB} SEQ {SEQ}")
         my_config = {
-            "name": "linformer",  # you can easily make this dependent on a file, sweep,..
+            "name": "scaled_dot_product",  # you can easily make this dependent on a file, sweep,..
             "dropout": DROPOUT,
             "seq_len": SEQ,
             "attention_query_mask": None#torch.rand((SEQ, 1)) < 0.3, # some dummy mask
@@ -698,11 +700,11 @@ class BasicLayer(nn.Module):
 
         # x = scaled_dot_product_attention(q, k, v, self.attn_mask.to(device='cuda'), dropout=self.attn_drop)
         # with torch.autocast('cuda', enabled=True):
-        # out =  self.attn_mask._mat.to('cuda')
-        # attn_mask=type( self.attn_mask)._wrap(out)
+        out =  self.attn_mask._mat.to('cuda')
+        attn_mask=type( self.attn_mask)._wrap(out)
         # x = scaled_dot_product_attention(q.to(device='cuda'), k.to(device='cuda'), v.to(device='cuda'), attn_mask, dropout=self.attn_drop.to(device='cuda'))        
-    
-        x=self.multi_head.to("cuda")(q, k, v)
+        
+        x=self.multi_head.to("cuda")(q, k, v,attn_mask)
         # x = xops.memory_efficient_attention(q, k, v, op=None)
 
         # self.rel_pos_embedding(x,N)
@@ -941,9 +943,6 @@ attn_masks_h5f_path="/workspaces/konwersjaJsonData/explore/hdf5_loc/sparse_masks
 attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
 network=SwinUNETR(in_channels=3
         ,num_heads= (2,2,2,1)
-
-                #    ,num_heads= (6, 12, 12, 24)
-
         ,out_channels=3
         ,use_v2=True#
         ,img_size=(64, 64, 64)
@@ -953,10 +952,10 @@ network=SwinUNETR(in_channels=3
         ,is_swin=False
         ,is_local_iso=False
         ,is_local_non_iso=True
-        ,distances=(8,8,8)
-        ,spacing=(3.299999952316284, 0.78125, 0.78125)
+        ,distances=(8,8,8,8)
+        ,spacing=(3.299999952316284,0.78125, 0.78125)
         
-        )
+        ).to(device='cuda')
 
 attn_masks_h5f.close()
 

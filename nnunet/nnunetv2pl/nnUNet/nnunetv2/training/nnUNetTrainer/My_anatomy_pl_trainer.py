@@ -155,8 +155,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
                         ,is_swin=False
                         ,is_local_iso=False
                         ,is_local_non_iso=True
-                        ,distances=(8,8,8)
-                        ,spacing=(3.299999952316284, 0.78125, 0.78125)
+                        ,distances=(8,8,8,8)
+                        ,spacing=(3.299999952316284,0.78125, 0.78125)
                         
                         )
 
