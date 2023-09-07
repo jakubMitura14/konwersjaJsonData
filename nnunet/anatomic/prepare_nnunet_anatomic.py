@@ -619,7 +619,7 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
         'inherits_from': '3d_fullres', 'preprocessor_name': 'DefaultPreprocessor'
             , 'batch_size': 1, "patch_size": [48, 192, 160]
             # , "median_image_size_in_voxels": [42.0, 164.0, 159.0]
-            # , "spacing": [3.299999952316284, 0.78125, 0.78125]
+            , "spacing": [3.299999952316284, 0.78125, 0.78125]
             # , "normalization_schemes": ["ZScoreNormalization", 'NoNormalization', 'NoNormalization']
             # , "use_mask_for_norm": [False, False, False], "UNet_class_name": "PlainConvUNet"
             , "UNet_base_num_features": 104

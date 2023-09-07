@@ -42,7 +42,11 @@ import xformers.ops as xops
 
 from xformers.factory import xFormerEncoderBlock, xFormerEncoderConfig
 from xformers.factory.model_factory import xFormer, xFormerConfig
+from xformers.components import MultiHeadDispatch, build_attention
+from xformers.sparse import BlockSparseTensor, SparseCSRTensor
 
+from xformers.components.feedforward.fused_mlp import FusedMLP
+import xformers
 
 rearrange, _ = optional_import("einops", name="rearrange")
 
@@ -59,6 +63,37 @@ __all__ = [
     "SwinTransformer",
 ]
 
+def load_sparse_sputnik(group_to_load):
+    values=torch.tensor(group_to_load['values'][()])
+    shape=tuple(group_to_load['shape'][()])
+    # shape=(values.shape[0],) + shape
+
+    # attn_mask = SparseCSRTensor._wrap((values.shape[0],) + shape
+    return xformers.components.attention._sputnik_sparse.SparseCS.wrap(shape=shape
+    , values= values
+    , row_indices= torch.tensor(group_to_load['row_indices'][()]).type(torch.int32)
+    , row_offsets= torch.tensor(group_to_load['row_offsets'][()]).type(torch.int32)
+    , column_indices= torch.tensor(group_to_load['column_indices'][()]).type(torch.int32)
+    , _transp_info=(torch.tensor(group_to_load['0_transp_info'][()]).type(torch.int32)
+                    ,torch.tensor(group_to_load['1_transp_info'][()]).type(torch.int32)
+                    ,torch.tensor(group_to_load['2_transp_info'][()]).type(torch.int32)
+                    ,torch.tensor(group_to_load['3_transp_info'][()]).type(torch.int32)
+                    )
+    )
+
+
+def load_attn_mask_from_h5(h5f,is_swin,is_local_iso,is_local_non_iso ,window_size ,distance , img_size_curr,spacing ):
+    
+    group_name=f"{int(img_size_curr[0])}_{int(img_size_curr[1])}_{int(img_size_curr[2])}"
+    if(is_swin):
+        group_name=f"{group_name}/window_{window_size}/main"
+        return load_sparse_sputnik(h5f[group_name])
+    if(is_local_iso):
+        group_name=f"{group_name}/dist_{distance}/iso_vol"
+        return load_sparse_sputnik(h5f[group_name])       
+    if(is_local_non_iso):
+        group_name=f"{group_name}/dist_{distance}_spacing_{spacing[0]}_{spacing[1]}_{spacing[2]}/non_iso_vol"
+        return load_sparse_sputnik(h5f[group_name])   
 
 
 def get_conv_layer(
@@ -163,6 +198,12 @@ class SwinUNETR(nn.Module):
         downsample="merging",
         use_v2=False,
         patch_size=(2,2,2)
+        ,attn_masks_h5f=""
+        ,is_swin=False
+        ,is_local_iso=False
+        ,is_local_non_iso=False
+        ,distances=(10,10,10)
+        ,spacing=(1.0,1.0,1.0)
     ) -> None:
         """
         Args:
@@ -244,6 +285,12 @@ class SwinUNETR(nn.Module):
             use_v2=use_v2,
             img_size=img_size,
             batch_size=batch_size
+            ,attn_masks_h5f=attn_masks_h5f
+            ,is_swin=is_swin
+            ,is_local_iso=is_local_iso
+            ,is_local_non_iso=is_local_non_iso
+            ,distances=distances
+            ,spacing=spacing
         )
         convsss=list(map(lambda i: get_convs(spatial_dims,patch_size,img_size,batch_size,feature_size,i,in_channels,norm_name,out_channels),range(4)))
         self.encoders= list(map(lambda tupl:tupl[0]  ,convsss))
@@ -333,7 +380,8 @@ class SwinUNETR(nn.Module):
         return [self.outs[0].to('cuda')(dec1),self.outs[1].to('cuda')(dec2),self.outs[2].to('cuda')(dec3),self.outs[3].to('cuda')(dec4)]
 
 
-class WindowAttention_position_embedding(nn.Module):
+
+class Relative_position_embedding_3d(nn.Module):
     """
     Window based multi-head self attention module with relative position bias based on: "Liu et al.,
     Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
@@ -345,67 +393,40 @@ class WindowAttention_position_embedding(nn.Module):
         self,
         dim: int,
         num_heads: int,
-        window_size: Sequence[int],
-        qkv_bias: bool = False,
-        attn_drop: float = 0.0,
-        proj_drop: float = 0.0,
+        curr_img_size: Sequence[int],
     ) -> None:
-        """
-        Args:
-            dim: number of feature channels.
-            num_heads: number of attention heads.
-            window_size: local window size.
-            qkv_bias: add a learnable bias to query, key, value.
-            attn_drop: attention dropout rate.
-            proj_drop: dropout rate of output.
-        """
+
 
         super().__init__()
         self.dim = dim
-        self.window_size = window_size
+        self.curr_img_size = (int(curr_img_size[0]),int(curr_img_size[1]),int(curr_img_size[2]))
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = head_dim**-0.5
         mesh_args = torch.meshgrid.__kwdefaults__
         
-        if len(self.window_size) == 3:
-            self.relative_position_bias_table = nn.Parameter(
-                torch.zeros(
-                    (2 * self.window_size[0] - 1) * (2 * self.window_size[1] - 1) * (2 * self.window_size[2] - 1),
-                    num_heads,
-                )
+        self.relative_position_bias_table = nn.Parameter(
+            torch.zeros(
+                (2 * self.curr_img_size[0] - 1) * (2 * self.curr_img_size[1] - 1) * (2 * self.curr_img_size[2] - 1),
+                num_heads,
             )
-            coords_d = torch.arange(self.window_size[0])
-            coords_h = torch.arange(self.window_size[1])
-            coords_w = torch.arange(self.window_size[2])
-            if mesh_args is not None:
-                coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w, indexing="ij"))
-            else:
-                coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w))
-            coords_flatten = torch.flatten(coords, 1)
-            relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]
-            relative_coords = relative_coords.permute(1, 2, 0).contiguous()
-            relative_coords[:, :, 0] += self.window_size[0] - 1
-            relative_coords[:, :, 1] += self.window_size[1] - 1
-            relative_coords[:, :, 2] += self.window_size[2] - 1
-            relative_coords[:, :, 0] *= (2 * self.window_size[1] - 1) * (2 * self.window_size[2] - 1)
-            relative_coords[:, :, 1] *= 2 * self.window_size[2] - 1
-        elif len(self.window_size) == 2:
-            self.relative_position_bias_table = nn.Parameter(
-                torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1), num_heads)
-            )
-            coords_h = torch.arange(self.window_size[0])
-            coords_w = torch.arange(self.window_size[1])
-            if mesh_args is not None:
-                coords = torch.stack(torch.meshgrid(coords_h, coords_w, indexing="ij"))
-            else:
-                coords = torch.stack(torch.meshgrid(coords_h, coords_w))
-            coords_flatten = torch.flatten(coords, 1)
-            relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]
-            relative_coords = relative_coords.permute(1, 2, 0).contiguous()
-            relative_coords[:, :, 0] += self.window_size[0] - 1
-            relative_coords[:, :, 1] += self.window_size[1] - 1
-            relative_coords[:, :, 0] *= 2 * self.window_size[1] - 1
+        )
+        coords_d = torch.arange(self.curr_img_size[0])
+        coords_h = torch.arange(self.curr_img_size[1])
+        coords_w = torch.arange(self.curr_img_size[2])
+        if mesh_args is not None:
+            coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w, indexing="ij"))
+        else:
+            coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w))
+        coords_flatten = torch.flatten(coords, 1)
+        relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]
+        relative_coords = relative_coords.permute(1, 2, 0).contiguous()
+        relative_coords[:, :, 0] += self.curr_img_size[0] - 1
+        relative_coords[:, :, 1] += self.curr_img_size[1] - 1
+        relative_coords[:, :, 2] += self.curr_img_size[2] - 1
+        relative_coords[:, :, 0] *= (2 * self.curr_img_size[1] - 1) * (2 * self.curr_img_size[2] - 1)
+        relative_coords[:, :, 1] *= 2 * self.curr_img_size[2] - 1
+
 
         relative_position_index = relative_coords.sum(-1)
         self.register_buffer("relative_position_index", relative_position_index)
@@ -416,6 +437,7 @@ class WindowAttention_position_embedding(nn.Module):
             self.relative_position_index.clone()[:n, :n].reshape(-1)  # type: ignore
         ].reshape(n, n, -1)
         relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()
+        print(f"rrrrrrrr attn {attn.shape} relative_position_bias {relative_position_bias.shape}")
         attn = attn + relative_position_bias.unsqueeze(0)
         return attn
 
@@ -545,7 +567,16 @@ class BasicLayer(nn.Module):
         embed_dim=2,
         i_layer=0
         ,batch_size=1
+        ,attn_masks_h5f=""
+        ,is_swin=False
+        ,is_local_iso=False
+        ,is_local_non_iso=False
+        ,distances=(10,10,10)
+        ,spacing=(1.0,1.0,1.0)
     ) -> None:
+        
+
+
         """
         Args:
             dim: number of feature channels.
@@ -586,58 +617,54 @@ class BasicLayer(nn.Module):
         self.scale = num_heads**-0.5
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
-        self.proj = nn.Linear(dim, dim)
-        self.proj_drop = nn.Dropout(proj_drop)
+        # self.proj = nn.Linear(dim, dim)
+        # self.proj_drop = nn.Dropout(proj_drop)
+        self.mlp=FusedMLP(dim_model=dim,activation ="gelu",hidden_layer_multiplier=4,dropout=0.05)
+        # self.rel_pos_embedding=Relative_position_embedding_3d(dim,num_heads,(calced_input_size[2],calced_input_size[3],calced_input_size[4]))
+        self.norm_layer0=nn.LayerNorm(calced_input_size[1])
+        self.norm_layer1=nn.LayerNorm(calced_input_size[1])
         
-        self.softmax = nn.Softmax(dim=-1)
+        # self.attn_mask = SparseCSRTensor._wrap(shape, values, row_indices, row_offsets, column_indices, _transp_info)
+        self.attn_mask = load_attn_mask_from_h5(h5f=attn_masks_h5f
+                                                ,is_swin
+                                                ,is_local_iso
+                                                ,is_local_non_iso
+                                                 ,window_size=window_size[0]
+                                                 ,distance=distances[i_layer]
+                                                , img_size_curr=(calced_input_size[2],calced_input_size[3],calced_input_size[4])
+                                                ,spacing ):
+
+        # self.softmax = nn.Softmax(dim=-1)
 
 
         self.downsample = downsample
         if callable(self.downsample):
-            self.downsample = downsample(dim=dim, norm_layer=norm_layer, spatial_dims=len(self.window_size))
+            self.downsample = downsample(dim=dim, norm_layer=norm_layer, spatial_dims=3)
 
- 
+        DROPOUT=0.0
+        EMB=calced_input_size[1] // self.num_heads
+        SEQ=int(calced_input_size[2]*calced_input_size[3]*calced_input_size[4])
+        # print(f"ooooo EMB {EMB} SEQ {SEQ}")
+        my_config = {
+            "name": "linformer",  # you can easily make this dependent on a file, sweep,..
+            "dropout": DROPOUT,
+            "seq_len": SEQ,
+            "attention_query_mask": None#torch.rand((SEQ, 1)) < 0.3, # some dummy mask
+        }
+        # attention = xops.memory_efficient_attention
 
-        # BATCH = self.batch_size
-        # SEQ = dim
-        # EMB = dim
+        attention=build_attention(my_config)
 
-        # encoder_config = {
-        #     "dim_model": EMB,
-        #     "residual_norm_style": "pre/post",  # Optional, pre/post
-        #     # "position_encoding_config": {
-        #     #     "name": "vocab",  # whatever position encodinhg makes sense
-        #     #     "seq_len": SEQ,
-        #     #     "vocab_size": VOCAB,
-        #     # },
-        #     "multi_head_config": {
-        #         "num_heads": self.num_heads,
-        #         "residual_dropout": 0,
-        #         "attention": {
-        #             "name": "memory_efficient_attention",  # whatever attention mechanism 
-        #             "dropout": 0,
-        #             "seq_len": SEQ,
-        #         },
-        #     },
-        #     "feedforward_config": {
-        #         "name": "fused_mlp",
-        #         "dropout": 0,
-        #         "activation": "gelu",
-        #         "hidden_layer_multiplier": 4,
-        #     },
-        # }
+        # build a multi head dispatch to test this attention mechanism
+        self.multi_head = MultiHeadDispatch(
+            seq_len=SEQ,
+            dim_model=EMB,
+            residual_dropout=DROPOUT,
+            num_heads=num_heads,
+            attention=attention,
+        )
 
-        # "constructing" the config will lead to a lot of type checking,
-        # which could catch some errors early on
-        config = xFormerEncoderConfig(**encoder_config)
-
-        self.encoder = xFormerEncoderBlock(config)
-
-
-
-        # self.embed_dim=embed_dim
-        # self.i_layer=i_layer
-
+    
 
     def forward(self, x):
         x_shape=x_prim = x.size() 
@@ -649,67 +676,49 @@ class BasicLayer(nn.Module):
                                 ,w=int(self.calced_input_size[4])
                                 )
         B, N, C = x.shape
+        self.norm_layer0(x)
+        qkv=self.qkv(x)
+
         qkv = (
-            self.qkv(x)
+            qkv
             .reshape(B, N, 3, self.num_heads, C // self.num_heads)
             .permute(2, 0, 3, 1, 4)
         )
-
+        qkv_prim=qkv.shape
         qkv = qkv.flatten(1, 2)
 
+
         q, k, v = qkv.unbind()
-        
+        print(f"qqqqq {q.shape}   ")
+        # divv=C // self.num_heads
+        # seqq= ((B*N*self.num_heads)/divv)
+        # print(f"qqqqqqq qkv_prim {qkv_prim} {q.shape} qkv_0 {qkv_0} N {N} calced_n {d*h*w} C {C} seqq {d*h*w} divv {divv} ")
+
+
+
         # x = scaled_dot_product_attention(q, k, v, self.attn_mask.to(device='cuda'), dropout=self.attn_drop)
         # with torch.autocast('cuda', enabled=True):
         # out =  self.attn_mask._mat.to('cuda')
         # attn_mask=type( self.attn_mask)._wrap(out)
         # x = scaled_dot_product_attention(q.to(device='cuda'), k.to(device='cuda'), v.to(device='cuda'), attn_mask, dropout=self.attn_drop.to(device='cuda'))        
     
-    
-        x = xops.memory_efficient_attention(q, k, v, op=None)
+        x=self.multi_head.to("cuda")(q, k, v)
+        # x = xops.memory_efficient_attention(q, k, v, op=None)
+
+        # self.rel_pos_embedding(x,N)
     
         x = x.reshape(B, self.num_heads, N, C // self.num_heads)
 
         x = x.transpose(1, 2).reshape(B, N, C)
-        x = self.proj(x)
-        x = self.proj_drop(x)
+        # x = self.proj(x)
+        # x = self.proj_drop(x)
+        x=self.norm_layer1(x)
+        x= self.mlp(x)
 
         x= einops.rearrange( x,'b (d h w) c->b d h w c' 
                                 ,d=int(self.calced_input_size[2])
                                 ,h=int(self.calced_input_size[3])
                                 ,w=int(self.calced_input_size[4]) )
-
-        # b, d, h, w,c
-        # b, n, c = x.shape
-        # qkv = self.qkv(x)
-        # qkv_prim_shape=qkv.shape
-
-
-        # qkv=qkv.reshape(b, n, 3, self.num_heads, c // self.num_heads).permute(2, 0, 3, 1, 4)
-        # # if mask is not None:
-        #     # print(f"yyyyyyyyyyyyyyy {x.shape}  mask {mask.shape} qkv_prim_shape {qkv_prim_shape} qkv {qkv.shape} \n")
-        # q, k, v = qkv[0], qkv[1], qkv[2]
-        # q = q * self.scale
-        # attn = q @ k.transpose(-2, -1)
-
-        # attn = self.softmax(attn)
-
-        # attn = self.attn_drop(attn).to(v.dtype)
-        # x = (attn @ v).transpose(1, 2).reshape(b, n, c)
-        # x = self.proj(x)
-        # x = self.proj_drop(x)
-
-
-        # window_size, shift_size = get_window_size((d, h, w), self.window_size, self.shift_size)
-        # x = rearrange(x, "b c d h w -> b d h w c")
-        # dp = int(np.ceil(d / window_size[0])) * window_size[0]
-        # hp = int(np.ceil(h / window_size[1])) * window_size[1]
-        # wp = int(np.ceil(w / window_size[2])) * window_size[2]
-        # attn_mask = compute_mask([dp, hp, wp], window_size, shift_size, x.device)
-        # for blk in self.blocks:
-        #     x = blk(x, attn_mask)
-        # print(f"iiiiiiiiiiiiiiiii x {x.shape} x_prim {x_prim} calced {self.get_image_size()}    heads {self.num_heads} dim {self.dim} ")    
-
         # x = x.view(b, d, h, w, -1)
         if self.downsample is not None:
             x = self.downsample(x)
@@ -747,6 +756,12 @@ class SwinTransformer(nn.Module):
         downsample="merging",
         use_v2=False,
         img_size=(0)
+        ,attn_masks_h5f=""
+        ,is_swin=False
+        ,is_local_iso=False
+        ,is_local_non_iso=False
+        ,distances=(10,10,10)
+        ,spacing=(1.0,1.0,1.0)
     ) -> None:
         """
         Args:
@@ -816,7 +831,18 @@ class SwinTransformer(nn.Module):
                 embed_dim=embed_dim,
                 i_layer=i_layer,
                 batch_size=batch_size
+                ,attn_masks_h5f=attn_masks_h5f
+                ,is_swin=is_swin
+                ,is_local_iso=is_local_iso
+                ,is_local_non_iso=is_local_non_iso
+                ,distances=distances
+                ,spacing=spacing
             )
+
+
+        
+
+
             if i_layer == 0:
                 self.layers1.append(layer)
             elif i_layer == 1:
@@ -899,15 +925,39 @@ class SwinTransformer(nn.Module):
         return [x0_out, x1_out, x2_out, x3_out]#x4_out
 
 
+import h5py
 
 # network=SwinUNETR(in_channels=3
-#                                    ,num_heads= (6, 6, 6, 6)
+#                                    ,num_heads= (2,2,2,2)
 #                                 #    ,num_heads= (6, 12, 12, 24)
 
 #                         ,out_channels=3
 #                         ,use_v2=True#
-#                         ,img_size=(48, 192, 160)
+#                         ,img_size=(64, 64, 64)
 #                         ,patch_size=(2,2,2)
 #                         ,batch_size=1).to(device='cuda')
+attn_masks_h5f_path="/workspaces/konwersjaJsonData/explore/hdf5_loc/sparse_masks"
 
-# network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'))
+attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
+network=SwinUNETR(in_channels=3
+        ,num_heads= (2,2,2,1)
+
+                #    ,num_heads= (6, 12, 12, 24)
+
+        ,out_channels=3
+        ,use_v2=True#
+        ,img_size=(64, 64, 64)
+        ,patch_size=(2,2,2)
+        ,batch_size=1
+        ,attn_masks_h5f=attn_masks_h5f
+        ,is_swin=False
+        ,is_local_iso=False
+        ,is_local_non_iso=True
+        ,distances=(8,8,8)
+        ,spacing=(3.299999952316284, 0.78125, 0.78125)
+        
+        )
+
+attn_masks_h5f.close()
+
+network(torch.ones((1,3,64, 64, 64)).float().to(device='cuda'))

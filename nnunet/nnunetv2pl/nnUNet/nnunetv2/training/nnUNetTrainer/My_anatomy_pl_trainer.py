@@ -87,6 +87,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
         hf5_path=f"{h5_folder}/mytestfile.hdf5"
         for_explore='/workspaces/konwersjaJsonData/explore/for_explore'
         self.hf5_path=hf5_path
+        attn_masks_h5f_path="/workspaces/konwersjaJsonData/explore/hdf5_loc/sparse_masks"
+
         os.makedirs(h5_folder,exist_ok=True)
 
 
@@ -138,6 +140,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
                                                 ,kernel_size= 7
                                                 ,ds= True)
         if(self.is_swin):
+            attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
             self.network=SwinUNETR(in_channels=self.num_input_channels
                                    ,num_heads= (6, 6, 6, 6)
 
@@ -147,7 +150,15 @@ class My_Anatomy_trainer(nnUNetTrainer):
                         ,use_v2=True#
                         ,img_size=(48, 192, 160)
                         ,patch_size=(2,2,2)
-                        ,batch_size=self.batch_size)
+                        ,batch_size=self.batch_size
+                        ,attn_masks_h5f=attn_masks_h5f
+                        ,is_swin=False
+                        ,is_local_iso=False
+                        ,is_local_non_iso=True
+                        ,distances=(8,8,8)
+                        ,spacing=(3.299999952316284, 0.78125, 0.78125)
+                        
+                        )
 
         if self._do_i_compile():
             self.print_to_log_file('Compiling network...')

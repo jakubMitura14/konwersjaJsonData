@@ -219,8 +219,31 @@ Classifier: Topic :: Scientific/Engineering :: Image Recognition
 Classifier: Topic :: Scientific/Engineering :: Medical Science Apps.
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
-Provides-Extra: dev
 License-File: LICENSE
+Requires-Dist: torch>=2.0.0
+Requires-Dist: acvl-utils>=0.2
+Requires-Dist: dynamic-network-architectures>=0.2
+Requires-Dist: tqdm
+Requires-Dist: dicom2nifti
+Requires-Dist: scipy
+Requires-Dist: batchgenerators>=0.25
+Requires-Dist: numpy
+Requires-Dist: scikit-learn
+Requires-Dist: scikit-image>=0.19.3
+Requires-Dist: SimpleITK>=2.2.1
+Requires-Dist: pandas
+Requires-Dist: graphviz
+Requires-Dist: tifffile
+Requires-Dist: requests
+Requires-Dist: nibabel
+Requires-Dist: matplotlib
+Requires-Dist: seaborn
+Requires-Dist: imagecodecs
+Requires-Dist: yacs
+Provides-Extra: dev
+Requires-Dist: black; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: pre-commit; extra == "dev"
 
 # Welcome to the new nnU-Net!
 
