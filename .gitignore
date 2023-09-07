@@ -33,3 +33,4 @@ tmp/
 .devcontainer/devcontainer.json
 nnunet/nnunetv2pl/nnUNet/nnunetv2.egg-info/SOURCES.txt
 .devcontainer/devcontainer.json
+sparse_dat/

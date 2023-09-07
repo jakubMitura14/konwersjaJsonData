@@ -23,7 +23,6 @@ import einops
 import matplotlib.pyplot as plt
 import itertools
 import SimpleITK as sitk
-import mdai
 import pandas as pd
 import numpy as np
 import cv2
@@ -32,7 +31,6 @@ import os
 import multiprocessing as mp
 import functools
 from functools import partial
-import mdai
 import math
 import time
 import itertools
@@ -82,7 +80,7 @@ from xformers.utils import (
 from xformers.components.feedforward.base import Feedforward, FeedforwardConfig  # noqa
 import h5py
 
-h5_path="/workspaces/konwersjaJsonData/explore/hdf5_loc_sparse/sparse_masks.hdf5"
+h5_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
 
 def _generate_nd_grid(*sizes):
     coords = [torch.arange(s) for s in sizes]

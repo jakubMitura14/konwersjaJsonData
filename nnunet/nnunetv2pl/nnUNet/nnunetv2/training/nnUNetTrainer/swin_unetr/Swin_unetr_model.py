@@ -671,7 +671,7 @@ class BasicLayer(nn.Module):
                                         ,is_swin=is_swin
                                         ,is_local_iso=is_local_iso
                                         ,is_local_non_iso=is_local_non_iso
-                                            ,window_size=window_size[0]
+                                            ,window_size=window_size
                                             ,distance=distances[i_layer]
                                         , img_size_curr=(calced_input_size[2],calced_input_size[3],calced_input_size[4])
                                         ,spacing=spacing )    
@@ -970,24 +970,24 @@ import h5py
 #                         ,batch_size=1).to(device='cuda')
 # attn_masks_h5f_path="/workspaces/konwersjaJsonData/explore/hdf5_loc/sparse_masks"
 
-attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
-network=SwinUNETR(in_channels=3
-        ,num_heads= (8,8,8,8)
-        ,out_channels=3
-        ,use_v2=True#
-        ,img_size=(64, 64, 64)
-        ,patch_size=(2,2,2)
-        ,batch_size=1
-        ,attn_masks_h5f=attn_masks_h5f
-        ,is_swin=False
-        ,is_local_iso=True
-        ,is_local_non_iso=False
-        ,distances=(4,4,4,4)#(4,4,4,4)
-        ,spacing=(3.299999952316284,0.78125, 0.78125)
-        ,feature_size=64
-        ,window_size=4
-        ,shift_size=2
-        ).to(device='cuda')
+# attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
+# network=SwinUNETR(in_channels=3
+#         ,num_heads= (8,8,8,8)
+#         ,out_channels=3
+#         ,use_v2=True#
+#         ,img_size=(64, 64, 64)
+#         ,patch_size=(2,2,2)
+#         ,batch_size=1
+#         ,attn_masks_h5f=attn_masks_h5f
+#         ,is_swin=False
+#         ,is_local_iso=True
+#         ,is_local_non_iso=False
+#         ,distances=(4,4,4,4)#(4,4,4,4)
+#         ,spacing=(3.299999952316284,0.78125, 0.78125)
+#         ,feature_size=64
+#         ,window_size=4
+#         ,shift_size=2
+#         ).to(device='cuda')
 
 # attn_masks_h5f.close()
 
