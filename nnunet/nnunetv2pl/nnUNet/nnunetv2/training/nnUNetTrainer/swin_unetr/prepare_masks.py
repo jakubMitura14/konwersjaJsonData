@@ -82,7 +82,7 @@ from xformers.utils import (
 from xformers.components.feedforward.base import Feedforward, FeedforwardConfig  # noqa
 import h5py
 
-h5_path="/workspaces/konwersjaJsonData/explore/hdf5_loc/sparse_masks"
+h5_path="/workspaces/konwersjaJsonData/explore/hdf5_loc_sparse/sparse_masks.hdf5"
 
 def _generate_nd_grid(*sizes):
     coords = [torch.arange(s) for s in sizes]
@@ -212,12 +212,13 @@ def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_si
         im_size_name=f"{int(img_size_curr[0])}_{int(img_size_curr[1])}_{int(img_size_curr[2])}"
         im_size_group=get_group_or_create(f,im_size_name)
         ###saving swin
-        swin_group=get_group_or_create(im_size_group,"swin")
-        #set on the base of window size
-        window_size_group=get_group_or_create(swin_group,f"window_{window_size}")
-        swin_mask=swin_attention_pattern_3D(img_size_curr[0], img_size_curr[1],img_size_curr[2], window_size, shift_size=2)
-        swin_mask = SparseCS(swin_mask, torch.device("cpu"))
-        save_sputnik_sparse_tensor(window_size_group,"main",swin_mask)
+        # swin_group=get_group_or_create(im_size_group,"swin")
+        # #set on the base of window size
+        # window_size_group=get_group_or_create(swin_group,f"window_{window_size}")
+        # swin_mask=swin_attention_pattern_3D(img_size_curr[0], img_size_curr[1],img_size_curr[2], window_size, shift_size=2)
+        
+        # swin_mask = SparseCS(swin_mask, torch.device("cpu"))
+        # save_sputnik_sparse_tensor(window_size_group,"main",swin_mask)
 
         ## saving isovolumetric 
         local_mask=local_nd_pattern(img_size_curr[0],img_size_curr[1],img_size_curr[2],distance=distance)
@@ -235,5 +236,10 @@ def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_si
 f = h5py.File(h5_path,'r+')
 feature_size=64
 embed_dim=feature_size
-save_sparse_masks((100,100,100,100),4,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(64,64,64),1,embed_dim,f)
+save_sparse_masks((4,4,4,4),4,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+save_sparse_masks((8,8,8,8),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+save_sparse_masks((4,8,16,32),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+# save_sparse_masks((4,8,16,16),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+save_sparse_masks((8,16,32,64),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+
 f.close()
