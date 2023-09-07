@@ -48,6 +48,8 @@ from xformers.sparse import BlockSparseTensor, SparseCSRTensor
 from xformers.components.feedforward.fused_mlp import FusedMLP
 import xformers
 
+from xformers.components.positional_embedding.param import *
+
 rearrange, _ = optional_import("einops", name="rearrange")
 
 __all__ = [
@@ -88,7 +90,7 @@ def load_attn_mask_from_h5(h5f,is_swin,is_local_iso,is_local_non_iso ,window_siz
     
     group_name=f"{int(img_size_curr[0])}_{int(img_size_curr[1])}_{int(img_size_curr[2])}"
     if(is_swin):
-        group_name=f"{group_name}/window_{window_size}/main"
+        group_name=f"{group_name}/swin/window_{window_size}/main"
         return load_sparse_sputnik(h5f,group_name)
     if(is_local_iso):
         group_name=f"{group_name}/dist_{distance}/iso_vol"
@@ -206,6 +208,8 @@ class SwinUNETR(nn.Module):
         ,is_local_non_iso=False
         ,distances=(10,10,10)
         ,spacing=(1.0,1.0,1.0)
+        ,window_size=4
+        ,shift_size=2
     ) -> None:
         """
         Args:
@@ -244,7 +248,7 @@ class SwinUNETR(nn.Module):
 
         img_size = ensure_tuple_rep(img_size, spatial_dims)
         # patch_size = ensure_tuple_rep(2, spatial_dims)
-        window_size = ensure_tuple_rep(7, spatial_dims)
+        # window_size = ensure_tuple_rep(7, spatial_dims)
 
         if spatial_dims not in (2, 3):
             raise ValueError("spatial dimension should be 2 or 3.")
@@ -293,6 +297,7 @@ class SwinUNETR(nn.Module):
             ,is_local_non_iso=is_local_non_iso
             ,distances=distances
             ,spacing=spacing
+            ,shift_size=shift_size
         )
         convsss=list(map(lambda i: get_convs(spatial_dims,patch_size,img_size,batch_size,feature_size,i,in_channels,norm_name,out_channels),range(4)))
         self.encoders= list(map(lambda tupl:tupl[0]  ,convsss))
@@ -574,6 +579,7 @@ class BasicLayer(nn.Module):
         ,is_local_non_iso=False
         ,distances=(10,10,10)
         ,spacing=(1.0,1.0,1.0)
+        ,shift_size=2
     ) -> None:
         
 
@@ -596,8 +602,8 @@ class BasicLayer(nn.Module):
 
         super().__init__()
         self.window_size = window_size
-        self.shift_size = tuple(i // 2 for i in window_size)
-        self.no_shift = tuple(0 for i in window_size)
+        self.shift_size = shift_size
+        # self.no_shift = tuple(0 for i in window_size)
         self.depth = depth
         self.use_checkpoint = use_checkpoint
         self.num_heads=num_heads
@@ -624,13 +630,15 @@ class BasicLayer(nn.Module):
         # self.rel_pos_embedding=Relative_position_embedding_3d(dim,num_heads,(calced_input_size[2],calced_input_size[3],calced_input_size[4]))
         self.norm_layer0=nn.LayerNorm(calced_input_size[1])
         self.norm_layer1=nn.LayerNorm(calced_input_size[1])
-        print(f"dddd distances {distances}  i_layer {i_layer}")
+
+
+
         # self.attn_mask = SparseCSRTensor._wrap(shape, values, row_indices, row_offsets, column_indices, _transp_info)
         self.attn_mask = load_attn_mask_from_h5(h5f=attn_masks_h5f
                                                 ,is_swin=is_swin
                                                 ,is_local_iso=is_local_iso
                                                 ,is_local_non_iso=is_local_non_iso
-                                                 ,window_size=window_size[0]
+                                                 ,window_size=window_size
                                                  ,distance=distances[i_layer]
                                                 , img_size_curr=(calced_input_size[2],calced_input_size[3],calced_input_size[4])
                                                 ,spacing=spacing )
@@ -665,7 +673,8 @@ class BasicLayer(nn.Module):
             num_heads=num_heads,
             attention=attention,
         )
-
+        
+        self.pos_emb=LearnablePositionalEmbedding(SEQ,EMB, add_class_token=False)
     
 
     def forward(self, x):
@@ -705,6 +714,7 @@ class BasicLayer(nn.Module):
         # x = scaled_dot_product_attention(q.to(device='cuda'), k.to(device='cuda'), v.to(device='cuda'), attn_mask, dropout=self.attn_drop.to(device='cuda'))        
         
         x=self.multi_head.to("cuda")(q, k, v,attn_mask)
+        x= self.pos_emb(x)
         # x = xops.memory_efficient_attention(q, k, v, op=None)
 
         # self.rel_pos_embedding(x,N)
@@ -741,7 +751,6 @@ class SwinTransformer(nn.Module):
         self,
         in_chans: int,
         embed_dim: int,
-        window_size: Sequence[int],
         patch_size: Sequence[int],
         depths: Sequence[int],
         num_heads: Sequence[int],
@@ -764,6 +773,8 @@ class SwinTransformer(nn.Module):
         ,is_local_non_iso=False
         ,distances=(10,10,10)
         ,spacing=(1.0,1.0,1.0)
+        ,window_size=4
+        ,shift_size=2
     ) -> None:
         """
         Args:
@@ -839,6 +850,7 @@ class SwinTransformer(nn.Module):
                 ,is_local_non_iso=is_local_non_iso
                 ,distances=distances
                 ,spacing=spacing
+                ,shift_size=shift_size
             )
 
 
@@ -949,12 +961,14 @@ network=SwinUNETR(in_channels=3
         ,patch_size=(2,2,2)
         ,batch_size=1
         ,attn_masks_h5f=attn_masks_h5f
-        ,is_swin=True
-        ,is_local_iso=False
+        ,is_swin=False
+        ,is_local_iso=True
         ,is_local_non_iso=False
-        ,distances=(8,8,8,8)
+        ,distances=(4,4,4,4)#(4,4,4,4)
         ,spacing=(3.299999952316284,0.78125, 0.78125)
         ,feature_size=64
+        ,window_size=4
+        ,shift_size=2
         ).to(device='cuda')
 
 attn_masks_h5f.close()

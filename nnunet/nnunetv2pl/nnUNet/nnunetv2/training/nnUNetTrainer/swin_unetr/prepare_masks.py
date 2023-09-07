@@ -233,7 +233,7 @@ def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_si
 
 
 f = h5py.File(h5_path,'r+')
-feature_size=24
+feature_size=64
 embed_dim=feature_size
-save_sparse_masks((8,8,8,8),4,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(64,64,64),1,embed_dim,f)
+save_sparse_masks((100,100,100,100),4,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(64,64,64),1,embed_dim,f)
 f.close()
