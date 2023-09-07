@@ -263,8 +263,8 @@ class SwinUNETR(nn.Module):
         if not (0 <= dropout_path_rate <= 1):
             raise ValueError("drop path rate should be between 0 and 1.")
 
-        if feature_size % 12 != 0:
-            raise ValueError("feature_size should be divisible by 12.")
+        # if feature_size % 12 != 0:
+        #     raise ValueError("feature_size should be divisible by 12.")
 
         self.normalize = normalize
 
@@ -351,7 +351,6 @@ class SwinUNETR(nn.Module):
         enc2 = self.encoders[1].to('cuda')(hidden_states_out[1])
         enc3 = self.encoders[2].to('cuda')(hidden_states_out[2])
         enc4 = self.encoders[3].to('cuda')(hidden_states_out[3])
-        print(f"eeeeee {enc4.shape}  enc3 {enc3.shape}")
         dec4= self.decoders[3].to('cuda')(enc4,enc3)
         dec3= self.decoders[2].to('cuda')(dec4,enc2)
         # print(f"yyyyyyyyyyyy dec4 {dec4.shape} enc2 {enc2.shape}")
@@ -657,6 +656,7 @@ class BasicLayer(nn.Module):
 
         attention=build_attention(my_config)
 
+        print(f"eeeeeee EMB {EMB} num_heads {num_heads} divv {EMB/num_heads}")
         # build a multi head dispatch to test this attention mechanism
         self.multi_head = MultiHeadDispatch(
             seq_len=SEQ,
@@ -942,19 +942,19 @@ attn_masks_h5f_path="/workspaces/konwersjaJsonData/explore/hdf5_loc/sparse_masks
 
 attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
 network=SwinUNETR(in_channels=3
-        ,num_heads= (2,2,2,1)
+        ,num_heads= (8,8,8,8)
         ,out_channels=3
         ,use_v2=True#
         ,img_size=(64, 64, 64)
         ,patch_size=(2,2,2)
         ,batch_size=1
         ,attn_masks_h5f=attn_masks_h5f
-        ,is_swin=False
+        ,is_swin=True
         ,is_local_iso=False
-        ,is_local_non_iso=True
+        ,is_local_non_iso=False
         ,distances=(8,8,8,8)
         ,spacing=(3.299999952316284,0.78125, 0.78125)
-        
+        ,feature_size=64
         ).to(device='cuda')
 
 attn_masks_h5f.close()
