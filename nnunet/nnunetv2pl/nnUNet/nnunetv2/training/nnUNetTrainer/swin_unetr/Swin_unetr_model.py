@@ -567,7 +567,17 @@ class encoding_func_3D:
     copied from https://colab.research.google.com/github/osiriszjq/complex_encoding/blob/main/complex_encoding.ipynb#scrollTo=IOvg8IkuI5u0
     """
     def __init__(self, name, param=None):
+        encoder_params = {
+            'Linf':5.5,
+            'Logf':5.5,
+            'RFF':14,
+            'Gau4':0.006,
+            'Tri4':1.5/128
+        }
+        params=32
         self.name = name
+
+
 
         if name == 'none': self.dim=2
         elif name == 'basic': self.dim=4
@@ -771,10 +781,13 @@ class BasicLayer(nn.Module):
             num_heads=num_heads,
             attention=attention,
         )
-        
+        self.new_emb=False
+        self.my_simple_rel_emb=True
         # self.pos_emb=LearnablePositionalEmbedding(SEQ,EMB, add_class_token=False)
-        # self.pos_emb=encoding_func_3D('Gau')
-        self.loc_dists=load_loc_dist_from_h5(attn_masks_h5f,is_swin,is_local_iso,is_local_non_iso ,window_size ,distances[i_layer] , (calced_input_size[2],calced_input_size[3],calced_input_size[4]),spacing )    
+        if(self.new_emb):
+            self.pos_emb=encoding_func_3D('Gau')
+        if(self.my_simple_rel_emb):
+            self.loc_dists=load_loc_dist_from_h5(attn_masks_h5f,is_swin,is_local_iso,is_local_non_iso ,window_size ,distances[i_layer] , (calced_input_size[2],calced_input_size[3],calced_input_size[4]),spacing )    
 
     def forward(self, x):
         x,B, N, C= checkpoint.checkpoint(self.forward_main_a,x)
@@ -816,27 +829,17 @@ class BasicLayer(nn.Module):
         if(self.i_layer!=2):
             out =  self.attn_mask._mat.to('cuda')
             attn_mask=type( self.attn_mask)._wrap(out)            
-            # x=self.multi_head.to("cuda")(q, k, v,attn_mask)
             x=self.multi_head(q, k, v,attn_mask)
-
-            # #my positional encoding
-            # out=self.attn_mask
-            # out = my_broadcast_batch(out, v.shape[0])
-            # # out = _broadcast_batch(out, 2)
-            # out =  out._mat.to('cuda')
-            # attn_mask=type( self.attn_mask)._wrap(out)  
-            # print(f"aaaaaa loc_dists {self.loc_dists.shape}  v {v.shape}")
-            # loc_dists= einops.repeat(self.loc_dists, 'bb a b -> (bb m) a b',m=v.shape[0])
-            loc_dists= torch.cat([self.loc_dists for _ in range(v.shape[0])], dim=0).to('cuda')
-            x= x+ torch.bmm(loc_dists,v)
-            
         else:
             x=self.multi_head(q, k, v)
-            #my positional encoding
+
+        if(self.my_simple_rel_emb):
             loc_dists= torch.cat([self.loc_dists for _ in range(v.shape[0])], dim=0).to('cuda')
-            x= x+ torch.bmm(loc_dists,v)      
-            # x=self.multi_head.to("cuda")(q, k, v)
-            
+            x= x+ torch.bmm(loc_dists,v)
+
+        if(self.new_emb):
+            x=self.pos_emb(x)
+
         # x = xops.memory_efficient_attention(q, k, v, op=None)
         return x,B, N, C
         # self.rel_pos_embedding(x,N)
