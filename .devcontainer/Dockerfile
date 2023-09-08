@@ -327,6 +327,10 @@ RUN mkdir ${HOME}/bolts \
 # cd /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet
 # python3 -m pip  install -e .
 
+RUN mkdir ${HOME}/apex \
+&& git clone https://github.com/NVIDIA/apex ${HOME}/apex \
+&& cd ${HOME}/apex \
+&& python3 -m pip  install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
 

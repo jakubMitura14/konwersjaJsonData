@@ -140,10 +140,13 @@ class Pl_anatomy_model(pl.LightningModule):
             # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
             
         elif(self.is_swin):    
-            optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.00001)#learning rate set by learning rate finder
+
+            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.00001)#learning rate set by learning rate finder
+            
             # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), 0.07585775750291836)
         elif(self.is_med_next):    
-
             optimizer = torch.optim.AdamW(self.network.parameters(), 0.0019054607179632484)
         
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
@@ -151,7 +154,6 @@ class Pl_anatomy_model(pl.LightningModule):
         if(self.is_swin):
             # lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*40, warmup_duration=30)
             scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=1)
-            
             lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[25])
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
@@ -172,14 +174,12 @@ class Pl_anatomy_model(pl.LightningModule):
         if(not self.is_classic_nnunet):
             target=self.transform_gold(target)
 
-        
         epoch=self.current_epoch
         l=self.loss(output, target)
-        self.log("train loss",l.detach().cpu().item())
+        self.log("train loss",l.detach().cpu().item(),sync_dist=True)
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
-                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train",True)
-       
+                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train",True)   
         return l
 
 
@@ -236,7 +236,7 @@ class Pl_anatomy_model(pl.LightningModule):
         # del data
         l = loss(output, target)
         save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)
-        self.log("val loss",l.detach().cpu().item())
+        self.log("val loss",l.detach().cpu().item(),sync_dist=True)
         # we only need the output with the highest output resolution
         # output = output[0]
         # target = target[0]
