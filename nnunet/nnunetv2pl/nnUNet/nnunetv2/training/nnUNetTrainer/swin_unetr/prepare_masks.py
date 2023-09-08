@@ -82,6 +82,7 @@ from xformers.components.attention.core import _matmul_with_mask
 from xformers.components.attention.core import _broadcast_batch
 import torch 
 import torch.nn as nn
+import torch
 
 h5_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
 
@@ -201,10 +202,12 @@ def save_dist(loc_dists,to_save_dense_dists,im_size_group,loc_dist_name,distance
     else:
         # print(f"fffffffff {loc_dists.shape}  eye {torch.eye(loc_dists.shape[0]).shape}")
         loc_dists= einops.rearrange(loc_dists,'a b -> 1 a b')
-        eye= einops.rearrange(torch.eye(loc_dists.shape[1]),'a b -> 1 a b')
-        local_mask = _broadcast_batch(local_mask, loc_dists.shape[0])
-        sparse_loc_dist=_matmul_with_mask(loc_dists,eye, local_mask)
-        save_sputnik_sparse_tensor(gg,"dist_sparse",sparse_loc_dist)
+        local_mask = loc_dists>distance
+        indicies=torch.argwhere(local_mask)
+        indicies=einops.rearrange(indicies,'a b -> b a')
+        sparse_loc_dist= torch.sparse_coo_tensor(indicies, values=loc_dists[local_mask])
+        gg.create_dataset(name=f"dist_sparse_indicies",data= sparse_loc_dist.coalesce().indices().detach().cpu().numpy())
+        gg.create_dataset(name=f"dist_sparse_values",data= sparse_loc_dist.coalesce().values().detach().cpu().numpy())
 
 def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_size,batch_size,embed_dim,f,to_save_dense_dists_all):
     
@@ -233,7 +236,7 @@ def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_si
         save_sputnik_sparse_tensor(distance_group,"iso_vol",local_mask)
         loc_dists=local_nd_distance(img_size_curr[0],img_size_curr[1],img_size_curr[2])
         loc_dist_name="iso_dist"
-        save_dist(loc_dists,to_save_dense_dists,distance_group,loc_dist_name,local_mask)
+        save_dist(loc_dists,to_save_dense_dists,distance_group,loc_dist_name,distance)
         ## saving non isovolumetric
         local_mask=local_nd_pattern_with_spacing(img_size_curr[0],img_size_curr[1],img_size_curr[2],distance=distance,spacing=spacing)
         local_mask = SparseCS(local_mask, torch.device("cpu"))

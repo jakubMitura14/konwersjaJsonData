@@ -111,16 +111,24 @@ def load_loc_dist_from_h5(h5f,is_swin,is_local_iso,is_local_non_iso ,window_size
     if(is_local_iso):
         group_name=f"{group_name}/dist_{distance}/iso_dist"
         keys=np.array(list(h5f[group_name].keys()))
-        if("dist_sparse" in keys):
-            return load_sparse_sputnik(h5f,f"{group_name}/dist_sparse")   
+        if("dist_sparse_indicies" in keys):
+            # indicies=torch.tensor(h5f[f"{group_name}/dist_sparse_indicies"][()])
+            # values=torch.tensor(h5f[f"{group_name}/dist_sparse_values"][()])
+            # print(f"iii indicies {indicies.shape}  values {values.shape} indicies type {indicies.dtype} values type {values.dtype} ")
+
+                                  
+            return torch.sparse_coo_tensor(indices=torch.tensor(h5f[f"{group_name}/dist_sparse_indicies"][()] )
+                                           ,values=torch.tensor(h5f[f"{group_name}/dist_sparse_values"][()]) )  
         else:
-            return h5f[f"{group_name}/dist_dense"][()]    
+            return torch.tensor(h5f[f"{group_name}/dist_dense"][()]  )
     if(is_local_non_iso):
+        keys=np.array(list(h5f[group_name].keys()))
         group_name=f"{group_name}/dist_{distance}_spacing_{spacing[0]}_{spacing[1]}_{spacing[2]}/non_iso_dist"
-        if("dist_sparse" in keys):
-            return load_sparse_sputnik(h5f,f"{group_name}/dist_sparse")   
+        if("dist_sparse_indicies" in keys):
+            return torch.sparse_coo_tensor(indices=torch.tensor(h5f[f"{group_name}/dist_sparse_indicies"][()] )
+                                           ,values=torch.tensor(h5f[f"{group_name}/dist_sparse_values"][()]) )  
         else:
-            return h5f[f"{group_name}/dist_dense"][()]   
+            return torch.tensor(h5f[f"{group_name}/dist_dense"][()])
 
 
 
@@ -450,7 +458,6 @@ class Relative_position_embedding_3d(nn.Module):
             self.relative_position_index.clone()[:n, :n].reshape(-1)  # type: ignore
         ].reshape(n, n, -1)
         relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()
-        print(f"rrrrrrrr attn {attn.shape} relative_position_bias {relative_position_bias.shape}")
         attn = attn + relative_position_bias.unsqueeze(0)
         return attn
 
@@ -619,28 +626,7 @@ class encoding_func_3D:
             emb = emb/(emb.norm(dim=1).max())
             return emb
 
-def my_broadcast_batch(mask, batch_size):
 
-
-    mask._mat = mask._mat.coalesce()
-    values = mask.values#[0,:,:]
-    indices = mask.indices#[0,:,:]
-    nnz = len(values)
-    # strategy: repeat the indices and append the extra batch dimension to the indices
-    indices = indices.repeat(1, batch_size)
-    # now create the batch indices
-    batch_indices = torch.arange(batch_size, device=indices.device)
-    batch_indices = batch_indices[:, None].expand(batch_size, nnz).flatten()
-
-    # put them together
-    indices = torch.cat([batch_indices[None, :], indices], dim=0)
-
-    # now repeat the values
-    values = values.repeat(batch_size)
-
-    size = (batch_size,) + mask.shape
-
-    return torch.sparse_coo_tensor(indices, values, size)
 
 class BasicLayer(nn.Module):
     """
@@ -833,22 +819,22 @@ class BasicLayer(nn.Module):
             # x=self.multi_head.to("cuda")(q, k, v,attn_mask)
             x=self.multi_head(q, k, v,attn_mask)
 
-            #my positional encoding
-            out=self.attn_mask
-            out = my_broadcast_batch(out, v.shape[0])
-            # out = _broadcast_batch(out, 2)
-            out =  out._mat.to('cuda')
-            attn_mask=type( self.attn_mask)._wrap(out)  
-            print(f"aaaaaa attn_mask {attn_mask.shape}  v {v.shape}   nnn {attn_mask.ndim}")
-           
-            
-            x= x+ bmm(attn_mask,v)
+            # #my positional encoding
+            # out=self.attn_mask
+            # out = my_broadcast_batch(out, v.shape[0])
+            # # out = _broadcast_batch(out, 2)
+            # out =  out._mat.to('cuda')
+            # attn_mask=type( self.attn_mask)._wrap(out)  
+            # print(f"aaaaaa loc_dists {self.loc_dists.shape}  v {v.shape}")
+            # loc_dists= einops.repeat(self.loc_dists, 'bb a b -> (bb m) a b',m=v.shape[0])
+            loc_dists= torch.cat([self.loc_dists for _ in range(v.shape[0])], dim=0).to('cuda')
+            x= x+ torch.bmm(loc_dists,v)
             
         else:
             x=self.multi_head(q, k, v)
             #my positional encoding
-            x= x+ torch.bmm(v,self.loc_dists.to('cuda'))
-            
+            loc_dists= torch.cat([self.loc_dists for _ in range(v.shape[0])], dim=0).to('cuda')
+            x= x+ torch.bmm(loc_dists,v)      
             # x=self.multi_head.to("cuda")(q, k, v)
             
         # x = xops.memory_efficient_attention(q, k, v, op=None)
