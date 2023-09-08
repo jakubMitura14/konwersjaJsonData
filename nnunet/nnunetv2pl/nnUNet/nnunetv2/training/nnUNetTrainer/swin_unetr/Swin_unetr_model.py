@@ -49,6 +49,9 @@ from xformers.components.feedforward.fused_mlp import FusedMLP
 import xformers
 
 from xformers.components.positional_embedding.param import *
+from xformers.components.attention.core import _matmul_with_mask
+from xformers.components.attention.core import _broadcast_batch
+from xformers.components.attention.core import bmm
 
 rearrange, _ = optional_import("einops", name="rearrange")
 
@@ -97,6 +100,28 @@ def load_attn_mask_from_h5(h5f,is_swin,is_local_iso,is_local_non_iso ,window_siz
     if(is_local_non_iso):
         group_name=f"{group_name}/dist_{distance}_spacing_{spacing[0]}_{spacing[1]}_{spacing[2]}/non_iso_vol"
         return load_sparse_sputnik(h5f,group_name)   
+
+def load_loc_dist_from_h5(h5f,is_swin,is_local_iso,is_local_non_iso ,window_size ,distance , img_size_curr,spacing ):
+    
+    group_name=f"{int(img_size_curr[0])}_{int(img_size_curr[1])}_{int(img_size_curr[2])}"
+    # print(f"kkkkk keys() {h5f[group_name].keys()}")
+    # if(is_swin):
+    #     group_name=f"{group_name}/swin/window_{window_size}/main"
+    #     return load_sparse_sputnik(h5f,group_name)
+    if(is_local_iso):
+        group_name=f"{group_name}/dist_{distance}/iso_dist"
+        keys=np.array(list(h5f[group_name].keys()))
+        if("dist_sparse" in keys):
+            return load_sparse_sputnik(h5f,f"{group_name}/dist_sparse")   
+        else:
+            return h5f[f"{group_name}/dist_dense"][()]    
+    if(is_local_non_iso):
+        group_name=f"{group_name}/dist_{distance}_spacing_{spacing[0]}_{spacing[1]}_{spacing[2]}/non_iso_dist"
+        if("dist_sparse" in keys):
+            return load_sparse_sputnik(h5f,f"{group_name}/dist_sparse")   
+        else:
+            return h5f[f"{group_name}/dist_dense"][()]   
+
 
 
 def get_conv_layer(
@@ -364,24 +389,7 @@ class SwinUNETR(nn.Module):
         # print(f"iiiiiiiiiiiiiiii dec2 {dec2.shape}  enc0 {enc0.shape}")
         dec1= self.decoders[0].to('cuda')(dec2,enc0)
 
-        # bigger= hidden_states_out[3].shape
-        # smaller= dec4.shape
-        # # print(f"uuuuuuuuuu bigger {bigger} smaller {smaller}")
-        # hidden_states_out[3] = F.pad(hidden_states_out[3], (0,0,0, 0, smaller[2]*2-bigger[2], 0, 0, 0,0, 0))
-        # dec3 = self.decoder5(dec4, hidden_states_out[3])
-        # if(dec3.shape[2]==4):
-        #     dec3=dec3[:,:,1:,:,:]
-        # dec2 = self.decoder4(dec3, hidden_states_out[2])
-        # dec1 = self.decoder3(dec2, enc2)
-        # dec0 = self.decoder2(dec1, enc1)
-        # print(f"ddddd {dec0.shape} enc0 {enc0.shape}  ")
-        # out = self.decoder1(dec0, enc0)
 
-        # print(f"bbbb dec3 {dec3.shape} dec2 {dec2.shape} dec1 {dec1.shape} dec0 {dec0.shape}")
-
-        # print(f" dec4 {dec4.shape} dec3 {dec3.shape} dec2 {dec2.shape} dec1 {dec1.shape} dec0 {dec0.shape} out {out.shape}")
-        # #dec4 torch.Size([5, 384, 3, 3, 3]) dec3 torch.Size([5, 192, 6, 6, 6]) dec2 torch.Size([5, 96, 12, 12, 12]) dec1 torch.Size([5, 48, 24, 24, 24]) dec0 torch.Size([5, 24, 48, 48, 48]) out torch.Size([5, 24, 96, 96, 96])
-        # logits = self.out(out)
         return [self.outs[0].to('cuda')(dec1),self.outs[1].to('cuda')(dec2),self.outs[2].to('cuda')(dec3),self.outs[3].to('cuda')(dec4)]
 
 
@@ -545,6 +553,95 @@ def local_nd_pattern(*sizes, distance, p=2.0):
     # print(d)
     return d < distance
 
+
+
+class encoding_func_3D:
+    """ 
+    copied from https://colab.research.google.com/github/osiriszjq/complex_encoding/blob/main/complex_encoding.ipynb#scrollTo=IOvg8IkuI5u0
+    """
+    def __init__(self, name, param=None):
+        self.name = name
+
+        if name == 'none': self.dim=2
+        elif name == 'basic': self.dim=4
+        else:
+            self.dim = param[1]
+            if name == 'RFF':
+                self.b = param[0]*torch.randn((int(param[1]/2),3))
+            elif name == 'rffb':
+                self.b = param[0]
+            elif name == 'Linf':
+                self.b = torch.linspace(2.**0., 2.**param[0], steps=int(param[1]/6)).reshape(-1,1)
+            elif name == 'Logf':
+                self.b = 2.**torch.linspace(0., param[0], steps=int(param[1]/6)).reshape(-1,1)
+            elif name == 'Gau':
+                self.dic = torch.linspace(0., 1, steps=int(param[1]/3)+1)[:-1].reshape(1,-1)
+                self.sig = param[0]
+            elif name == 'Tri':
+                self.dic = torch.linspace(0., 1, steps=int(param[1]/3)+1)[:-1].reshape(1,-1)
+                if param[0] is None: self.d = 1/param[1]
+                else: self.d = param[0]
+            else:
+                print('Undifined encoding!')
+    def __call__(self, x):
+        if self.name == 'none':
+            return x
+        elif self.name == 'basic':
+            emb = torch.cat((torch.sin((2.*np.pi*x)),torch.cos((2.*np.pi*x))),1)
+            emb = emb/(emb.norm(dim=1).max())
+            return emb
+        elif (self.name == 'RFF')|(self.name == 'rffb'):
+            emb = torch.cat((torch.sin((2.*np.pi*x) @ self.b.T),torch.cos((2.*np.pi*x) @ self.b.T)),1)
+            emb = emb/(emb.norm(dim=1).max())
+            return emb
+        elif (self.name == 'Linf')|(self.name == 'Logf'):
+            emb1 = torch.cat((torch.sin((2.*np.pi*x[:,:1]) @ self.b.T),torch.cos((2.*np.pi*x[:,:1]) @ self.b.T)),1)
+            emb2 = torch.cat((torch.sin((2.*np.pi*x[:,1:2]) @ self.b.T),torch.cos((2.*np.pi*x[:,1:2]) @ self.b.T)),1)
+            emb3 = torch.cat((torch.sin((2.*np.pi*x[:,2:3]) @ self.b.T),torch.cos((2.*np.pi*x[:,2:3]) @ self.b.T)),1)
+            emb = torch.cat([emb1,emb2,emb3],1)
+            emb = emb/(emb.norm(dim=1).max())
+            return emb
+        elif self.name == 'Gau':
+            emb1 = (-0.5*(x[:,:1]-self.dic)**2/(self.sig**2)).exp()
+            emb2 = (-0.5*(x[:,1:2]-self.dic)**2/(self.sig**2)).exp()
+            emb3 = (-0.5*(x[:,2:3]-self.dic)**2/(self.sig**2)).exp()
+            emb = torch.cat([emb1,emb2,emb3],1)
+            emb = emb/(emb.norm(dim=1).max())
+            return emb
+        elif self.name == 'Tri':
+            emb1 = (1-(x[:,:1]-self.dic).abs()/self.d)
+            emb1 = emb1*(emb1>0)
+            emb2 = (1-(x[:,1:2]-self.dic).abs()/self.d)
+            emb2 = emb2*(emb2>0)
+            emb3 = (1-(x[:,2:3]-self.dic).abs()/self.d)
+            emb3 = emb3*(emb3>0)
+            emb = torch.cat([emb1,emb2,emb3],1)
+            emb = emb/(emb.norm(dim=1).max())
+            return emb
+
+def my_broadcast_batch(mask, batch_size):
+
+
+    mask._mat = mask._mat.coalesce()
+    values = mask.values#[0,:,:]
+    indices = mask.indices#[0,:,:]
+    nnz = len(values)
+    # strategy: repeat the indices and append the extra batch dimension to the indices
+    indices = indices.repeat(1, batch_size)
+    # now create the batch indices
+    batch_indices = torch.arange(batch_size, device=indices.device)
+    batch_indices = batch_indices[:, None].expand(batch_size, nnz).flatten()
+
+    # put them together
+    indices = torch.cat([batch_indices[None, :], indices], dim=0)
+
+    # now repeat the values
+    values = values.repeat(batch_size)
+
+    size = (batch_size,) + mask.shape
+
+    return torch.sparse_coo_tensor(indices, values, size)
+
 class BasicLayer(nn.Module):
     """
     Basic Swin Transformer layer in one stage based on: "Liu et al.,
@@ -689,7 +786,9 @@ class BasicLayer(nn.Module):
             attention=attention,
         )
         
-        self.pos_emb=LearnablePositionalEmbedding(SEQ,EMB, add_class_token=False)
+        # self.pos_emb=LearnablePositionalEmbedding(SEQ,EMB, add_class_token=False)
+        # self.pos_emb=encoding_func_3D('Gau')
+        self.loc_dists=load_loc_dist_from_h5(attn_masks_h5f,is_swin,is_local_iso,is_local_non_iso ,window_size ,distances[i_layer] , (calced_input_size[2],calced_input_size[3],calced_input_size[4]),spacing )    
 
     def forward(self, x):
         x,B, N, C= checkpoint.checkpoint(self.forward_main_a,x)
@@ -733,9 +832,23 @@ class BasicLayer(nn.Module):
             attn_mask=type( self.attn_mask)._wrap(out)            
             # x=self.multi_head.to("cuda")(q, k, v,attn_mask)
             x=self.multi_head(q, k, v,attn_mask)
+
+            #my positional encoding
+            out=self.attn_mask
+            out = my_broadcast_batch(out, v.shape[0])
+            # out = _broadcast_batch(out, 2)
+            out =  out._mat.to('cuda')
+            attn_mask=type( self.attn_mask)._wrap(out)  
+            print(f"aaaaaa attn_mask {attn_mask.shape}  v {v.shape}   nnn {attn_mask.ndim}")
+           
+            
+            x= x+ bmm(attn_mask,v)
             
         else:
             x=self.multi_head(q, k, v)
+            #my positional encoding
+            x= x+ torch.bmm(v,self.loc_dists.to('cuda'))
+            
             # x=self.multi_head.to("cuda")(q, k, v)
             
         # x = xops.memory_efficient_attention(q, k, v, op=None)
@@ -958,7 +1071,7 @@ class SwinTransformer(nn.Module):
         return [x0_out, x1_out, x2_out, x3_out]#x4_out
 
 
-# import h5py
+import h5py
 
 # network=SwinUNETR(in_channels=3
 #                                    ,num_heads= (2,2,2,2)
@@ -969,27 +1082,28 @@ class SwinTransformer(nn.Module):
 #                         ,img_size=(64, 64, 64)
 #                         ,patch_size=(2,2,2)
 #                         ,batch_size=1).to(device='cuda')
-# attn_masks_h5f_path="/workspaces/konwersjaJsonData/explore/hdf5_loc/sparse_masks"
+attn_masks_h5f_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
 
-# attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
-# network=SwinUNETR(in_channels=3
-#         ,num_heads= (8,8,8,8)
-#         ,out_channels=3
-#         ,use_v2=True#
-#         ,img_size=(64, 64, 64)
-#         ,patch_size=(2,2,2)
-#         ,batch_size=1
-#         ,attn_masks_h5f=attn_masks_h5f
-#         ,is_swin=False
-#         ,is_local_iso=True
-#         ,is_local_non_iso=False
-#         ,distances=(4,4,4,4)#(4,4,4,4)
-#         ,spacing=(3.299999952316284,0.78125, 0.78125)
-#         ,feature_size=64
-#         ,window_size=4
-#         ,shift_size=2
-#         ).to(device='cuda')
+attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
+network=SwinUNETR(in_channels=3
+        ,num_heads= (2,8,8)
+        ,out_channels=3
+        ,use_v2=True#
+        ,img_size=(32, 32, 32)
+        ,patch_size=(2,2,2)
+        ,batch_size=1
+        ,attn_masks_h5f=attn_masks_h5f
+        ,is_swin=False
+        ,is_local_iso=True
+        ,is_local_non_iso=False
+        ,distances=(8,8,8)#(4,4,4,4)
+        ,spacing=(3.299999952316284,0.78125, 0.78125)
+        ,feature_size=32
+        ,window_size=4
+        ,shift_size=2
+        ).to(device='cuda')
 
-# attn_masks_h5f.close()
+attn_masks_h5f.close()
 
+network(torch.ones((1,3,32, 32, 32)).float().to(device='cuda'))
 # network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'))

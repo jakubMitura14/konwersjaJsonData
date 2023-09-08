@@ -76,9 +76,12 @@ from xformers.utils import (
     get_registry_decorator,
     import_all_modules,
 )
-
 from xformers.components.feedforward.base import Feedforward, FeedforwardConfig  # noqa
 import h5py
+from xformers.components.attention.core import _matmul_with_mask
+from xformers.components.attention.core import _broadcast_batch
+import torch 
+import torch.nn as nn
 
 h5_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
 
@@ -162,14 +165,6 @@ def get_group_or_create(f,name):
 def save_sputnik_sparse_tensor(top_group,name,sparse_tensor):
     main_keys=np.array(list(top_group.keys()))
     if(name not in main_keys):
-        # print(f"values {sparse_tensor.values.shape}")
-        # print(f"row_offsets {sparse_tensor.row_offsets}")
-        # print(f"column_indices {sparse_tensor.column_indices}")
-        # print(f"row_indices {sparse_tensor.row_indices}")
-        # print(f"transp_info[0] {sparse_tensor._transp_info[0]}")
-        # print(f"transp_info[1] {sparse_tensor._transp_info[1]}")
-        # print(f"transp_info[2] {sparse_tensor._transp_info[2]}")
-
         group=top_group.create_group(name)
         group.create_dataset(name="shape", data=np.array(list(sparse_tensor.shape)))
         group.create_dataset(name="values",data= sparse_tensor.values.detach().cpu().numpy())
@@ -198,12 +193,25 @@ def local_nd_pattern_with_spacing(*sizes, distance, p=2.0,spacing=(1.0,1.0,1.0))
     # print(d)
     return d < distance
 
+def save_dist(loc_dists,to_save_dense_dists,im_size_group,loc_dist_name,distance):
+    gg=im_size_group.create_group(loc_dist_name)
+    if(to_save_dense_dists):
+        loc_dists= einops.rearrange(loc_dists,'a b -> 1 a b')
+        gg.create_dataset(name=f"dist_dense",data= loc_dists.detach().cpu().numpy())
+    else:
+        # print(f"fffffffff {loc_dists.shape}  eye {torch.eye(loc_dists.shape[0]).shape}")
+        loc_dists= einops.rearrange(loc_dists,'a b -> 1 a b')
+        eye= einops.rearrange(torch.eye(loc_dists.shape[1]),'a b -> 1 a b')
+        local_mask = _broadcast_batch(local_mask, loc_dists.shape[0])
+        sparse_loc_dist=_matmul_with_mask(loc_dists,eye, local_mask)
+        save_sputnik_sparse_tensor(gg,"dist_sparse",sparse_loc_dist)
 
-def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_size,batch_size,embed_dim,f):
+def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_size,batch_size,embed_dim,f,to_save_dense_dists_all):
     
     for i_layer in range(num_layers):
         img_size_curr=get_image_size(patch_size,img_size,batch_size,embed_dim,i_layer)
         distance=distances[i_layer]
+        to_save_dense_dists=to_save_dense_dists_all[i_layer]
         img_size_curr=(img_size_curr[2],img_size_curr[3],img_size_curr[4])
 
         #top organization is based on the image size
@@ -223,21 +231,33 @@ def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_si
         local_mask = SparseCS(local_mask, torch.device("cpu"))
         distance_group=get_group_or_create(im_size_group,f"dist_{distance}")
         save_sputnik_sparse_tensor(distance_group,"iso_vol",local_mask)
+        loc_dists=local_nd_distance(img_size_curr[0],img_size_curr[1],img_size_curr[2])
+        loc_dist_name="iso_dist"
+        save_dist(loc_dists,to_save_dense_dists,distance_group,loc_dist_name,local_mask)
         ## saving non isovolumetric
         local_mask=local_nd_pattern_with_spacing(img_size_curr[0],img_size_curr[1],img_size_curr[2],distance=distance,spacing=spacing)
         local_mask = SparseCS(local_mask, torch.device("cpu"))
         distance_spacing_group=get_group_or_create(im_size_group,f"dist_{distance}_spacing_{spacing[0]}_{spacing[1]}_{spacing[2]}")
         save_sputnik_sparse_tensor(distance_spacing_group,"non_iso_vol",local_mask)
+        loc_dists=local_nd_distance_with_spacing(img_size_curr[0],img_size_curr[1],img_size_curr[2],spacing=spacing)
+        loc_dist_name="non_iso_dist"
+        save_dist(loc_dists,to_save_dense_dists,distance_spacing_group,loc_dist_name,distance)
 
 
 
-f = h5py.File(h5_path,'r+')
+local_nd_distance
+local_nd_distance_with_spacing
+
+
+
+f = h5py.File(h5_path,'w')
 feature_size=64
 embed_dim=feature_size
-save_sparse_masks((4,4,4,4),4,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
-save_sparse_masks((8,8,8,8),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
-save_sparse_masks((4,8,16,32),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
-# save_sparse_masks((4,8,16,16),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
-save_sparse_masks((8,16,32,64),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+# save_sparse_masks((4,4,4,4),4,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+# save_sparse_masks((8,8,8,8),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+save_sparse_masks((8,8,8,8),6,(3.299999952316284,0.78125, 0.78125),3,(2,2,2),(32, 32, 32),1,embed_dim,f,(False,False,True))
+# save_sparse_masks((4,8,16,32),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+# # save_sparse_masks((4,8,16,16),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
+# save_sparse_masks((8,16,32,64),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
 
 f.close()
