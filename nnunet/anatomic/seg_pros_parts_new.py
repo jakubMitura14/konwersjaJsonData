@@ -203,8 +203,7 @@ def for_filter_unwanted(group):
     we want only cases where  afs cz pz and tz are indicated
     """
 
-    # print(f"tttt {group[1]['t2w'][1]}")
-    # print(f"lll {len(group[1]['t2w'][1])}")
+
 
     # return len(group[1]['t2w'][1])==5
     return True
@@ -212,6 +211,7 @@ def for_filter_unwanted(group):
 
 grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
+#my_proj_name="seg debug" tag="l4a swin beg" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
 #my_proj_name="seg swin tests" tag="l4a swin beg" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
 
 

@@ -256,7 +256,6 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     pz_arrr=(inferred_parts_image_arr==1)
     tz_arrr=(inferred_parts_image_arr==2)
     
-    print(f"nnnnnnnnnnnnnnn pz_arrr {np.sum(pz_arrr.flatten())} tz_arrr {np.sum(tz_arrr.flatten())} uu {np.unique(inferred_parts_image_arr.flatten())} {sources_dict[new_col_parts_name][0]} ")
 
     pz_image = get_from_arr(pz_arrr.astype(int),t2w_image)
     tz_image = get_from_arr((inferred_parts_image_arr==2).astype(int),t2w_image)
@@ -270,7 +269,6 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     tz_image=my_crop(tz_image,min_z,min_y,min_x,max_z,max_x,max_y)
     
     
-    print(f"tttttttttt t2w_image {sitk.GetArrayFromImage(t2w_image).shape}")
     
     registered_prostate=my_crop(registered_prostate,min_z,min_y,min_x,max_z,max_x,max_y)
     

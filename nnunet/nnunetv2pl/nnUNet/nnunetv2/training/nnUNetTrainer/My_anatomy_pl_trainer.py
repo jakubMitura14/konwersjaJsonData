@@ -142,7 +142,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         if(self.is_swin):
             attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
             self.network=SwinUNETR(in_channels=self.num_input_channels
-            ,num_heads= (4,4,8,8)
+            ,num_heads= (2,8,8,8)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
             ,img_size=(48, 192, 160)
@@ -152,7 +152,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
             ,is_swin=False
             ,is_local_iso=False
             ,is_local_non_iso=True
-            ,distances=(8,8,16)
+            # ,distances=(8,8,16)
+            ,distances=(8,8,8)
             ,spacing=(3.299999952316284,0.78125, 0.78125)
             ,feature_size=32 )
 
@@ -222,7 +223,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             #accelerator="cpu", #TODO(remove)
             max_epochs=1000,
             #gpus=1,
-            precision=16, 
+            # precision=16, 
             callbacks=[checkpoint_callback], # early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
@@ -234,7 +235,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             gradient_clip_val = 2.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
                         # ,reload_dataloaders_every_n_epochs=1
-            ,strategy="deepspeed_stage_2"#_offload
+            ,strategy="deepspeed_stage_3"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """

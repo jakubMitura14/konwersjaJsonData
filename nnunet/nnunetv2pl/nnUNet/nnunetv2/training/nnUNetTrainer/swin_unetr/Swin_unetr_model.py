@@ -661,9 +661,10 @@ class BasicLayer(nn.Module):
         }
         if(self.i_layer==2):
             my_config = {
-                "name": "linformer",  # you can easily make this dependent on a file, sweep,..
+                "name": "nystrom",  # you can easily make this dependent on a file, sweep,..
                 "dropout": DROPOUT,
                 "seq_len": SEQ,
+                "num_heads":num_heads,
                 "attention_query_mask": None#torch.rand((SEQ, 1)) < 0.3, # some dummy mask
             }  
         else:
@@ -691,9 +692,9 @@ class BasicLayer(nn.Module):
         self.pos_emb=LearnablePositionalEmbedding(SEQ,EMB, add_class_token=False)
 
     def forward(self, x):
-        return checkpoint.checkpoint(self.forward_main,x)
-    
-    def forward_main(self, x):
+        x,B, N, C= checkpoint.checkpoint(self.forward_main_a,x)
+        return checkpoint.checkpoint(self.forward_main_b,x,B, N, C)
+    def forward_main_a(self, x):
         x_shape=x_prim = x.size() 
         b, c, d, h, w = x_shape
         # print(f"pppkkk {x_shape} self.calced_input_size {self.calced_input_size}")
@@ -730,12 +731,17 @@ class BasicLayer(nn.Module):
         if(self.i_layer!=2):
             out =  self.attn_mask._mat.to('cuda')
             attn_mask=type( self.attn_mask)._wrap(out)            
-            x=self.multi_head.to("cuda")(q, k, v,attn_mask)
+            # x=self.multi_head.to("cuda")(q, k, v,attn_mask)
+            x=self.multi_head(q, k, v,attn_mask)
+            
         else:
-            x=self.multi_head.to("cuda")(q, k, v)
+            x=self.multi_head(q, k, v)
+            # x=self.multi_head.to("cuda")(q, k, v)
+            
         # x = xops.memory_efficient_attention(q, k, v, op=None)
-
+        return x,B, N, C
         # self.rel_pos_embedding(x,N)
+    def forward_main_b(self, x,B, N, C):
     
         x = x.reshape(B, self.num_heads, N, C // self.num_heads)
 
@@ -923,41 +929,36 @@ class SwinTransformer(nn.Module):
     
 
     def forward(self, x, normalize=True):
-        x0 = self.patch_embed(x)
+        x0 = checkpoint.checkpoint(self.patch_embed,x)
 
         x0 = self.pos_drop(x0)
-        x0_out = self.proj_out(x0, normalize)
-        # print(f"000000  x0_out {x0_out.shape}")
+        x0_out = checkpoint.checkpoint(self.proj_out,x0, normalize)
 
         if self.use_v2:
-            x0 = self.layers1c[0](x0.contiguous())
-        x1 = self.layers1[0](x0.contiguous())
-        # print(f"000000  x1 {x1.shape}")
+            x0 = checkpoint.checkpoint(self.layers1c[0],x0.contiguous())
+        x1 = checkpoint.checkpoint(self.layers1[0],x0.contiguous())
 
-        x1_out = self.proj_out(x1, normalize)
-        # print(f"000000  x1_out {x1_out.shape}")
+        x1_out = checkpoint.checkpoint(self.proj_out,x1, normalize)
 
         if self.use_v2:
-            x1 = self.layers2c[0](x1.contiguous())
-        x2 = self.layers2[0](x1.contiguous())
-        # print(f"000000  x2 {x1.shape}")
+            x1 = checkpoint.checkpoint(self.layers2c[0],x1.contiguous())
+        x2 = checkpoint.checkpoint(self.layers2[0],x1.contiguous())
 
-        x2_out = self.proj_out(x2, normalize)
-        # print(f"000000  x2_out {x2_out.shape}")
+        x2_out = checkpoint.checkpoint(self.proj_out,x2, normalize)
 
         if self.use_v2:
-            x2 = self.layers3c[0](x2.contiguous())
-        x3 = self.layers3[0](x2.contiguous())
-        x3_out = self.proj_out(x3, normalize)
-        if self.use_v2:
-            x3 = self.layers4c[0](x3.contiguous())
+            x2 = checkpoint.checkpoint(self.layers3c[0],(x2.contiguous()))
+        x3 = checkpoint.checkpoint(self.layers3[0],x2.contiguous())
+        x3_out = checkpoint.checkpoint(self.proj_out,x3, normalize)
+        # if self.use_v2:
+        #     x3 = self.layers4c[0](x3.contiguous())
         # x4 = self.layers4[0](x3.contiguous())
         # x4_out = self.proj_out(x4, normalize)
         # aaa=1/0
         return [x0_out, x1_out, x2_out, x3_out]#x4_out
 
 
-import h5py
+# import h5py
 
 # network=SwinUNETR(in_channels=3
 #                                    ,num_heads= (2,2,2,2)

@@ -185,7 +185,6 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
     if(anatomy_metr):
         res= list(itertools.chain(*res))
         res= list(itertools.chain(*res))
-        print(f"lennnnnnnnnn {len(res)}")
 
         grouped_by_metr_name=  list(dict(groupby(lambda row : row[0],res)).items())
         grouped_by_metr_name =list(map(lambda tupl: (tupl[0],list(map(lambda inner_tupl: inner_tupl[1], tupl[1])) )   ,grouped_by_metr_name))
@@ -298,8 +297,8 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         #     list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
        
         
-        if(group_name=='val'):
-            print(f"bbbbatch_idd {batch_idd} batch_ids {batch_ids} group_name {group_name} shapp {shapp}")
+        # if(group_name=='val'):
+        #     print(f"bbbbatch_idd {batch_idd} batch_ids {batch_ids} group_name {group_name} shapp {shapp}")
         arrs=list(map(lambda bi: (predicted_segmentation_onehot[bi,:,:,:],target[bi,:,:,:]) ,range(shapp[0])))
             
         # metr_res ='/workspaces/konwersjaJsonData/explore/metr.csv'

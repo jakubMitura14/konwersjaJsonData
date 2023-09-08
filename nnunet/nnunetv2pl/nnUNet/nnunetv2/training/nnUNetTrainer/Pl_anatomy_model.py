@@ -172,7 +172,6 @@ class Pl_anatomy_model(pl.LightningModule):
         if(not self.is_classic_nnunet):
             target=self.transform_gold(target)
 
-        # print(f"tttt target {len(target)}   {target[0].shape}")
         
         epoch=self.current_epoch
         l=self.loss(output, target)
@@ -196,7 +195,6 @@ class Pl_anatomy_model(pl.LightningModule):
 
         targets=[target[0]]
         shapes=[shape_0,shape_1,shape_2,shape_3,shape_4,shape_5]     
-        # print(f"ttttttttttt {target[0].shape}")   
         for j in range(len(target)):
             if(j>0):
                 loc_res=torch.nn.functional.interpolate(input=target[j],size=shapes[j])
@@ -232,10 +230,7 @@ class Pl_anatomy_model(pl.LightningModule):
         # with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
         output = network(data)
 
-        for i,dat in enumerate(output):
-            print(f"oooo data {i}   {dat.shape}")
-        for i,dat in enumerate(target):
-            print(f"ttt target {i}   {dat.shape}")
+
 
         # print(f"ooooooo max {output[0].max()} min {output[0].min()}")
         # del data

@@ -17,7 +17,6 @@ import torch
     
 #     targets=[target[0]]
 #     shapes=[seg_shape,shape_1,shape_2,shape_3,shape_4]     
-#     print(f"ttttttttttt {target[1].shape}  |  {shape_1}     ll {len(target)}")   
 #     for j in range():
 #         if(j>0):
 #             tensor=torch.unsqueeze(torch.tensor(target[j]),dim=0)

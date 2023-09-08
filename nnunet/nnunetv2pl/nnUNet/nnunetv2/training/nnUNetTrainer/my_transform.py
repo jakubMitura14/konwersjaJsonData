@@ -193,7 +193,6 @@ class One_former_preprocess(LocalTransform):
         task_inputs= task_inputs[0:2]# TODO remove
         # print(f"dddddddddddddata {data[0].shape}  segmentation_maps {segmentation_maps[0].shape} task_inputs {task_inputs} ")
         
-        # print(f"tttttttttt sssssssssssssegmentation_maps {segmentation_maps[0].shape} \n \n dddddddddddddddata {data[0].shape}")
 
 
         # data=list(batched(data,n_split))
