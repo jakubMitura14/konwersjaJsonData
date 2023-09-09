@@ -724,7 +724,7 @@ class BasicLayer(nn.Module):
         self.norm_layer1=nn.LayerNorm(calced_input_size[1])
 
         self.clinical_dense=nn.Linear(3,dim)
-        self.clinical_MLP=FusedMLP(dim_model=dim,activation ="gelu",hidden_layer_multiplier=1,dropout=0.05)
+        # self.clinical_MLP=FusedMLP(dim_model=dim,activation ="gelu",hidden_layer_multiplier=1,dropout=0.05)
 
         
 
@@ -858,7 +858,10 @@ class BasicLayer(nn.Module):
         # x = self.proj(x)
         # x = self.proj_drop(x)
         x=self.norm_layer1(x)
-        x= self.mlp(x)+self.clinical_MLP(self.clinical_dense(clinical )) 
+        clinical= torch.tensor(clinical).to('cuda').float()
+        c= torch.nn.functional.relu(self.clinical_dense.to('cuda')(clinical ))      
+        x=x+c
+        x= self.mlp(x)#+self.clinical_MLP(self.clinical_dense(clinical )) 
         
 
         x= einops.rearrange( x,'b (d h w) c->b d h w c' 

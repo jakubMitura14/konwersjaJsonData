@@ -126,6 +126,10 @@ class nnUNetDataset(object):
                 seg_prev = np.load(entry['seg_from_prev_stage_file'])['seg']
             seg = np.vstack((seg, seg_prev[None]))
         row= list(filter(lambda roww : roww['patient_id']== self.get_id_from_file_name(entry['data_file']),self.our_prost_rows))
+        if(len(row)==0):            
+            print(f"eeeeeeeeee id {self.get_id_from_file_name(entry['data_file'])} file {entry['data_file']}  lll {len(row)}")
+            row= [{'dre_result':-1.0,'patient_age':-1.0, 'psa_result' :-1.0 }]
+
         return data, seg, entry['properties'],row
 
 

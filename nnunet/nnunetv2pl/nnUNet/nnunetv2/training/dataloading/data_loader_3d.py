@@ -27,6 +27,13 @@ import torch
 #             targets.append(loc_res)
 #     return targets
 
+def my_to_float(strr):
+    if(type(strr) is float):
+        return strr
+    strr= strr.replace(",",".")
+    return float(strr)
+    
+
 class nnUNetDataLoader3D(nnUNetDataLoaderBase):
     def generate_train_batch(self):
         selected_keys = self.get_indices()
@@ -71,11 +78,9 @@ class nnUNetDataLoader3D(nnUNetDataLoaderBase):
             padding = [(-min(0, bbox_lbs[i]), max(bbox_ubs[i] - shape[i], 0)) for i in range(dim)]
             data_all[j] = np.pad(data, ((0, 0), *padding), 'constant', constant_values=0)
             seg_all[j] = np.pad(seg, ((0, 0), *padding), 'constant', constant_values=-1)
-            clinical = list(map(lambda row : np.array([float(row['dre_result']),float(row['patient_age']),float(row['psa_result'])]), rows))
+            clinical = list(map(lambda row : np.array([my_to_float(row['dre_result']),my_to_float(row['patient_age']),my_to_float(row['psa_result'])]), rows))
             clinical= np.stack(clinical)
-            print(f"ccc clinical {clinical}")
-            print(f"cccbb clinical {clinical.shape}")
-            
+
             # seg_all=transform_gold(seg_all,self.seg_shape)
         return {'data': data_all, 'seg': seg_all, 'properties': case_properties, 'keys': selected_keys, 'clinical':clinical}
 
