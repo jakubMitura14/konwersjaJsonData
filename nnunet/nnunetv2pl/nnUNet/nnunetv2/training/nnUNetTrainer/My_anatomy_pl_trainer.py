@@ -210,7 +210,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         toMonitor="avgHausdorff_all_val"
         checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode='min', save_top_k=1, monitor=toMonitor)
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
-        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=1e-3)
+        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=1e-4)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
@@ -278,7 +278,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
 
         # tuner = Tuner(self.trainer)
         # tuner.lr_find(self.pl_model, attr_name="learning_rate")
-        self.trainer.fit(self.pl_model)#, ckpt_path='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=14-step=375.ckpt')
+        
+        deep_speed_ckpt='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=44-step=900.ckpt'
+        self.trainer.fit(self.pl_model)#  , ckpt_path=deep_speed_ckpt , ckpt_path='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=14-step=375.ckpt')
+        
+        
         
         self.on_train_end()
         # shutil.rmtree(self.default_root_dir)
