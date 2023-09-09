@@ -366,7 +366,7 @@ class SwinUNETR(nn.Module):
             conv_only=False,
             is_transposed=False,
         )
-
+        self.normalize=True
         # self.decoder_0=UnetrUpBlock(
         #     spatial_dims=spatial_dims,
         #     in_channels=img_size[1],
@@ -379,9 +379,9 @@ class SwinUNETR(nn.Module):
         # self.decoders[0]=self.decoder_0
                 # #dec4 torch.Size([5, 384, 3, 3, 3]) dec3 torch.Size([5, 192, 6, 6, 6]) dec2 torch.Size([5, 96, 12, 12, 12]) dec1 torch.Size([5, 48, 24, 24, 24]) dec0 torch.Size([5, 24, 48, 48, 48]) out torch.Size([5, 24, 96, 96, 96])
 
-    def forward(self, x_in):
+    def forward(self, x_in,clinical):
         # print(f"fffffirst x_in {x_in.shape}")
-        hidden_states_out = self.swinViT(x_in, self.normalize)
+        hidden_states_out = self.swinViT(x_in,clinical)
         # print(f"hhhhhhhhh 0 {hidden_states_out[0].shape} a {hidden_states_out[1].shape} b  {hidden_states_out[2].shape}  c {hidden_states_out[3].shape}")
         enc0 = self.encoder_0(x_in)
         enc1 = self.encoders[0].to('cuda')(hidden_states_out[0])
@@ -723,7 +723,10 @@ class BasicLayer(nn.Module):
         self.norm_layer0=nn.LayerNorm(calced_input_size[1])
         self.norm_layer1=nn.LayerNorm(calced_input_size[1])
 
+        self.clinical_dense=nn.Linear(3,dim)
+        self.clinical_MLP=FusedMLP(dim_model=dim,activation ="gelu",hidden_layer_multiplier=1,dropout=0.05)
 
+        
 
         # self.attn_mask = SparseCSRTensor._wrap(shape, values, row_indices, row_offsets, column_indices, _transp_info)
         self.attn_mask = load_attn_mask_from_h5(h5f=attn_masks_h5f
@@ -782,16 +785,20 @@ class BasicLayer(nn.Module):
             attention=attention,
         )
         self.new_emb=False
-        self.my_simple_rel_emb=True
-        # self.pos_emb=LearnablePositionalEmbedding(SEQ,EMB, add_class_token=False)
+        self.my_simple_rel_emb=False
+        self.xformers_relative_embed=True
+        if(self.xformers_relative_embed):
+            self.pos_emb=LearnablePositionalEmbedding(SEQ,EMB, add_class_token=False)
         if(self.new_emb):
             self.pos_emb=encoding_func_3D('Gau')
         if(self.my_simple_rel_emb):
             self.loc_dists=load_loc_dist_from_h5(attn_masks_h5f,is_swin,is_local_iso,is_local_non_iso ,window_size ,distances[i_layer] , (calced_input_size[2],calced_input_size[3],calced_input_size[4]),spacing )    
 
-    def forward(self, x):
+
+
+    def forward(self, x,clinical):
         x,B, N, C= checkpoint.checkpoint(self.forward_main_a,x)
-        return checkpoint.checkpoint(self.forward_main_b,x,B, N, C)
+        return checkpoint.checkpoint(self.forward_main_b,x,B, N, C,clinical)
     def forward_main_a(self, x):
         x_shape=x_prim = x.size() 
         b, c, d, h, w = x_shape
@@ -837,13 +844,13 @@ class BasicLayer(nn.Module):
             loc_dists= torch.cat([self.loc_dists for _ in range(v.shape[0])], dim=0).to('cuda')
             x= x+ torch.bmm(loc_dists,v)
 
-        if(self.new_emb):
+        if(self.new_emb or self.xformers_relative_embed):
             x=self.pos_emb(x)
 
         # x = xops.memory_efficient_attention(q, k, v, op=None)
         return x,B, N, C
         # self.rel_pos_embedding(x,N)
-    def forward_main_b(self, x,B, N, C):
+    def forward_main_b(self, x,B, N, C,clinical):
     
         x = x.reshape(B, self.num_heads, N, C // self.num_heads)
 
@@ -851,7 +858,8 @@ class BasicLayer(nn.Module):
         # x = self.proj(x)
         # x = self.proj_drop(x)
         x=self.norm_layer1(x)
-        x= self.mlp(x)
+        x= self.mlp(x)+self.clinical_MLP(self.clinical_dense(clinical )) 
+        
 
         x= einops.rearrange( x,'b (d h w) c->b d h w c' 
                                 ,d=int(self.calced_input_size[2])
@@ -1030,27 +1038,27 @@ class SwinTransformer(nn.Module):
 
     
 
-    def forward(self, x, normalize=True):
+    def forward(self, x,clinical):
         x0 = checkpoint.checkpoint(self.patch_embed,x)
-
+        normalize=True
         x0 = self.pos_drop(x0)
         x0_out = checkpoint.checkpoint(self.proj_out,x0, normalize)
 
         if self.use_v2:
             x0 = checkpoint.checkpoint(self.layers1c[0],x0.contiguous())
-        x1 = checkpoint.checkpoint(self.layers1[0],x0.contiguous())
+        x1 = checkpoint.checkpoint(self.layers1[0],x0.contiguous(),clinical)
 
         x1_out = checkpoint.checkpoint(self.proj_out,x1, normalize)
 
         if self.use_v2:
             x1 = checkpoint.checkpoint(self.layers2c[0],x1.contiguous())
-        x2 = checkpoint.checkpoint(self.layers2[0],x1.contiguous())
+        x2 = checkpoint.checkpoint(self.layers2[0],x1.contiguous(),clinical)
 
         x2_out = checkpoint.checkpoint(self.proj_out,x2, normalize)
 
         if self.use_v2:
             x2 = checkpoint.checkpoint(self.layers3c[0],(x2.contiguous()))
-        x3 = checkpoint.checkpoint(self.layers3[0],x2.contiguous())
+        x3 = checkpoint.checkpoint(self.layers3[0],x2.contiguous(),clinical)
         x3_out = checkpoint.checkpoint(self.proj_out,x3, normalize)
         # if self.use_v2:
         #     x3 = self.layers4c[0](x3.contiguous())
@@ -1060,39 +1068,30 @@ class SwinTransformer(nn.Module):
         return [x0_out, x1_out, x2_out, x3_out]#x4_out
 
 
-import h5py
+# import h5py
 
+# attn_masks_h5f_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
+
+# attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
 # network=SwinUNETR(in_channels=3
-#                                    ,num_heads= (2,2,2,2)
-#                                 #    ,num_heads= (6, 12, 12, 24)
+#         ,num_heads= (2,8,8)
+#         ,out_channels=3
+#         ,use_v2=True#
+#         ,img_size=(32, 32, 32)
+#         ,patch_size=(2,2,2)
+#         ,batch_size=1
+#         ,attn_masks_h5f=attn_masks_h5f
+#         ,is_swin=False
+#         ,is_local_iso=True
+#         ,is_local_non_iso=False
+#         ,distances=(8,8,8)#(4,4,4,4)
+#         ,spacing=(3.299999952316284,0.78125, 0.78125)
+#         ,feature_size=32
+#         ,window_size=4
+#         ,shift_size=2
+#         ).to(device='cuda')
 
-#                         ,out_channels=3
-#                         ,use_v2=True#
-#                         ,img_size=(64, 64, 64)
-#                         ,patch_size=(2,2,2)
-#                         ,batch_size=1).to(device='cuda')
-attn_masks_h5f_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
+# attn_masks_h5f.close()
 
-attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
-network=SwinUNETR(in_channels=3
-        ,num_heads= (2,8,8)
-        ,out_channels=3
-        ,use_v2=True#
-        ,img_size=(32, 32, 32)
-        ,patch_size=(2,2,2)
-        ,batch_size=1
-        ,attn_masks_h5f=attn_masks_h5f
-        ,is_swin=False
-        ,is_local_iso=True
-        ,is_local_non_iso=False
-        ,distances=(8,8,8)#(4,4,4,4)
-        ,spacing=(3.299999952316284,0.78125, 0.78125)
-        ,feature_size=32
-        ,window_size=4
-        ,shift_size=2
-        ).to(device='cuda')
-
-attn_masks_h5f.close()
-
-network(torch.ones((1,3,32, 32, 32)).float().to(device='cuda'))
-# network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'))
+# network(torch.ones((1,3,32, 32, 32)).float().to(device='cuda'),torch.ones((1,3)).float().to(device='cuda') )
+# # network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'))

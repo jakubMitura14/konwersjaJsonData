@@ -43,7 +43,7 @@ class nnUNetDataLoader3D(nnUNetDataLoaderBase):
             # (Lung for example)
             force_fg = self.get_do_oversample(j)
 
-            data, seg, properties = self._data.load_case(i)
+            data, seg, properties,row = self._data.load_case(i)
 
             # If we are doing the cascade then the segmentation from the previous stage will already have been loaded by
             # self._data.load_case(i) (see nnUNetDataset.load_case)
@@ -72,7 +72,7 @@ class nnUNetDataLoader3D(nnUNetDataLoaderBase):
             data_all[j] = np.pad(data, ((0, 0), *padding), 'constant', constant_values=0)
             seg_all[j] = np.pad(seg, ((0, 0), *padding), 'constant', constant_values=-1)
             # seg_all=transform_gold(seg_all,self.seg_shape)
-        return {'data': data_all, 'seg': seg_all, 'properties': case_properties, 'keys': selected_keys}
+        return {'data': data_all, 'seg': seg_all, 'properties': case_properties, 'keys': selected_keys, 'clinical':np.array([float(row['dre_result']),float(row['patient_age']),float(row['psa_result'])])}
 
 
 # if __name__ == '__main__':

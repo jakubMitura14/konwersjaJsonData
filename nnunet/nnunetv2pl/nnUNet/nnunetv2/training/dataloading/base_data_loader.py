@@ -6,6 +6,7 @@ from batchgenerators.utilities.file_and_folder_operations import *
 from nnunetv2.training.dataloading.nnunet_dataset import nnUNetDataset
 from nnunetv2.utilities.label_handling.label_handling import LabelManager
 
+import pandas as pd
 
 class nnUNetDataLoaderBase(DataLoader):
     def __init__(self,
@@ -42,6 +43,10 @@ class nnUNetDataLoaderBase(DataLoader):
         self.get_do_oversample = self._oversample_last_XX_percent if not probabilistic_oversampling \
             else self._probabilistic_oversampling
 
+
+
+
+
     def _oversample_last_XX_percent(self, sample_idx: int) -> bool:
         """
         determines whether sample sample_idx in a minibatch needs to be guaranteed foreground
@@ -54,7 +59,7 @@ class nnUNetDataLoaderBase(DataLoader):
 
     def determine_shapes(self):
         # load one case
-        data, seg, properties = self._data.load_case(self.indices[0])
+        data, seg, properties,row = self._data.load_case(self.indices[0])
         num_color_channels = data.shape[0]
 
         data_shape = (self.batch_size, num_color_channels, *self.patch_size)

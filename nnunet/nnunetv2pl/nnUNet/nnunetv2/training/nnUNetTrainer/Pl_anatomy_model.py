@@ -167,8 +167,12 @@ class Pl_anatomy_model(pl.LightningModule):
         
         data = batch['data']
         target = batch['target']
-        output = self.network(data)
-        
+        clinical = batch['clinical']
+        network=self.network
+        if(self.is_swin):
+            output = network(data,clinical)
+        else:
+            output = network(data)        
         if(not self.is_classic_nnunet):
             target=self.transform_gold(target)
 
@@ -210,6 +214,7 @@ class Pl_anatomy_model(pl.LightningModule):
 
         data = batch['data']
         target = batch['target']
+        clinical = batch['clinical']
 
 
         if(not self.is_classic_nnunet):
@@ -228,9 +233,10 @@ class Pl_anatomy_model(pl.LightningModule):
         # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
         # So autocast will only be active if we have a cuda device.
         # with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
-        output = network(data)
-
-
+        if(self.is_swin):
+            output = network(data,clinical)
+        else:
+            output = network(data)
 
         # print(f"ooooooo max {output[0].max()} min {output[0].min()}")
         # del data

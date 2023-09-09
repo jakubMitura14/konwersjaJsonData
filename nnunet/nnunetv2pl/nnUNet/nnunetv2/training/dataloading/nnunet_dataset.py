@@ -6,7 +6,7 @@ import shutil
 
 from batchgenerators.utilities.file_and_folder_operations import join, load_pickle, isfile
 from nnunetv2.training.dataloading.utils import get_case_identifiers
-
+import pandas as pd
 
 class nnUNetDataset(object):
     def __init__(self, folder: str, case_identifiers: List[str] = None,
@@ -56,6 +56,15 @@ class nnUNetDataset(object):
                                (os.environ['nnUNet_keep_files_open'].lower() in ('true', '1', 't'))
         # print(f'nnUNetDataset.keep_files_open: {self.keep_files_open}')
 
+        df=pd.read_csv("/workspaces/konwersjaJsonData/CRF.csv")
+        df=df[['patient_id','dre_result','patient_age','psa_result']].replace("Dodatni (+)", "1.0")
+        df=df[['patient_id','dre_result','patient_age','psa_result']].replace("Ujemny (-)", "0.0")
+        df['dre_result']=pd.to_numeric(df['dre_result'])
+        df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
+        self.our_prost_res_df=df
+        self.our_prost_rows= df.iterrows()
+        self.our_prost_rows= list(map(lambda tupl:tupl[1],self.our_prost_rows))
+
     def __getitem__(self, key):
         ret = {**self.dataset[key]}
         if 'properties' not in ret.keys():
@@ -77,8 +86,17 @@ class nnUNetDataset(object):
     def values(self):
         return self.dataset.values()
 
+    def get_id_from_file_name(self,path_str):
+        # path_str=path_str.replace('.npz','')
+        path_str=os.path.basename(path_str)
+        path_str=path_str[1:5]
+        return int(path_str)
+
     def load_case(self, key):
         entry = self[key]
+        # print(f"kkkkkkkkkkkkkkkk  {entry.keys()}  entry['data_file']  {entry['data_file']}  calced {self.get_id_from_file_name(entry['data_file'])}")
+
+
         if 'open_data_file' in entry.keys():
             data = entry['open_data_file']
             # print('using open data file')
@@ -107,8 +125,9 @@ class nnUNetDataset(object):
             else:
                 seg_prev = np.load(entry['seg_from_prev_stage_file'])['seg']
             seg = np.vstack((seg, seg_prev[None]))
-
-        return data, seg, entry['properties']
+        row= list(filter(lambda roww : roww['patient_id']== self.get_id_from_file_name(entry['data_file']),self.our_prost_rows))
+        print(f"rrrr {row}")
+        return data, seg, entry['properties'],row
 
 
 if __name__ == '__main__':
