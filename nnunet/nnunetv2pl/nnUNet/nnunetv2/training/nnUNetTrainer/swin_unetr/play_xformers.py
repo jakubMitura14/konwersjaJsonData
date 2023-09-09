@@ -179,7 +179,6 @@ class VisionTransformer(pl.LightningModule):
     def evaluate(self, batch, stage=None):
         x, y = batch
         y_hat = self.vit(x)
-        print(f"rrrrrres {y_hat.shape}")
         loss = self.criterion(y_hat, y)
         acc = self.val_accuracy(y_hat, y)
 

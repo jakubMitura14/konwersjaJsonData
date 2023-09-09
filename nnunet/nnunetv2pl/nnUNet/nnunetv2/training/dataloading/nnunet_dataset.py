@@ -126,7 +126,6 @@ class nnUNetDataset(object):
                 seg_prev = np.load(entry['seg_from_prev_stage_file'])['seg']
             seg = np.vstack((seg, seg_prev[None]))
         row= list(filter(lambda roww : roww['patient_id']== self.get_id_from_file_name(entry['data_file']),self.our_prost_rows))
-        print(f"rrrr {row}")
         return data, seg, entry['properties'],row
 
 
