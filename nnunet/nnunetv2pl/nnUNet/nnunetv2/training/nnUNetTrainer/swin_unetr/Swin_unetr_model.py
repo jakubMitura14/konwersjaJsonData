@@ -20,6 +20,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from torch.nn import LayerNorm
+import torch.nn.functional as F
 
 from monai.networks.blocks import MLPBlock as Mlp
 from monai.networks.blocks import *
@@ -91,6 +92,7 @@ def load_sparse_sputnik(h5f,group_name):
 def load_attn_mask_from_h5(h5f,is_swin,is_local_iso,is_local_non_iso ,window_size ,distance , img_size_curr,spacing ):
     
     group_name=f"{int(img_size_curr[0])}_{int(img_size_curr[1])}_{int(img_size_curr[2])}"
+    print(f"ggg group_name {group_name}")
     if(is_swin):
         group_name=f"{group_name}/swin/window_{window_size}/main"
         return load_sparse_sputnik(h5f,group_name)
@@ -720,8 +722,8 @@ class BasicLayer(nn.Module):
         # self.proj_drop = nn.Dropout(proj_drop)
         self.mlp=FusedMLP(dim_model=dim,activation ="gelu",hidden_layer_multiplier=4,dropout=0.05)
         # self.rel_pos_embedding=Relative_position_embedding_3d(dim,num_heads,(calced_input_size[2],calced_input_size[3],calced_input_size[4]))
-        self.norm_layer0=nn.LayerNorm(calced_input_size[1])
-        self.norm_layer1=nn.LayerNorm(calced_input_size[1])
+        self.norm1=nn.LayerNorm(calced_input_size[1])
+        self.norm2=nn.LayerNorm(calced_input_size[1])
 
         self.clinical_dense=nn.Linear(3,dim)
         self.clinical_MLP=FusedMLP(dim_model=dim,activation ="gelu",hidden_layer_multiplier=1,dropout=0.05)
@@ -755,23 +757,23 @@ class BasicLayer(nn.Module):
             "seq_len": SEQ,
             "attention_query_mask": None#torch.rand((SEQ, 1)) < 0.3, # some dummy mask
         }
-        if(self.i_layer==2):
-            my_config = {
-                "name": "nystrom",  # you can easily make this dependent on a file, sweep,..
-                "dropout": DROPOUT,
-                "seq_len": SEQ,
-                "num_heads":num_heads,
-                "attention_query_mask": None#torch.rand((SEQ, 1)) < 0.3, # some dummy mask
-            }  
-        else:
-            self.attn_mask = load_attn_mask_from_h5(h5f=attn_masks_h5f
-                                        ,is_swin=is_swin
-                                        ,is_local_iso=is_local_iso
-                                        ,is_local_non_iso=is_local_non_iso
-                                            ,window_size=window_size
-                                            ,distance=distances[i_layer]
-                                        , img_size_curr=(calced_input_size[2],calced_input_size[3],calced_input_size[4])
-                                        ,spacing=spacing )    
+        # if(self.i_layer==2):
+        #     my_config = {
+        #         "name": "nystrom",  # you can easily make this dependent on a file, sweep,..
+        #         "dropout": DROPOUT,
+        #         "seq_len": SEQ,
+        #         "num_heads":num_heads,
+        #         "attention_query_mask": None#torch.rand((SEQ, 1)) < 0.3, # some dummy mask
+        #     }  
+        # else:
+        self.attn_mask = load_attn_mask_from_h5(h5f=attn_masks_h5f
+                                    ,is_swin=is_swin
+                                    ,is_local_iso=is_local_iso
+                                    ,is_local_non_iso=is_local_non_iso
+                                        ,window_size=window_size
+                                        ,distance=distances[i_layer]
+                                    , img_size_curr=(calced_input_size[2],calced_input_size[3],calced_input_size[4])
+                                    ,spacing=spacing )    
         # attention = xops.memory_efficient_attention
 
         attention=build_attention(my_config)
@@ -797,8 +799,8 @@ class BasicLayer(nn.Module):
 
 
     def forward(self, x,clinical):
-        x,B, N, C= checkpoint.checkpoint(self.forward_main_a,x)
-        return checkpoint.checkpoint(self.forward_main_b,x,B, N, C,clinical)
+        x,B, N, C,shortcut= checkpoint.checkpoint(self.forward_main_a,x)
+        return checkpoint.checkpoint(self.forward_main_b,x,B, N, C,clinical,shortcut)
     def forward_main_a(self, x):
         x_shape=x_prim = x.size() 
         b, c, d, h, w = x_shape
@@ -809,7 +811,8 @@ class BasicLayer(nn.Module):
                                 ,w=int(self.calced_input_size[4])
                                 )
         B, N, C = x.shape
-        self.norm_layer0(x)
+        shortcut=x
+        # self.norm_layer0(x)
         qkv=self.qkv(x)
 
         qkv = (
@@ -817,15 +820,8 @@ class BasicLayer(nn.Module):
             .reshape(B, N, 3, self.num_heads, C // self.num_heads)
             .permute(2, 0, 3, 1, 4)
         )
-        qkv_prim=qkv.shape
         qkv = qkv.flatten(1, 2)
-
-
         q, k, v = qkv.unbind()
-        # divv=C // self.num_heads
-        # seqq= ((B*N*self.num_heads)/divv)
-        # print(f"qqqqqqq qkv_prim {qkv_prim} {q.shape} qkv_0 {qkv_0} N {N} calced_n {d*h*w} C {C} seqq {d*h*w} divv {divv} ")
-
 
 
         # x = scaled_dot_product_attention(q, k, v, self.attn_mask.to(device='cuda'), dropout=self.attn_drop)
@@ -833,12 +829,13 @@ class BasicLayer(nn.Module):
 
         # x = scaled_dot_product_attention(q.to(device='cuda'), k.to(device='cuda'), v.to(device='cuda'), attn_mask, dropout=self.attn_drop.to(device='cuda'))        
         
-        if(self.i_layer!=2):
-            out =  self.attn_mask._mat.to('cuda')
-            attn_mask=type( self.attn_mask)._wrap(out)            
-            x=self.multi_head(q, k, v,attn_mask)
-        else:
-            x=self.multi_head(q, k, v)
+        # if(self.i_layer!=2):
+        out =  self.attn_mask._mat.to('cuda')
+        attn_mask=type( self.attn_mask)._wrap(out)            
+        x=self.multi_head(F.normalize(q, dim=-1), F.normalize(k, dim=-1), v,attn_mask)
+        # else:
+        #     x=self.multi_head(F.normalize(q, dim=-1), F.normalize(k, dim=-1), v)
+
 
         if(self.my_simple_rel_emb):
             loc_dists= torch.cat([self.loc_dists for _ in range(v.shape[0])], dim=0).to('cuda')
@@ -848,23 +845,29 @@ class BasicLayer(nn.Module):
             x=self.pos_emb(x)
 
         # x = xops.memory_efficient_attention(q, k, v, op=None)
-        return x,B, N, C
+        return x,B, N, C,shortcut
         # self.rel_pos_embedding(x,N)
-    def forward_main_b(self, x,B, N, C,clinical):
+    def forward_main_b(self, x,B, N, C,clinical,shortcut):
     
         x = x.reshape(B, self.num_heads, N, C // self.num_heads)
 
         x = x.transpose(1, 2).reshape(B, N, C)
         # x = self.proj(x)
         # x = self.proj_drop(x)
-        x=self.norm_layer1(x)
-        x= self.mlp(x)+self.clinical_MLP(self.clinical_dense(clinical )) 
         
+        x = shortcut + self.drop_path(self.norm1(x))
+
+        # FFN
+        x = x + self.drop_path(self.norm2(self.mlp(x)+self.clinical_MLP(self.clinical_dense(clinical )) ))
+
 
         x= einops.rearrange( x,'b (d h w) c->b d h w c' 
                                 ,d=int(self.calced_input_size[2])
                                 ,h=int(self.calced_input_size[3])
                                 ,w=int(self.calced_input_size[4]) )
+
+
+                        
         # x = x.view(b, d, h, w, -1)
         if self.downsample is not None:
             x = self.downsample(x)
@@ -1068,30 +1071,30 @@ class SwinTransformer(nn.Module):
         return [x0_out, x1_out, x2_out, x3_out]#x4_out
 
 
-# import h5py
+import h5py
 
-# attn_masks_h5f_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
+attn_masks_h5f_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
 
-# attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
-# network=SwinUNETR(in_channels=3
-#         ,num_heads= (2,8,8)
-#         ,out_channels=3
-#         ,use_v2=True#
-#         ,img_size=(32, 32, 32)
-#         ,patch_size=(2,2,2)
-#         ,batch_size=1
-#         ,attn_masks_h5f=attn_masks_h5f
-#         ,is_swin=False
-#         ,is_local_iso=True
-#         ,is_local_non_iso=False
-#         ,distances=(8,8,8)#(4,4,4,4)
-#         ,spacing=(3.299999952316284,0.78125, 0.78125)
-#         ,feature_size=32
-#         ,window_size=4
-#         ,shift_size=2
-#         ).to(device='cuda')
+attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
+network=SwinUNETR(in_channels=3
+        ,num_heads= (2,8,8)
+        ,out_channels=3
+        ,use_v2=True#
+        ,img_size=(32, 32, 32)
+        ,patch_size=(2,2,2)
+        ,batch_size=1
+        ,attn_masks_h5f=attn_masks_h5f
+        ,is_swin=False
+        ,is_local_iso=True
+        ,is_local_non_iso=False
+        ,distances=(8,8,8)#(4,4,4,4)
+        ,spacing=(3.299999952316284,0.78125, 0.78125)
+        ,feature_size=32
+        ,window_size=4
+        ,shift_size=2
+        ).to(device='cuda')
 
-# attn_masks_h5f.close()
+attn_masks_h5f.close()
 
-# network(torch.ones((1,3,32, 32, 32)).float().to(device='cuda'),torch.ones((1,3)).float().to(device='cuda') )
-# # network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'))
+network(torch.ones((1,3,32, 32, 32)).float().to(device='cuda'),torch.ones((1,3)).float().to(device='cuda') )
+# network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'))

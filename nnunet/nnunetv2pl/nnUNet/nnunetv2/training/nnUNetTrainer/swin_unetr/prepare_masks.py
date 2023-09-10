@@ -89,8 +89,19 @@ h5_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
 def _generate_nd_grid(*sizes):
     coords = [torch.arange(s) for s in sizes]
     return torch.meshgrid(*coords)
+def get_init_last(c0,cc):
+    diff=cc-c0
+    beg=diff//2
+    end=diff-beg
+    return beg,end
 
-def swin_attention_pattern_3D(H, W,D, window_size, shift_size=0):
+def swin_attention_pattern_3D(H, W,D, window_size, shift_size=0, mask_other_shape=(0,0)):
+    H0=H
+    W0=W
+    D0=D
+    H= int(math.ceil(H/window_size))*window_size
+    W= int(math.ceil(W/window_size))*window_size
+    D= int(math.ceil(D/window_size))*window_size
     assert H % window_size == 0
     assert W % window_size == 0
     assert D % window_size == 0
@@ -122,6 +133,12 @@ def swin_attention_pattern_3D(H, W,D, window_size, shift_size=0):
 
     anchor_id = torch.cdist(input_coords, anchors_coords, p=2).argmin(1)
     mask = anchor_id[:, None] == anchor_id[None, :]
+    
+    beg_H,end_H=get_init_last(mask_other_shape[0],mask.shape[0])
+    beg_W,end_W=get_init_last(mask_other_shape[1],mask.shape[1])
+    mask=mask[beg_H:mask.shape[0]-end_H,beg_W:mask.shape[1]-end_W ]
+    print(f"mmmm {mask.shape} mask_other_shape {mask_other_shape}")
+
     return mask
 
 
@@ -195,19 +212,20 @@ def local_nd_pattern_with_spacing(*sizes, distance, p=2.0,spacing=(1.0,1.0,1.0))
     return d < distance
 
 def save_dist(loc_dists,to_save_dense_dists,im_size_group,loc_dist_name,distance):
-    gg=im_size_group.create_group(loc_dist_name)
-    if(to_save_dense_dists):
-        loc_dists= einops.rearrange(loc_dists,'a b -> 1 a b')
-        gg.create_dataset(name=f"dist_dense",data= loc_dists.detach().cpu().numpy())
-    else:
-        # print(f"fffffffff {loc_dists.shape}  eye {torch.eye(loc_dists.shape[0]).shape}")
-        loc_dists= einops.rearrange(loc_dists,'a b -> 1 a b')
-        local_mask = loc_dists>distance
-        indicies=torch.argwhere(local_mask)
-        indicies=einops.rearrange(indicies,'a b -> b a')
-        sparse_loc_dist= torch.sparse_coo_tensor(indicies, values=loc_dists[local_mask])
-        gg.create_dataset(name=f"dist_sparse_indicies",data= sparse_loc_dist.coalesce().indices().detach().cpu().numpy())
-        gg.create_dataset(name=f"dist_sparse_values",data= sparse_loc_dist.coalesce().values().detach().cpu().numpy())
+    # gg=im_size_group.create_group(loc_dist_name)
+    # if(to_save_dense_dists):
+    #     loc_dists= einops.rearrange(loc_dists,'a b -> 1 a b')
+    #     gg.create_dataset(name=f"dist_dense",data= loc_dists.detach().cpu().numpy())
+    # else:
+    #     # print(f"fffffffff {loc_dists.shape}  eye {torch.eye(loc_dists.shape[0]).shape}")
+    #     loc_dists= einops.rearrange(loc_dists,'a b -> 1 a b')
+    #     local_mask = loc_dists>distance
+    #     indicies=torch.argwhere(local_mask)
+    #     indicies=einops.rearrange(indicies,'a b -> b a')
+    #     sparse_loc_dist= torch.sparse_coo_tensor(indicies, values=loc_dists[local_mask])
+    #     gg.create_dataset(name=f"dist_sparse_indicies",data= sparse_loc_dist.coalesce().indices().detach().cpu().numpy())
+    #     gg.create_dataset(name=f"dist_sparse_values",data= sparse_loc_dist.coalesce().values().detach().cpu().numpy())
+    pass
 
 def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_size,batch_size,embed_dim,f,to_save_dense_dists_all):
     
@@ -220,14 +238,7 @@ def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_si
         #top organization is based on the image size
         im_size_name=f"{int(img_size_curr[0])}_{int(img_size_curr[1])}_{int(img_size_curr[2])}"
         im_size_group=get_group_or_create(f,im_size_name)
-        ###saving swin
-        # swin_group=get_group_or_create(im_size_group,"swin")
-        # #set on the base of window size
-        # window_size_group=get_group_or_create(swin_group,f"window_{window_size}")
-        # swin_mask=swin_attention_pattern_3D(img_size_curr[0], img_size_curr[1],img_size_curr[2], window_size, shift_size=2)
-        
-        # swin_mask = SparseCS(swin_mask, torch.device("cpu"))
-        # save_sputnik_sparse_tensor(window_size_group,"main",swin_mask)
+
 
         ## saving isovolumetric 
         local_mask=local_nd_pattern(img_size_curr[0],img_size_curr[1],img_size_curr[2],distance=distance)
@@ -239,6 +250,7 @@ def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_si
         save_dist(loc_dists,to_save_dense_dists,distance_group,loc_dist_name,distance)
         ## saving non isovolumetric
         local_mask=local_nd_pattern_with_spacing(img_size_curr[0],img_size_curr[1],img_size_curr[2],distance=distance,spacing=spacing)
+        local_mask_shape= local_mask.shape
         local_mask = SparseCS(local_mask, torch.device("cpu"))
         distance_spacing_group=get_group_or_create(im_size_group,f"dist_{distance}_spacing_{spacing[0]}_{spacing[1]}_{spacing[2]}")
         save_sputnik_sparse_tensor(distance_spacing_group,"non_iso_vol",local_mask)
@@ -247,9 +259,15 @@ def save_sparse_masks(distances,window_size,spacing,num_layers,patch_size,img_si
         save_dist(loc_dists,to_save_dense_dists,distance_spacing_group,loc_dist_name,distance)
 
 
-
-local_nd_distance
-local_nd_distance_with_spacing
+        ###saving swin
+        
+        swin_group=get_group_or_create(im_size_group,"swin")
+        #set on the base of window size
+        window_size_group=get_group_or_create(swin_group,f"window_{window_size}")
+        swin_mask=swin_attention_pattern_3D(img_size_curr[0], img_size_curr[1],img_size_curr[2], window_size, shift_size=2,mask_other_shape=local_mask_shape)
+        
+        swin_mask = SparseCS(swin_mask, torch.device("cpu"))
+        save_sputnik_sparse_tensor(window_size_group,"main",swin_mask)
 
 
 
@@ -258,7 +276,10 @@ feature_size=64
 embed_dim=feature_size
 # save_sparse_masks((4,4,4,4),4,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
 # save_sparse_masks((8,8,8,8),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
-save_sparse_masks((8,8,8,8),6,(3.299999952316284,0.78125, 0.78125),3,(2,2,2),(32, 32, 32),1,embed_dim,f,(False,False,True))
+save_sparse_masks((8,8,8,8,8),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(32, 32, 32),1,embed_dim,f,(False,False,False,False))
+# save_sparse_masks((8,8,8,8),6,(3.299999952316284,0.78125, 0.78125),3,(2,2,2),(32, 32, 32),1,embed_dim,f,(False,False,True))
+
+
 # save_sparse_masks((4,8,16,32),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
 # # save_sparse_masks((4,8,16,16),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)
 # save_sparse_masks((8,16,32,64),6,(3.299999952316284,0.78125, 0.78125),4,(2,2,2),(48, 192, 160),1,embed_dim,f)

@@ -42,7 +42,7 @@ __all__ = [
 ]
 
 
-class SwinUNETR(nn.Module):
+class SwinUNETR_old(nn.Module):
     """
     Swin UNETR based on: "Hatamizadeh et al.,
     Swin UNETR: Swin Transformers for Semantic Segmentation of Brain Tumors in MRI Images
