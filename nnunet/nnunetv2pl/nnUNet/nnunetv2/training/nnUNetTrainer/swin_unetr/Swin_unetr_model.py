@@ -726,7 +726,7 @@ class BasicLayer(nn.Module):
         self.norm2=nn.LayerNorm(calced_input_size[1])
 
         self.clinical_dense=nn.Linear(3,dim)
-        self.clinical_MLP=FusedMLP(dim_model=dim,activation ="gelu",hidden_layer_multiplier=1,dropout=0.05)
+        # self.clinical_MLP=FusedMLP(dim_model=dim,activation ="gelu",hidden_layer_multiplier=1,dropout=0.05)
 
         
 
