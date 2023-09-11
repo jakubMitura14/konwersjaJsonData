@@ -143,7 +143,6 @@ nnunetv2/training/nnUNetTrainer/one_former_my/one_former_model.py
 nnunetv2/training/nnUNetTrainer/one_former_my/processing_oneformer.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/Swin_unetr_model.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/Swin_unetr_model_old.py
-nnunetv2/training/nnUNetTrainer/swin_unetr/Swin_unetr_model_with_cross.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/cross_attention.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/play_xformers.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/prepare_masks.py
