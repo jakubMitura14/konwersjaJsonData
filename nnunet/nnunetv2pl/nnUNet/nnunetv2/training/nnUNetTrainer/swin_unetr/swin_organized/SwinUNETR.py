@@ -179,15 +179,16 @@ class SwinUNETR(nn.Module):
         dec4= self.decoders[3].to('cuda')(dec5,enc3)
         dec3= self.decoders[2].to('cuda')(dec4,enc2)
         dec2= self.decoders[1].to('cuda')(dec3,enc1)
-        print(f"iiiiiiiiiiiiiiii 000  dec2 {dec2.shape}  enc0 {enc0.shape}")
 
         # dec2=self.adaptor(dec2)
         # enc0=self.adaptorB(enc0)
-        print(f"iiiiiiiiiiiiiiii dec2 {dec2.shape}  enc0 {enc0.shape}")
         dec1= dec2+enc0#self.decoders[0].to('cuda')(dec2,enc0)
 
 
-        return [self.outs[0].to('cuda')(dec1),self.outs[1].to('cuda')(dec2),self.outs[2].to('cuda')(dec3),self.outs[3].to('cuda')(dec4),self.outs[4].to('cuda')(dec5)]
+        return [self.outs[0].to('cuda')(dec1)+self.outs[1].to('cuda')(dec2)
+                ,self.outs[2].to('cuda')(dec3)
+                ,self.outs[3].to('cuda')(dec4)
+                ,self.outs[4].to('cuda')(dec5)]
 
 
 
