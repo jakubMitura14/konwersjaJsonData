@@ -43,7 +43,7 @@ from .Pl_anatomy_model import *
 import shutil
 import h5py
 import pytorch_lightning as pl
-from lightning.pytorch.tuner import Tuner
+from pytorch_lightning.tuner import Tuner
 from nnunetv2.utilities.label_handling.label_handling import convert_labelmap_to_one_hot, determine_num_input_channels
 from torch.nn.parallel import DistributedDataParallel as DDP
 
@@ -64,6 +64,19 @@ from transformers import (
 from transformers import AutoImageProcessor
 from .med_next.create_mednext_v1 import *
 from .swin_unetr.swin_organized.SwinUNETR import *
+from pytorch_lightning.callbacks import LearningRateFinder
+
+class FineTuneLearningRateFinder(LearningRateFinder):
+    def __init__(self, milestones, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.milestones = milestones
+
+    def on_fit_start(self, *args, **kwargs):
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+            self.lr_find(trainer, pl_module)
 
 class My_Anatomy_trainer(nnUNetTrainer):
 
@@ -224,7 +237,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             max_epochs=1000,
             #gpus=1,
             # precision=16, 
-            callbacks=[checkpoint_callback], # early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(5, 10,40))], # early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       
@@ -235,7 +248,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
                         # ,reload_dataloaders_every_n_epochs=1
-            ,strategy="deepspeed_stage_1"#_offload
+            # ,strategy="deepspeed_stage_1"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """
