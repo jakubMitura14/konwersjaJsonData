@@ -240,6 +240,7 @@ class Pl_anatomy_model(pl.LightningModule):
 
         # print(f"ooooooo max {output[0].max()} min {output[0].min()}")
         # del data
+
         l = loss(output, target)
         save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)
         self.log("val loss",l.detach().cpu().item(),sync_dist=True)
