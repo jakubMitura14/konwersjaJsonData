@@ -70,6 +70,7 @@ __all__ = [
 ]
 
 def load_sparse_sputnik(h5f,group_name):
+    # print(f"ggg {group_name}")
     group_to_load=h5f[group_name]
     values=torch.tensor(group_to_load['values'][()])
     shape=tuple(group_to_load['shape'][()])
@@ -1070,30 +1071,30 @@ class SwinTransformer(nn.Module):
         return [x0_out, x1_out, x2_out, x3_out]#x4_out
 
 
-import h5py
+# import h5py
 
-attn_masks_h5f_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
+# attn_masks_h5f_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
 
-attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
-network=SwinUNETR(in_channels=3
-        ,num_heads= (2,8,8)
-        ,out_channels=3
-        ,use_v2=True#
-        ,img_size=(32, 32, 32)
-        ,patch_size=(2,2,2)
-        ,batch_size=1
-        ,attn_masks_h5f=attn_masks_h5f
-        ,is_swin=False
-        ,is_local_iso=True
-        ,is_local_non_iso=False
-        ,distances=(8,8,8)#(4,4,4,4)
-        ,spacing=(3.299999952316284,0.78125, 0.78125)
-        ,feature_size=32
-        ,window_size=4
-        ,shift_size=2
-        ).to(device='cuda')
+# attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
+# network=SwinUNETR(in_channels=3
+#         ,num_heads= (2,8,8)
+#         ,out_channels=3
+#         ,use_v2=True#
+#         ,img_size=(48, 192, 160)
+#         ,patch_size=(2,2,2)
+#         ,batch_size=1
+#         ,attn_masks_h5f=attn_masks_h5f
+#         ,is_swin=True
+#         ,is_local_iso=False
+#         ,is_local_non_iso=False
+#         ,distances=(8,8,8)#(4,4,4,4)
+#         ,spacing=(3.299999952316284,0.78125, 0.78125)
+#         ,feature_size=32
+#         ,window_size=4
+#         ,shift_size=2
+#         ).to(device='cuda')
 
-attn_masks_h5f.close()
+# attn_masks_h5f.close()
 
-network(torch.ones((1,3,32, 32, 32)).float().to(device='cuda'),torch.ones((1,3)).float().to(device='cuda') )
-# network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'))
+# network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'),torch.ones((1,3)).float().to(device='cuda') )
+# # network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'))
