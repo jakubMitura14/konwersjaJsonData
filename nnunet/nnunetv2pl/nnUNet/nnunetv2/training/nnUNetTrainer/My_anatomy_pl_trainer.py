@@ -235,7 +235,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
                         # ,reload_dataloaders_every_n_epochs=1
-            # ,strategy="deepspeed_stage_3"#_offload
+            ,strategy="deepspeed_stage_1"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """
