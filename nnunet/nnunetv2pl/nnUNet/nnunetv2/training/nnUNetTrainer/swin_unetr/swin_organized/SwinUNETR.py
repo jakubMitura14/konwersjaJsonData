@@ -164,7 +164,7 @@ class SwinUNETR(nn.Module):
         )
     def forward(self, x_in,clinical):
         hidden_states_out = self.swinViT(x_in, clinical)
-        print(f"x_in {x_in.shape} \n hidden_states_out [0] {hidden_states_out[0].shape} 1) {hidden_states_out[1].shape} 2) {hidden_states_out[2].shape} 3) {hidden_states_out[3].shape} 4) {hidden_states_out[4].shape}" )
+        # print(f"x_in {x_in.shape} \n hidden_states_out [0] {hidden_states_out[0].shape} 1) {hidden_states_out[1].shape} 2) {hidden_states_out[2].shape} 3) {hidden_states_out[3].shape} 4) {hidden_states_out[4].shape}" )
 
         enc0 = self.encoder_0(x_in)
         enc1 = self.encoders[0].to('cuda')(hidden_states_out[0])

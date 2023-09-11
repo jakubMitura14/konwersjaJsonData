@@ -210,7 +210,7 @@ def get_convs(spatial_dims,patch_size,img_size,batch_size,embed_dim,i_layer,beg_
     return (encoder,decoder,out)
     
 
-class SwinUNETR(nn.Module):
+class SwinUNETR_sparse(nn.Module):
     """
     Swin UNETR based on: "Hatamizadeh et al.,
     Swin UNETR: Swin Transformers for Semantic Segmentation of Brain Tumors in MRI Images

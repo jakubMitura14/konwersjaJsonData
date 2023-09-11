@@ -209,6 +209,7 @@ class SwinTransformer(nn.Module):
     def forward(self, x,clinical):
         normalize=True
         x0 =  checkpoint.checkpoint(self.patch_embed,x)
+        # print(f"pppp after patch embed {x0.shape }")
         x0 = self.pos_drop(x0)
         x0_out = self.proj_out(x0, normalize)
         if self.use_v2:
@@ -223,10 +224,9 @@ class SwinTransformer(nn.Module):
             x2 =  checkpoint.checkpoint(self.layers3c[0],x2.contiguous())
         x3 =  checkpoint.checkpoint(self.layers3[0],x2.contiguous(),clinical)
         x3_out = self.proj_out(x3, normalize)
-        if self.use_v2:
-            print(f"lll {len(self.layers4c)}")
-            x3 =  checkpoint.checkpoint(self.layers4c[0],x3.contiguous())
-        x4 =  checkpoint.checkpoint(self.layers4[0],x3.contiguous(),clinical)
-        x4_out = self.proj_out(x4, normalize)
-        return [x0_out, x1_out, x2_out, x3_out, x4_out]
+        # if self.use_v2:
+        #     x3 =  checkpoint.checkpoint(self.layers4c[0],x3.contiguous())
+        # x4 =  checkpoint.checkpoint(self.layers4[0],x3.contiguous(),clinical)
+        # x4_out = self.proj_out(x4, normalize)
+        return [x0_out, x1_out, x2_out, x3_out]#x4_out
 
