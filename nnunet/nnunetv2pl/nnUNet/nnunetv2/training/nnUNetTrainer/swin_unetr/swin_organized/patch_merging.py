@@ -121,6 +121,8 @@ class PatchMerging(PatchMergingV2):
 
 
 
+
+
 def compute_mask(dims, window_size, shift_size, device):
     """Computing region masks based on: "Liu et al.,
     Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
@@ -161,4 +163,48 @@ def compute_mask(dims, window_size, shift_size, device):
     return attn_mask
 
 
+
+
+
+
 MERGING_MODE = {"merging": PatchMerging, "mergingv2": PatchMergingV2}
+
+
+
+
+# class Simplified_no_merge(nn.Module):
+#     """
+#     Patch merging layer based on: "Liu et al.,
+#     Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
+#     <https://arxiv.org/abs/2103.14030>"
+#     https://github.com/microsoft/Swin-Transformer
+#     """
+
+#     def __init__(self, dim: int, norm_layer: type[LayerNorm] = nn.LayerNorm, spatial_dims: int = 3) -> None:
+#         """
+#         Args:
+#             dim: number of feature channels.
+#             norm_layer: normalization layer.
+#             spatial_dims: number of spatial dims.
+#         """
+
+#         super().__init__()
+#         self.dim = dim
+#         self.norm = nn.LayerNorm()
+#         encoder = UnetrBasicBlock(
+#                     spatial_dims=spatial_dims,
+#                     in_channels=img_size[1],
+#                     out_channels=img_size[1],
+#                     kernel_size=3,
+#                     stride=1,
+#                     norm_name=norm_name,
+#                     res_block=True,
+#                 )
+
+#     def forward(self, x):
+#         x_shape = x.size()
+
+#         x = self.norm(x)
+#         return x
+
+

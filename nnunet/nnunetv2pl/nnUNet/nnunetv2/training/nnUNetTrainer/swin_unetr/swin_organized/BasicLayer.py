@@ -239,7 +239,7 @@ class BasicLayer(nn.Module):
         )
         self.downsample = downsample
         if callable(self.downsample):
-            self.downsample = downsample(dim=dim, norm_layer=norm_layer, spatial_dims=len(self.window_size))
+            self.downsample = downsample(dim=dim, norm_layer=norm_layer, spatial_dims=len(self.window_size),)
 
     def forward(self, x,clinical):
         x_shape = x.size()

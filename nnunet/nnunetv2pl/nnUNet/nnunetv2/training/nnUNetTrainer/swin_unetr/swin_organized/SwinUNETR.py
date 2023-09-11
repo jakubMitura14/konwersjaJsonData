@@ -74,7 +74,7 @@ class SwinUNETR(nn.Module):
         super().__init__()
 
         img_size = ensure_tuple_rep(img_size, spatial_dims)
-        patch_size = ensure_tuple_rep(2, spatial_dims)
+        patch_size = patch_size
         window_size = ensure_tuple_rep(7, spatial_dims)
 
         if spatial_dims not in (2, 3):
@@ -127,7 +127,7 @@ class SwinUNETR(nn.Module):
             ,shift_size=shift_size
         )
 
-        convsss=list(map(lambda i: get_convs(spatial_dims,patch_size,img_size,batch_size,feature_size,i,in_channels,norm_name,out_channels),range(4)))
+        convsss=list(map(lambda i: get_convs(spatial_dims,patch_size,img_size,batch_size,feature_size,i,in_channels,norm_name,out_channels),range(5)))
         self.encoders= list(map(lambda tupl:tupl[0]  ,convsss))
         self.decoders= list(map(lambda tupl:tupl[1]  ,convsss))
         self.outs= list(map(lambda tupl:tupl[2]  ,convsss))
@@ -154,7 +154,7 @@ class SwinUNETR(nn.Module):
         self.adaptorB= self.transp_conv = get_conv_layer(
             spatial_dims,
             int(feature_size),
-            feature_size//2,
+            feature_size,
             kernel_size=3,
             stride=(1,1,1),
             act=None,
@@ -162,6 +162,9 @@ class SwinUNETR(nn.Module):
             conv_only=False,
             is_transposed=False,
         )
+        self.decoders[0]=None
+        self.outs[0]=UnetOutBlock(spatial_dims=spatial_dims, in_channels=24, out_channels=out_channels)
+
     def forward(self, x_in,clinical):
         hidden_states_out = self.swinViT(x_in, clinical)
         # print(f"x_in {x_in.shape} \n hidden_states_out [0] {hidden_states_out[0].shape} 1) {hidden_states_out[1].shape} 2) {hidden_states_out[2].shape} 3) {hidden_states_out[3].shape} 4) {hidden_states_out[4].shape}" )
@@ -171,17 +174,20 @@ class SwinUNETR(nn.Module):
         enc2 = self.encoders[1].to('cuda')(hidden_states_out[1])
         enc3 = self.encoders[2].to('cuda')(hidden_states_out[2])
         enc4 = self.encoders[3].to('cuda')(hidden_states_out[3])
-        dec4= self.decoders[3].to('cuda')(enc4,enc3)
+        enc5 = self.encoders[4].to('cuda')(hidden_states_out[4])
+        dec5= self.decoders[4].to('cuda')(enc5,enc4)
+        dec4= self.decoders[3].to('cuda')(dec5,enc3)
         dec3= self.decoders[2].to('cuda')(dec4,enc2)
-        # print(f"yyyyyyyyyyyy dec4 {dec4.shape} enc2 {enc2.shape}")
         dec2= self.decoders[1].to('cuda')(dec3,enc1)
-        dec2=self.adaptor(dec2)
-        enc0=self.adaptorB(enc0)
-        # print(f"iiiiiiiiiiiiiiii dec2 {dec2.shape}  enc0 {enc0.shape}")
-        dec1= self.decoders[0].to('cuda')(dec2,enc0)
+        print(f"iiiiiiiiiiiiiiii 000  dec2 {dec2.shape}  enc0 {enc0.shape}")
+
+        # dec2=self.adaptor(dec2)
+        # enc0=self.adaptorB(enc0)
+        print(f"iiiiiiiiiiiiiiii dec2 {dec2.shape}  enc0 {enc0.shape}")
+        dec1= dec2+enc0#self.decoders[0].to('cuda')(dec2,enc0)
 
 
-        return [self.outs[0].to('cuda')(dec1),self.outs[1].to('cuda')(dec2),self.outs[2].to('cuda')(dec3),self.outs[3].to('cuda')(dec4)]
+        return [self.outs[0].to('cuda')(dec1),self.outs[1].to('cuda')(dec2),self.outs[2].to('cuda')(dec3),self.outs[3].to('cuda')(dec4),self.outs[4].to('cuda')(dec5)]
 
 
 

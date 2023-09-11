@@ -21,6 +21,7 @@ network=SwinUNETR(in_channels=3
         ,window_size=4
         ,shift_size=2
         ,depths=(2,2,2,2)
+        # ,downsample="simplified_no_merge"
         ).to(device='cuda')
 
 attn_masks_h5f.close()
