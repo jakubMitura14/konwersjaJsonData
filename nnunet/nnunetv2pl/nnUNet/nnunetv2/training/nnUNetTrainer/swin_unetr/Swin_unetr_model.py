@@ -92,7 +92,6 @@ def load_sparse_sputnik(h5f,group_name):
 def load_attn_mask_from_h5(h5f,is_swin,is_local_iso,is_local_non_iso ,window_size ,distance , img_size_curr,spacing ):
     
     group_name=f"{int(img_size_curr[0])}_{int(img_size_curr[1])}_{int(img_size_curr[2])}"
-    print(f"ggg group_name {group_name}")
     if(is_swin):
         group_name=f"{group_name}/swin/window_{window_size}/main"
         return load_sparse_sputnik(h5f,group_name)
@@ -855,10 +854,10 @@ class BasicLayer(nn.Module):
         # x = self.proj(x)
         # x = self.proj_drop(x)
         
-        x = shortcut + self.drop_path(self.norm1(x))
+        # x = shortcut + self.drop_path(self.norm1(x))
+        x = shortcut + self.norm1(x)
 
-        # FFN
-        x = x + self.drop_path(self.norm2(self.mlp(x)+self.clinical_MLP(self.clinical_dense(clinical )) ))
+        x = x + self.norm2(self.mlp(x)+self.clinical_dense(clinical ))
 
 
         x= einops.rearrange( x,'b (d h w) c->b d h w c' 

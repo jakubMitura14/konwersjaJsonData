@@ -232,7 +232,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             # auto_scale_batch_size="binsearch",
             check_val_every_n_epoch=self.log_every_n,
             accumulate_grad_batches= 12,
-            gradient_clip_val = 2.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
+            gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
                         # ,reload_dataloaders_every_n_epochs=1
             ,strategy="deepspeed_stage_3"#_offload

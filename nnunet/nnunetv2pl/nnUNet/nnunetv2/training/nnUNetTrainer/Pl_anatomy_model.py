@@ -141,7 +141,7 @@ class Pl_anatomy_model(pl.LightningModule):
             
         elif(self.is_swin):    
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.00001)#learning rate set by learning rate finder
+            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.0005)#learning rate set by learning rate finder
 
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.00001)#learning rate set by learning rate finder
             
@@ -153,8 +153,8 @@ class Pl_anatomy_model(pl.LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
         if(self.is_swin):
             # lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*40, warmup_duration=30)
-            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=1)
-            lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[25])
+            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=30)
+            lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[30])
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
 
