@@ -79,7 +79,7 @@ class WindowAttention(nn.Module):
         head_dim = dim // num_heads
         self.scale = head_dim**-0.5
         mesh_args = torch.meshgrid.__kwdefaults__
-
+        
         if len(self.window_size) == 3:
             self.relative_position_bias_table = nn.Parameter(
                 torch.zeros(
@@ -145,7 +145,7 @@ class WindowAttention(nn.Module):
             self.q_bias = None
             self.v_bias = None
 
-    def forward(self, x, mask):
+    def forward(self, x, mask,clinical):
         b, n, c = x.shape
         B_, N, C = x.shape
         qkv_bias = None

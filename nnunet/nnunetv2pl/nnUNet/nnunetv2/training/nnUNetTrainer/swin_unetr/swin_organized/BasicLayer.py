@@ -108,6 +108,7 @@ class SwinTransformerBlock(nn.Module):
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(hidden_size=dim, mlp_dim=mlp_hidden_dim, act=act_layer, dropout_rate=drop, dropout_mode="swin")
+        self.clinical_dense=nn.Linear(3,dim)
 
     def forward_part1(self, x, mask_matrix,clinical):
         x_shape = x.size()
@@ -133,7 +134,7 @@ class SwinTransformerBlock(nn.Module):
             attn_mask = None
 
         x_windows = window_partition(shifted_x, window_size)
-        attn_windows = self.attn(x_windows, mask=attn_mask)
+        attn_windows = self.attn(x_windows, mask=attn_mask,clinical=clinical)
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))
         shifted_x = window_reverse(attn_windows, window_size, dims)
         if any(i > 0 for i in shift_size):
@@ -147,15 +148,15 @@ class SwinTransformerBlock(nn.Module):
 
         return x,shortcut
 
-    def forward_part2(self, x,shortcut):
+    def forward_part2(self, x,shortcut,clinical):
         x = shortcut + self.drop_path(self.norm1(x))
-        x = x + self.drop_path(self.norm2(self.mlp(x)))
+        x = x + self.drop_path(self.norm2(self.mlp(x))+self.clinical_dense(clinical ))
         return x
 
     def forward(self, x, mask_matrix,clinical):
         shortcut = x
         x,shortcut = checkpoint.checkpoint(self.forward_part1, x, mask_matrix,clinical)
-        x = checkpoint.checkpoint(self.forward_part2, x,shortcut)
+        x = checkpoint.checkpoint(self.forward_part2, x,shortcut,clinical)
 
         return x
 
