@@ -43,7 +43,7 @@ from .Pl_anatomy_model import *
 import shutil
 import h5py
 import pytorch_lightning as pl
-from pytorch_lightning.tuner import Tuner
+# from pytorch_lightning.tuner import Tuner
 from nnunetv2.utilities.label_handling.label_handling import convert_labelmap_to_one_hot, determine_num_input_channels
 from torch.nn.parallel import DistributedDataParallel as DDP
 
