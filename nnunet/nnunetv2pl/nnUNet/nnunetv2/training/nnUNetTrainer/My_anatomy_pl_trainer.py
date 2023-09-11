@@ -158,7 +158,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
             ,img_size=(48, 192, 160)
-            ,patch_size=(2,2,2)
+            ,patch_size=(1,1,1)
             ,batch_size=self.batch_size
             ,attn_masks_h5f=attn_masks_h5f
             ,is_swin=False
@@ -167,7 +167,9 @@ class My_Anatomy_trainer(nnUNetTrainer):
             # ,distances=(8,8,16)
             ,distances=(8,8,8)
             ,spacing=(3.299999952316284,0.78125, 0.78125)
-            ,feature_size=24 )
+            ,feature_size=24
+            ,depths=(2,2,2,2)
+            )
 
 
         if self._do_i_compile():
