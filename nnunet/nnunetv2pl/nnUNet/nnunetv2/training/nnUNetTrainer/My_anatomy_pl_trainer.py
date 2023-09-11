@@ -63,8 +63,7 @@ from transformers import (
 
 from transformers import AutoImageProcessor
 from .med_next.create_mednext_v1 import *
-from .swin_unetr.Swin_unetr_model import *
-
+from .swin_unetr.swin_organized.SwinUNETR import *
 
 class My_Anatomy_trainer(nnUNetTrainer):
 
@@ -142,7 +141,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         if(self.is_swin):
             attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
             self.network=SwinUNETR(in_channels=self.num_input_channels
-            ,num_heads= (2,8,8,8)
+            ,num_heads=  (3, 6, 12, 24)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
             ,img_size=(48, 192, 160)
@@ -155,7 +154,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
             # ,distances=(8,8,16)
             ,distances=(8,8,8)
             ,spacing=(3.299999952316284,0.78125, 0.78125)
-            ,feature_size=32 )
+            ,feature_size=24 )
+
 
         if self._do_i_compile():
             self.print_to_log_file('Compiling network...')
@@ -235,7 +235,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
                         # ,reload_dataloaders_every_n_epochs=1
-            ,strategy="deepspeed_stage_3"#_offload
+            # ,strategy="deepspeed_stage_3"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """

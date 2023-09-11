@@ -169,7 +169,7 @@ class Pl_anatomy_model(pl.LightningModule):
         
         data = batch['data']
         target = batch['target']
-        clinical = batch['clinical']
+        clinical = torch.tensor(batch['clinical']).to("cuda").float()
         network=self.network
         if(self.is_swin):
             output = network(data,clinical)
@@ -214,7 +214,7 @@ class Pl_anatomy_model(pl.LightningModule):
 
         data = batch['data']
         target = batch['target']
-        clinical = batch['clinical']
+        clinical = torch.tensor(batch['clinical']).to("cuda").float()
 
 
         if(not self.is_classic_nnunet):
