@@ -8,7 +8,7 @@ network=SwinUNETR(in_channels=3
         ,num_heads= (3, 6, 12, 24)
         ,out_channels=3
         ,use_v2=True#
-        ,img_size=(64, 64, 64)
+        ,img_size=(48, 192, 160)
         ,patch_size=(1,1,1)
         ,batch_size=1
         ,attn_masks_h5f=attn_masks_h5f
@@ -25,7 +25,7 @@ network=SwinUNETR(in_channels=3
 
 attn_masks_h5f.close()
 
-network(torch.ones((1,3,64, 64, 64)).float().to(device='cuda'),torch.ones((1,3)).float().to(device='cuda') )
+network(torch.ones((1,3,48, 192, 160)).float().to(device='cuda'),torch.ones((1,3)).float().to(device='cuda') )
 
 
 

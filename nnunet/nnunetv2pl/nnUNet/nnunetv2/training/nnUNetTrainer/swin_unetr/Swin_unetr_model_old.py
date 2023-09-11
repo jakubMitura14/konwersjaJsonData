@@ -245,7 +245,7 @@ class SwinUNETR_old(nn.Module):
             norm_name=norm_name,
             res_block=True,
         )
-
+        
         self.out = UnetOutBlock(spatial_dims=spatial_dims, in_channels=feature_size, out_channels=out_channels)
         self.out_4 = UnetOutBlock(spatial_dims=spatial_dims, in_channels=384, out_channels=out_channels)
         self.out_3 = UnetOutBlock(spatial_dims=spatial_dims, in_channels=192, out_channels=out_channels)

@@ -275,10 +275,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
 
     def run_training(self):
         self.on_train_start()
-
         # tuner = Tuner(self.trainer)
-        # tuner.lr_find(self.pl_model, attr_name="learning_rate")
-        
+        # tuner.lr_find(self.pl_model, attr_name="learning_rate")       
         deep_speed_ckpt='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=44-step=900.ckpt'
         self.trainer.fit(self.pl_model)#  , ckpt_path=deep_speed_ckpt , ckpt_path='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=14-step=375.ckpt')
         
