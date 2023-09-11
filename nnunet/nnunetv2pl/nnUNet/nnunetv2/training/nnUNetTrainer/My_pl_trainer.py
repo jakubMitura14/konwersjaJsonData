@@ -63,8 +63,7 @@ from transformers import (
 
 from transformers import AutoImageProcessor
 from .med_next.create_mednext_v1 import *
-from .swin_unetr.Swin_unetr_model import *
-
+from .swin_unetr.swin_organized.SwinUNETR import *
 
 class My_pl_trainer(nnUNetTrainer):
 
