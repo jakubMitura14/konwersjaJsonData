@@ -134,7 +134,7 @@ class WindowAttention(nn.Module):
         self.logit_scale = nn.Parameter(torch.log(10 * torch.ones((num_heads, 1, 1))), requires_grad=True)
 
         # mlp to generate continuous relative position bias
-        self.cpb_mlp = nn.Sequential(nn.Linear(2, 512, bias=True),
+        self.cpb_mlp = nn.Sequential(nn.Linear(relative_coords_table.shape[1], 512, bias=True),
                                      nn.ReLU(inplace=True),
                                      nn.Linear(512, num_heads, bias=False))
 
@@ -160,12 +160,14 @@ class WindowAttention(nn.Module):
         logit_scale = torch.clamp(self.logit_scale.to("cuda"), max=torch.log(torch.tensor(1. / 0.01).to("cuda"))).exp()
         attn = attn * logit_scale
 
-
-        relative_position_bias = self.relative_position_bias_table[
+        relative_position_bias_table = self.cpb_mlp(self.relative_coords_table).view(-1, self.num_heads)
+        relative_position_bias = relative_position_bias_table[
             self.relative_position_index.clone()[:n, :n].reshape(-1)  # type: ignore
         ].reshape(n, n, -1)
         relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()
         attn = attn + relative_position_bias.unsqueeze(0)
+
+
         if mask is not None:
             nw = mask.shape[0]
             attn = attn.view(b // nw, nw, self.num_heads, n, n) + mask.unsqueeze(1).unsqueeze(0)
