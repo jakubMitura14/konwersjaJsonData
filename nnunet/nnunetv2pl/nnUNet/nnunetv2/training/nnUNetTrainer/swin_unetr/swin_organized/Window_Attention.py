@@ -126,14 +126,41 @@ class WindowAttention(nn.Module):
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
         trunc_normal_(self.relative_position_bias_table, std=0.02)
+        relative_coords_table=self.relative_position_bias_table
+        self.register_buffer("relative_coords_table", relative_coords_table)
+
         self.softmax = nn.Softmax(dim=-1)
+
+        self.logit_scale = nn.Parameter(torch.log(10 * torch.ones((num_heads, 1, 1))), requires_grad=True)
+
+        # mlp to generate continuous relative position bias
+        self.cpb_mlp = nn.Sequential(nn.Linear(2, 512, bias=True),
+                                     nn.ReLU(inplace=True),
+                                     nn.Linear(512, num_heads, bias=False))
+
+        if qkv_bias:
+            self.q_bias = nn.Parameter(torch.zeros(dim))
+            self.v_bias = nn.Parameter(torch.zeros(dim))
+        else:
+            self.q_bias = None
+            self.v_bias = None
 
     def forward(self, x, mask):
         b, n, c = x.shape
-        qkv = self.qkv(x).reshape(b, n, 3, self.num_heads, c // self.num_heads).permute(2, 0, 3, 1, 4)
-        q, k, v = qkv[0], qkv[1], qkv[2]
-        q = q * self.scale
-        attn = q @ k.transpose(-2, -1)
+        B_, N, C = x.shape
+        qkv_bias = None
+        if self.q_bias is not None:
+            qkv_bias = torch.cat((self.q_bias, torch.zeros_like(self.v_bias, requires_grad=False), self.v_bias))
+        qkv = F.linear(input=x, weight=self.qkv.weight, bias=qkv_bias)
+        qkv = qkv.reshape(B_, N, 3, self.num_heads, -1).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
+
+        # cosine attention
+        attn = (F.normalize(q, dim=-1) @ F.normalize(k, dim=-1).transpose(-2, -1))
+        logit_scale = torch.clamp(self.logit_scale.to("cuda"), max=torch.log(torch.tensor(1. / 0.01).to("cuda"))).exp()
+        attn = attn * logit_scale
+
+
         relative_position_bias = self.relative_position_bias_table[
             self.relative_position_index.clone()[:n, :n].reshape(-1)  # type: ignore
         ].reshape(n, n, -1)

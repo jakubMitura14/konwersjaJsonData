@@ -369,18 +369,6 @@ class SwinUNETR(nn.Module):
             is_transposed=False,
         )
         self.normalize=True
-        # self.decoder_0=UnetrUpBlock(
-        #     spatial_dims=spatial_dims,
-        #     in_channels=img_size[1],
-        #     out_channels=int(feature_size*1.5),
-        #     kernel_size=3,
-        #     upsample_kernel_size=2,
-        #     norm_name=norm_name,
-        #     res_block=True,
-        # )
-        # self.decoders[0]=self.decoder_0
-                # #dec4 torch.Size([5, 384, 3, 3, 3]) dec3 torch.Size([5, 192, 6, 6, 6]) dec2 torch.Size([5, 96, 12, 12, 12]) dec1 torch.Size([5, 48, 24, 24, 24]) dec0 torch.Size([5, 24, 48, 48, 48]) out torch.Size([5, 24, 96, 96, 96])
-
     def forward(self, x_in,clinical):
         # print(f"fffffirst x_in {x_in.shape}")
         hidden_states_out = self.swinViT(x_in,clinical)
