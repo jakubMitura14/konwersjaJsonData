@@ -318,7 +318,7 @@ RUN mkdir /usr/share/desktop-directories/ \
 
 
 
-RUN python3 -m pip install xformers==0.0.21 triton fairscale==0.4.13 hiddenlayer==0.3
+RUN python3 -m pip install xformers==0.0.21 triton fairscale==0.4.13 hiddenlayer==0.3 x-transformers==1.19.1
 
 RUN mkdir ${HOME}/bolts \
 && cd ${HOME}/bolts \
