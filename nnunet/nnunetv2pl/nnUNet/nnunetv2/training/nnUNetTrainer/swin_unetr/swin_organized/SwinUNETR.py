@@ -77,7 +77,7 @@ class SwinUNETR(nn.Module):
 
         img_size = ensure_tuple_rep(img_size, spatial_dims)
         patch_size = patch_size
-        window_size = ensure_tuple_rep(7, spatial_dims)
+        # window_size = ensure_tuple_rep(7, spatial_dims)
 
         if spatial_dims not in (2, 3):
             raise ValueError("spatial dimension should be 2 or 3.")
@@ -96,8 +96,8 @@ class SwinUNETR(nn.Module):
         if not (0 <= dropout_path_rate <= 1):
             raise ValueError("drop path rate should be between 0 and 1.")
 
-        if feature_size % 12 != 0:
-            raise ValueError("feature_size should be divisible by 12.")
+        # if feature_size % 12 != 0:
+        #     raise ValueError("feature_size should be divisible by 12.")
 
         self.normalize = normalize
 
@@ -167,7 +167,7 @@ class SwinUNETR(nn.Module):
             is_transposed=False,
         )
         self.decoders[0]=None
-        self.outs[0]=UnetOutBlock(spatial_dims=spatial_dims, in_channels=12, out_channels=out_channels)
+        self.outs[0]=UnetOutBlock(spatial_dims=spatial_dims, in_channels=feature_size, out_channels=out_channels)
 
     def forward(self, x_in,clinical):
         hidden_states_out = self.swinViT(x_in, clinical)

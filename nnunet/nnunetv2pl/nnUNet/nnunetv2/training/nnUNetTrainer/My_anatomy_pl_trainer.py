@@ -154,7 +154,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
         if(self.is_swin):
             attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
             self.network=SwinUNETR(in_channels=self.num_input_channels
-            ,num_heads=  (1, 3, 6, 12)
+            # ,num_heads=  (1, 3, 6, 12)
+            ,num_heads=  (1, 1, 1, 1)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
             ,img_size=(48, 192, 160)
@@ -167,9 +168,10 @@ class My_Anatomy_trainer(nnUNetTrainer):
             # ,distances=(8,8,16)
             ,distances=(8,8,8)
             ,spacing=(3.299999952316284,0.78125, 0.78125)
-            ,feature_size=12
+            ,feature_size=6
             ,depths=(2,2,2,2)
             ,is_lucid=True
+            ,window_size=(8,8,8)
             # ,is_deformable=True
             )
 
@@ -254,7 +256,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
                         # ,reload_dataloaders_every_n_epochs=1
-            ,strategy="deepspeed_stage_2"#_offload
+            ,strategy="deepspeed_stage_3"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """

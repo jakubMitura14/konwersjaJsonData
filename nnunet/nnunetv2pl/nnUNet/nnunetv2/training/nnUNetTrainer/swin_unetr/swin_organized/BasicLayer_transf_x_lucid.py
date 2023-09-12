@@ -177,13 +177,14 @@ class SwinTransformerBlock_lucid(nn.Module):
             max_seq_len = 10024,
             attn_layers = Encoder_my(
                 dim = dim,
-                depth = 6,
+                depth = 12,
                 heads = num_heads,
                 is_Relative_position_embedding_3d=True,
                 window_size=window_size_corr,
                 calced_input_size=calced_input_size,
                 return_hiddens=False,
-                attn_flash = True
+                attn_flash = True,
+                ff_glu = True
             )
         )
 
@@ -335,7 +336,6 @@ class BasicLayer_lucid(nn.Module):
 
     def forward(self, x,clinical):
         x_shape = x.size()
-        print(f"iii {self.i_layer}")
         b, c, d, h, w = x_shape
         window_size, shift_size = get_window_size((d, h, w), self.window_size, self.shift_size)
         x = rearrange(x, "b c d h w -> b d h w c")
