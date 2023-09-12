@@ -152,10 +152,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
                                                 ,kernel_size= 7
                                                 ,ds= True)
         if(self.is_swin):
-            attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
+            attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
+
             self.network=SwinUNETR(in_channels=self.num_input_channels
-            # ,num_heads=  (1, 3, 6, 12)
-            ,num_heads=  (1, 1, 1, 1)
+            ,num_heads=  (1, 3, 6, 12)
+            # ,num_heads=  (1, 1, 1, 1)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
             ,img_size=(48, 192, 160)
@@ -166,9 +167,9 @@ class My_Anatomy_trainer(nnUNetTrainer):
             ,is_local_iso=False
             ,is_local_non_iso=True
             # ,distances=(8,8,16)
-            ,distances=(8,8,8)
+            ,distances=(7,7,7)
             ,spacing=(3.299999952316284,0.78125, 0.78125)
-            ,feature_size=6
+            ,feature_size=16
             ,depths=(2,2,2,2)
             ,is_lucid=True
             ,window_size=(8,8,8)

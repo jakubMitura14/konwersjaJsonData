@@ -149,6 +149,7 @@ def run_training(dataset_name_or_id: Union[str, int],
                  disable_checkpointing: bool = False,
                  val_with_best: bool = False,
                  device: torch.device = torch.device('cuda')):
+    torch.set_float32_matmul_precision("high")
     if isinstance(fold, str):
         if fold != 'all':
             try:
