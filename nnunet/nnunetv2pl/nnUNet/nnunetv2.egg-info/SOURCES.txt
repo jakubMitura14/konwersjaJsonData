@@ -150,11 +150,13 @@ nnunetv2/training/nnUNetTrainer/swin_unetr/old/Swin_unetr_model_old.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/old/orig_swin_v2.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/BasicLayer.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/BasicLayer_deformable.py
+nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/BasicLayer_transf_x_lucid.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/Deformable_attention.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/SwinTransformer.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/SwinUNETR.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/Window_Attention.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/deformable_attention_VOTR.py
+nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/my_x_transformers.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/patch_merging.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/swin_debug.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/swin_utils.py

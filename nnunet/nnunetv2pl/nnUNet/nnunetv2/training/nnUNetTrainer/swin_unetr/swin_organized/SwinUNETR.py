@@ -167,7 +167,7 @@ class SwinUNETR(nn.Module):
             is_transposed=False,
         )
         self.decoders[0]=None
-        self.outs[0]=UnetOutBlock(spatial_dims=spatial_dims, in_channels=24, out_channels=out_channels)
+        self.outs[0]=UnetOutBlock(spatial_dims=spatial_dims, in_channels=12, out_channels=out_channels)
 
     def forward(self, x_in,clinical):
         hidden_states_out = self.swinViT(x_in, clinical)

@@ -542,8 +542,9 @@ class My_transformer_wrapper(nn.Module):
         self.project_in = nn.Linear(dim_in, dim) if exists(dim_in) else nn.Identity()
 
         self.attn_layers = attn_layers
-
+        self.clinical_dense=nn.Linear(3,dim)
         self.project_out = nn.Linear(dim, dim_out) if exists(dim_out) else nn.Identity()
+
 
     def forward(
         self,
@@ -574,8 +575,8 @@ class My_transformer_wrapper(nn.Module):
         x = self.emb_dropout(x)
 
         x, intermediates = self.attn_layers(x, mask = mask, mems = mems, return_hiddens = True, **kwargs)
-
-        #TODO add clinical to transformer
+        #adding clinical data
+        x=x+self.clinical_dense(clinical)
         out = self.project_out(x) if not return_embeddings else x
 
         if return_intermediates:
