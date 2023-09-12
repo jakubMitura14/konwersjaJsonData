@@ -177,7 +177,7 @@ class SwinTransformerBlock_lucid(nn.Module):
             max_seq_len = 10024,
             attn_layers = Encoder_my(
                 dim = dim,
-                depth = 12,
+                depth = 6,
                 heads = num_heads,
                 is_Relative_position_embedding_3d=True,
                 window_size=window_size_corr,
