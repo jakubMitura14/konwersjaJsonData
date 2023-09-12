@@ -1,7 +1,7 @@
 import monai
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 import numpy as np
 from scipy import ndimage
@@ -31,7 +31,7 @@ from torch.utils.data import random_split, DataLoader
 import monai
 import pandas as pd
 import torchio as tio
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -67,9 +67,9 @@ import h5py
 from mpi4py import MPI
 monai.utils.set_determinism()
 from functools import partial
-from pytorch_lightning.loggers import CometLogger
+from lightning.pytorch.loggers import CometLogger
 from optuna.integration import PyTorchLightningPruningCallback
-from pytorch_lightning.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint
 from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from .custom_eval import *

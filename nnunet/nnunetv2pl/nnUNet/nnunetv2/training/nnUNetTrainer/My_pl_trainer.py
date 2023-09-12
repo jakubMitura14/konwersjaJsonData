@@ -42,7 +42,7 @@ from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper
 from .Pl_model import *
 import shutil
 import h5py
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from lightning.pytorch.tuner import Tuner
 from nnunetv2.utilities.label_handling.label_handling import convert_labelmap_to_one_hot, determine_num_input_channels
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -51,7 +51,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 import transformers
 from mpi4py import MPI
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
 from torch.utils.data import DataLoader
 from transformers import (
     AdamW,

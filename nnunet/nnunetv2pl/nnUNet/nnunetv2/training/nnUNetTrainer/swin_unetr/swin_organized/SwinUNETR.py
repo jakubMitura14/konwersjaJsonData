@@ -69,6 +69,8 @@ class SwinUNETR(nn.Module):
         ,spacing=(1.0,1.0,1.0)
         ,window_size=4
         ,shift_size=2
+        ,is_deformable=False
+        ,is_lucid=False
     ) -> None:
 
         super().__init__()
@@ -125,6 +127,8 @@ class SwinUNETR(nn.Module):
             ,distances=distances
             ,spacing=spacing
             ,shift_size=shift_size
+            ,is_deformable=is_deformable
+            ,is_lucid=is_lucid
         )
 
         convsss=list(map(lambda i: get_convs(spatial_dims,patch_size,img_size,batch_size,feature_size,i,in_channels,norm_name,out_channels),range(5)))

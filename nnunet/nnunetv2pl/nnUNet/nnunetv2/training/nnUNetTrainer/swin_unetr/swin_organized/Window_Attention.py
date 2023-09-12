@@ -125,7 +125,7 @@ class WindowAttention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
-        trunc_normal_(self.relative_position_bias_table, std=0.02)
+        # trunc_normal_(self.relative_position_bias_table, std=0.02)
         relative_coords_table=self.relative_position_bias_table
         self.register_buffer("relative_coords_table", relative_coords_table)
 
@@ -165,6 +165,8 @@ class WindowAttention(nn.Module):
             self.relative_position_index.clone()[:n, :n].reshape(-1)  # type: ignore
         ].reshape(n, n, -1)
         relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()
+        print(f"aaaaaaaaaaaa b {b} n {n} c {c} relative_position_bias {relative_position_bias.shape}")
+
         attn = attn + relative_position_bias.unsqueeze(0)
 
 

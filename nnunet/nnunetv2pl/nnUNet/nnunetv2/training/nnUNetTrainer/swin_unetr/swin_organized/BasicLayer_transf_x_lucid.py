@@ -46,10 +46,73 @@ from xformers.components.attention.core import bmm
 from .swin_utils import*
 from .patch_merging import*
 from .Window_Attention import*
-from .Deformable_attention import *
+from .my_x_transformers import *
 rearrange, _ = optional_import("einops", name="rearrange")
 
-class SwinTransformerBlock_deformable(nn.Module):
+
+class Relative_position_embedding_3d(nn.Module):
+    """
+    Window based multi-head self attention module with relative position bias based on: "Liu et al.,
+    Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
+    <https://arxiv.org/abs/2103.14030>"
+    https://github.com/microsoft/Swin-Transformer
+    """
+
+    def __init__(
+        self,
+        dim: int,
+        num_heads: int,
+        curr_img_size: Sequence[int],
+    ) -> None:
+
+
+        super().__init__()
+        self.dim = dim
+        self.curr_img_size = (int(curr_img_size[0]),int(curr_img_size[1]),int(curr_img_size[2]))
+        self.num_heads = num_heads
+        head_dim = dim // num_heads
+        self.scale = head_dim**-0.5
+        mesh_args = torch.meshgrid.__kwdefaults__
+        
+        self.relative_position_bias_table = nn.Parameter(
+            torch.zeros(
+                (2 * self.curr_img_size[0] - 1) * (2 * self.curr_img_size[1] - 1) * (2 * self.curr_img_size[2] - 1),
+                num_heads,
+            )
+        )
+        coords_d = torch.arange(self.curr_img_size[0])
+        coords_h = torch.arange(self.curr_img_size[1])
+        coords_w = torch.arange(self.curr_img_size[2])
+        if mesh_args is not None:
+            coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w, indexing="ij"))
+        else:
+            coords = torch.stack(torch.meshgrid(coords_d, coords_h, coords_w))
+        coords_flatten = torch.flatten(coords, 1)
+        relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]
+        relative_coords = relative_coords.permute(1, 2, 0).contiguous()
+        relative_coords[:, :, 0] += self.curr_img_size[0] - 1
+        relative_coords[:, :, 1] += self.curr_img_size[1] - 1
+        relative_coords[:, :, 2] += self.curr_img_size[2] - 1
+        relative_coords[:, :, 0] *= (2 * self.curr_img_size[1] - 1) * (2 * self.curr_img_size[2] - 1)
+        relative_coords[:, :, 1] *= 2 * self.curr_img_size[2] - 1
+
+
+        relative_position_index = relative_coords.sum(-1)
+        self.register_buffer("relative_position_index", relative_position_index)
+        trunc_normal_(self.relative_position_bias_table, std=0.02)
+
+    def forward(self,n):
+        relative_position_bias = self.relative_position_bias_table[
+            self.relative_position_index.clone()[:n, :n].reshape(-1)  # type: ignore
+        ].reshape(n, n, -1)
+        relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()
+        return relative_position_bias.unsqueeze(0)
+
+
+
+
+
+class SwinTransformerBlock_lucid(nn.Module):
     """
     Swin Transformer block based on: "Liu et al.,
     Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
@@ -71,6 +134,7 @@ class SwinTransformerBlock_deformable(nn.Module):
         act_layer: str = "GELU",
         norm_layer: type[LayerNorm] = nn.LayerNorm,
         use_checkpoint: bool = False,
+        calced_input_size=(1,1,1,1)
     ) -> None:
         """
         Args:
@@ -104,7 +168,22 @@ class SwinTransformerBlock_deformable(nn.Module):
         #     attn_drop=attn_drop,
         #     proj_drop=drop,
         # )
-        self.attn = DeformableAttention3D(dim=self.dim, heads=num_heads)
+        
+        self.attn = My_transformer_wrapper(
+            dim_in = dim,
+            dim_out = dim,
+            max_seq_len = 1024,
+            attn_layers = Encoder_my(
+                dim = dim,
+                depth = 12,
+                heads = num_heads,
+                is_Relative_position_embedding_3d=True,
+                window_size=window_size,
+                calced_input_size=calced_input_size,
+                return_hiddens=False
+            )
+        )
+
 
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
@@ -112,29 +191,64 @@ class SwinTransformerBlock_deformable(nn.Module):
         self.mlp = Mlp(hidden_size=dim, mlp_dim=mlp_hidden_dim, act=act_layer, dropout_rate=drop, dropout_mode="swin")
         self.clinical_dense=nn.Linear(3,dim)
 
-    def forward_part1(self, x,clinical):
+    def forward_part1(self, x, mask_matrix,clinical):
         x_shape = x.size()
         shortcut = x
- 
-        x = self.attn(x,clinical)
+        # x = self.norm1(x)
+        b, d, h, w, c = x.shape
+        window_size, shift_size = get_window_size((d, h, w), self.window_size, self.shift_size)
+        pad_l = pad_t = pad_d0 = 0
+        pad_d1 = (window_size[0] - d % window_size[0]) % window_size[0]
+        pad_b = (window_size[1] - h % window_size[1]) % window_size[1]
+        pad_r = (window_size[2] - w % window_size[2]) % window_size[2]
+        x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b, pad_d0, pad_d1))
+        _, dp, hp, wp, _ = x.shape
+        dims = [b, dp, hp, wp]
 
-        return x,shortcut
 
-    def forward_part2(self, x,shortcut,clinical):
-        x = shortcut + self.drop_path(self.norm1(x))
-        x = x + self.drop_path(self.norm2(self.mlp(x))+self.clinical_dense(clinical ))
+        if any(i > 0 for i in shift_size):
+            shifted_x = torch.roll(x, shifts=(-shift_size[0], -shift_size[1], -shift_size[2]), dims=(1, 2, 3))
+
+            attn_mask = mask_matrix
+        else:
+            shifted_x = x
+            attn_mask = None
+
+        x_windows = window_partition(shifted_x, window_size)
+        if(attn_mask is not None):
+            attn_mask= einops.rearrange(attn_mask,'bb a b-> bb 1 a b')
+            attn_mask=(attn_mask*(-1))/100
+            attn_mask=torch.logical_not(attn_mask.bool())
+            # print(f"aaaaaaaaaaattn_mask  unique {attn_mask.unique()} ")
+        attn_windows = self.attn(x_windows, attn_mask=attn_mask,clinical=clinical)
+
+        attn_windows = attn_windows.view(-1, *(window_size + (c,)))
+        shifted_x = window_reverse(attn_windows, window_size, dims)
+        if any(i > 0 for i in shift_size):
+            x = torch.roll(shifted_x, shifts=(shift_size[0], shift_size[1], shift_size[2]), dims=(1, 2, 3))
+
+        else:
+            x = shifted_x
+
+        if pad_d1 > 0 or pad_r > 0 or pad_b > 0:
+            x = x[:, :d, :h, :w, :].contiguous()
+
         return x
 
-    def forward(self, x,clinical):
-        shortcut = x
-        x,shortcut = checkpoint.checkpoint(self.forward_part1, x,clinical)
-        x = checkpoint.checkpoint(self.forward_part2, x,shortcut,clinical)
+    # def forward_part2(self, x,shortcut,clinical):
+    #     x = shortcut + self.drop_path(self.norm1(x))
+    #     x = x + self.drop_path(self.norm2(self.mlp(x))+self.clinical_dense(clinical ))
+    #     return x
+
+    def forward(self, x, mask_matrix,clinical):
+        x = checkpoint.checkpoint(self.forward_part1, x, mask_matrix,clinical)
+        # x = checkpoint.checkpoint(self.forward_part2, x,shortcut,clinical)
 
         return x
 
 
 
-class BasicLayer_deformable(nn.Module):
+class BasicLayer_lucid(nn.Module):
     """
     Basic Swin Transformer layer in one stage based on: "Liu et al.,
     Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
@@ -191,9 +305,10 @@ class BasicLayer_deformable(nn.Module):
         self.no_shift = tuple(0 for i in window_size)
         self.depth = depth
         self.use_checkpoint = use_checkpoint
+        calced_input_size=get_image_size(patch_size,img_size,batch_size,embed_dim,i_layer)
         self.blocks = nn.ModuleList(
             [
-                SwinTransformerBlock_deformable(
+                SwinTransformerBlock_lucid(
                     dim=dim,
                     num_heads=num_heads,
                     window_size=self.window_size,
@@ -205,6 +320,7 @@ class BasicLayer_deformable(nn.Module):
                     drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
                     norm_layer=norm_layer,
                     use_checkpoint=use_checkpoint,
+                    calced_input_size=calced_input_size
                 )
                 for i in range(depth)
             ]
@@ -216,10 +332,15 @@ class BasicLayer_deformable(nn.Module):
     def forward(self, x,clinical):
         x_shape = x.size()
         b, c, d, h, w = x_shape
+        window_size, shift_size = get_window_size((d, h, w), self.window_size, self.shift_size)
         x = rearrange(x, "b c d h w -> b d h w c")
+        dp = int(np.ceil(d / window_size[0])) * window_size[0]
+        hp = int(np.ceil(h / window_size[1])) * window_size[1]
+        wp = int(np.ceil(w / window_size[2])) * window_size[2]
+        attn_mask = compute_mask([dp, hp, wp], window_size, shift_size, x.device)
 
         for blk in self.blocks:
-            x = blk(x,clinical)
+            x = blk(x, attn_mask,clinical)
         x = x.view(b, d, h, w, -1)
         if self.downsample is not None:
             x = self.downsample(x)

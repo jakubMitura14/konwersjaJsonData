@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch import nn, einsum
 
 from einops import rearrange, repeat
+import torch.utils.checkpoint as checkpoint
 
 # helper functions
 
@@ -21,7 +22,7 @@ def divisible_by(numer, denom):
     return (numer % denom) == 0
 
 def cast_tuple(x, length = 1):
-    return x if isinstance(x, tuple) else ((x,) * depth)
+    return x if isinstance(x, tuple) else ((x,) * length)
 
 # tensor helpers
 
@@ -105,10 +106,10 @@ class DeformableAttention3D(nn.Module):
         self,
         *,
         dim,
-        dim_head = 64,
-        heads = 8,
+        dim_head = 1,
+        heads = 1,
         dropout = 0.,
-        downsample_factor = 4,
+        downsample_factor = 2,
         offset_scale = None,
         offset_groups = None,
         offset_kernel_size = 6,
@@ -116,11 +117,10 @@ class DeformableAttention3D(nn.Module):
         group_key_values = True
     ):
         super().__init__()
-        downsample_factor = cast_tuple(downsample_factor, length = 3)
-        offset_scale = default(offset_scale, downsample_factor)
-
-        offset_conv_padding = tuple(map(lambda x: (x[0] - x[1]) / 2, zip(offset_kernel_size, downsample_factor)))
-        assert all([(padding > 0 and padding.is_integer()) for padding in offset_conv_padding])
+        downsample_factor = [4,4,4]#cast_tuple(downsample_factor, length = 3)
+        offset_scale = [4,4,4]#default(offset_scale, downsample_factor)
+        offset_conv_padding = (2,2,2)#tuple(map(lambda x: (x[0] - x[1]) / 2, zip(offset_kernel_size, downsample_factor)))
+        # assert all([(padding > 0 and padding.is_integer()) for padding in offset_conv_padding])
 
         offset_groups = default(offset_groups, heads)
         assert divisible_by(heads, offset_groups)
@@ -145,12 +145,15 @@ class DeformableAttention3D(nn.Module):
         self.rel_pos_bias = CPB(dim // 4, offset_groups = offset_groups, heads = heads, depth = 2)
 
         self.dropout = nn.Dropout(dropout)
-        self.to_q = nn.Conv3d(dim, inner_dim, 1, groups = offset_groups if group_queries else 1, bias = False)
-        self.to_k = nn.Conv3d(dim, inner_dim, 1, groups = offset_groups if group_key_values else 1, bias = False)
-        self.to_v = nn.Conv3d(dim, inner_dim, 1, groups = offset_groups if group_key_values else 1, bias = False)
+        self.to_q = nn.Conv3d(dim, inner_dim, 1, groups = 1, bias = False)
+        self.to_k = nn.Conv3d(dim//3, inner_dim, 1, groups = 1, bias = False)
+        self.to_v = nn.Conv3d(dim//3, inner_dim, 1, groups = 1, bias = False)
+        # self.to_q = nn.Conv3d(dim*2, inner_dim, 1, groups = offset_groups*2 if group_queries else 1, bias = False)
+        # self.to_k = nn.Conv3d(dim*2, inner_dim, 1, groups = offset_groups*2 if group_key_values else 1, bias = False)
+        # self.to_v = nn.Conv3d(dim*2, inner_dim, 1, groups = offset_groups*2 if group_key_values else 1, bias = False)
         self.to_out = nn.Conv3d(inner_dim, dim, 1)
 
-    def forward(self, x, return_vgrid = False):
+    def forward(self, x, clinical,return_vgrid = False):
         """
         b - batch
         h - heads
@@ -160,13 +163,13 @@ class DeformableAttention3D(nn.Module):
         d - dimension
         g - offset groups
         """
-
-        heads, b, f, h, w, downsample_factor, device = self.heads, x.shape[0], *x.shape[-3:], self.downsample_factor, x.device
-
+        print(f"xxxxx {x.shape}")
+        heads, b, f, h, w, downsample_factor, device =  x.shape[0],self.heads, x.shape[1], x.shape[2], x.shape[3], self.downsample_factor, x.device
         # queries
-
+        x= rearrange(x,'b h w d c-> b c h w d')
         q = self.to_q(x)
-
+        print(f"qqqqq {q.shape}  ")
+        # x= rearrange(x,'b c h w d -> b h w d c')
         # calculate offsets - offset MLP shared across all groups
 
         group = lambda t: rearrange(t, 'b (g d) ... -> (b g) d ...', g = self.offset_groups)
@@ -185,11 +188,12 @@ class DeformableAttention3D(nn.Module):
             group(x),
             vgrid_scaled,
         mode = 'bilinear', padding_mode = 'zeros', align_corners = False)
+        print(f"0000 kkkk kv_feats {kv_feats.shape} group(x) {group(x).shape}")
 
         kv_feats = rearrange(kv_feats, '(b g) d ... -> b (g d) ...', b = b)
 
         # derive key / values
-
+        print(f"kkkk kv_feats {kv_feats.shape}")
         k, v = self.to_k(kv_feats), self.to_v(kv_feats)
 
         # scale queries
@@ -208,7 +212,7 @@ class DeformableAttention3D(nn.Module):
 
         grid = create_grid_like(x)
         grid_scaled = normalize_grid(grid, dim = 0)
-        rel_pos_bias = self.rel_pos_bias(grid_scaled, vgrid_scaled)
+        rel_pos_bias = checkpoint.checkpoint(self.rel_pos_bias,grid_scaled, vgrid_scaled)
         sim = sim + rel_pos_bias
 
         # numerical stability
@@ -225,7 +229,7 @@ class DeformableAttention3D(nn.Module):
         out = einsum('b h i j, b h j d -> b h i d', attn, v)
         out = rearrange(out, 'b h (f x y) d -> b (h d) f x y', f = f, x = h, y = w)
         out = self.to_out(out)
-
+        # out= rearrange(x,'b c h w d->b h w d c')
         if return_vgrid:
             return out, vgrid
 

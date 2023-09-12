@@ -132,9 +132,14 @@ class SwinTransformerBlock(nn.Module):
         else:
             shifted_x = x
             attn_mask = None
-
+        print(f"sssssssss shifted_x {shifted_x.shape}")
         x_windows = window_partition(shifted_x, window_size)
+
+
         attn_windows = self.attn(x_windows, mask=attn_mask,clinical=clinical)
+
+
+
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))
         shifted_x = window_reverse(attn_windows, window_size, dims)
         if any(i > 0 for i in shift_size):

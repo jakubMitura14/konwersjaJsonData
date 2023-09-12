@@ -47,6 +47,9 @@ from .BasicLayer import *
 from .swin_utils import*
 from .patch_merging import*
 from .Window_Attention import*
+from  .BasicLayer_deformable import *
+from  .BasicLayer_transf_x_lucid import *
+
 
 
 class SwinTransformer(nn.Module):
@@ -85,6 +88,8 @@ class SwinTransformer(nn.Module):
         ,spacing=(1.0,1.0,1.0)
         ,window_size=4
         ,shift_size=2
+        ,is_deformable=False
+        ,is_lucid=False
     ) -> None:
         """
         Args:
@@ -134,9 +139,16 @@ class SwinTransformer(nn.Module):
             self.layers2c = nn.ModuleList()
             self.layers3c = nn.ModuleList()
             self.layers4c = nn.ModuleList()
+
+        basicLayer=BasicLayer
+        if(is_deformable):
+            basicLayer= BasicLayer_deformable
+        if(is_lucid):
+            basicLayer=BasicLayer_lucid
+
         down_sample_mod = look_up_option(downsample, MERGING_MODE) if isinstance(downsample, str) else downsample
         for i_layer in range(self.num_layers):
-            layer = BasicLayer(
+            layer = basicLayer(
                 dim=int(embed_dim * 2**i_layer),
                 depth=depths[i_layer],
                 num_heads=num_heads[i_layer],

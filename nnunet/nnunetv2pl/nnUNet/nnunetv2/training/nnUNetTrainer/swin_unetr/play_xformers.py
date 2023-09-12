@@ -14,7 +14,7 @@
 import math
 from enum import Enum
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 from pl_bolts.datamodules import CIFAR10DataModule
 from torch import nn

@@ -115,14 +115,27 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     x11vnc \
     awesome \
     jq \
-    git 
+    git \
+    nautilus \
+    jupyter-core \
+    unzip
 #   apt-get autoremove --purge -y && \
 #   apt-get autoclean -y && \
 #   rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 
 
-
-RUN apt-get install -y nautilus jupyter-core unzip
+# Install cmake v3.13.2
+RUN apt-get purge -y cmake && \
+    mkdir /root/temp && \
+    cd /root/temp && \
+    wget https://github.com/Kitware/CMake/releases/download/v3.13.2/cmake-3.13.2.tar.gz && \
+    tar -xzvf cmake-3.13.2.tar.gz && \
+    cd cmake-3.13.2 && \
+    bash ./bootstrap && \
+    make && \
+    make install && \
+    cmake --version && \
+    rm -rf /root/temp
 
 
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
@@ -168,7 +181,7 @@ RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
     pyradiomics \ 
     six \
     napari-simpleitk-image-processing \
-    pytorch-lightning==2.0.7 \
+    # pytorch-lightning==2.0.7 \
     # itk itk-elastix monai-weekly \
     pymia einops seaborn \
     optuna \
@@ -201,7 +214,7 @@ RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
     descartes \
     ipympl \
     RISE \
-    transformers datasets deepspeed==0.10.1 ctviewer lightning==2.0.7 more_itertools==10.1.0 tcia_utils==1.6.9 \
+    transformers datasets deepspeed==0.10.1 ctviewer more_itertools==10.1.0 tcia_utils==1.6.9 \
     rt-utils \
     scikit-image \
     itk==5.3.0 \
@@ -212,7 +225,19 @@ RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
     itkwidgets[all]==1.0a23  \
     imjoy-elfinder \
     imjoy-jupyter-extension \
-    imjoy-jupyterlab-extension
+    imjoy-jupyterlab-extension \
+    llvmlite \
+    numba \
+    tensorboardX \
+    easydict \
+    pyyaml \
+    scikit-image \
+    tqdm \
+    SharedArray \
+    six \
+    evalutils==0.3.0 \
+    https://github.com/DIAGNijmegen/picai_prep/archive/refs/tags/v1.3.2.zip \
+    pytorch-ignite==0.4.12
 
 
 
@@ -288,14 +313,13 @@ RUN apt-get install -y ruby-dev  \
     && gem install aspera-cli 
 RUN ascli conf ascp install
 
-RUN python3 -m pip  --no-cache-dir install evalutils==0.3.0 https://github.com/DIAGNijmegen/picai_prep/archive/refs/tags/v1.3.2.zip pytorch-ignite==0.4.12
 
 # Install OpenJDK-8
 RUN apt-get update && \
     apt-get install -y openjdk-8-jdk && \
     apt-get install -y ant && \
     apt-get clean;
-    
+
 # Fix certificate issues
 RUN apt-get update && \
     apt-get install ca-certificates-java && \
@@ -307,24 +331,61 @@ ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
 RUN export JAVA_HOME
 
 RUN mkdir /usr/share/desktop-directories/ \
-&& wget -P ~/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb \
-&& sudo apt-get -y install xdg-utils \
-&& dpkg-deb -x ~/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb ${HOME}/NBIA
+    && wget -P ~/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb \
+    && sudo apt-get -y install xdg-utils \
+    && dpkg-deb -x ~/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb ${HOME}/NBIA
 
 # /home/sliceruser/NBIA/opt/nbia-data-retriever/nbia-data-retriever --cli /workspaces/konwersjaJsonData/nnunet/pretraining/manifests/UPENN-GBM_DownloadManifest20221129.tcia -d /home/sliceruser/preprocessed/raw -l /home/sliceruser/NBIA/passwd.txt -v –f
 
 RUN python3 -m pip install xformers==0.0.21 triton fairscale==0.4.13 hiddenlayer==0.3 x-transformers==1.19.1
 RUN mkdir ${HOME}/bolts \
-&& cd ${HOME}/bolts \
-&& git clone https://github.com/Lightning-Universe/lightning-bolts.git ${HOME}/bolts \
-&& python3 -m pip  install -e .
+    && cd ${HOME}/bolts \
+    && git clone https://github.com/Lightning-Universe/lightning-bolts.git ${HOME}/bolts \
+    && python3 -m pip  install -e .
+
+
+RUN mkdir ${HOME}/lighting \
+    && cd ${HOME}/lighting \
+    && git clone https://github.com/Lightning-AI/lightning.git ${HOME}/lighting \
+    && python3 -m pip  install -e .
+
+
+RUN mkdir ${HOME}/x_transformer \
+    && cd ${HOME}/x_transformer \
+    && git clone https://github.com/lucidrains/x-transformers.git ${HOME}/x_transformer \
+    && python3 -m pip  install -e .
+
+
+
+# Install Boost geometry
+RUN wget https://jaist.dl.sourceforge.net/project/boost/boost/1.68.0/boost_1_68_0.tar.gz && \
+    tar xzvf boost_1_68_0.tar.gz && \
+    cp -r ./boost_1_68_0/boost /usr/include && \
+    rm -rf ./boost_1_68_0 && \
+    rm -rf ./boost_1_68_0.tar.gz 
+
+RUN pip uninstall -y SharedArray && \
+    pip install SharedArray
+
+RUN pip install spconv-cu102 
+
+
+# python3 -m pip install easydict termcolor tensorboardX pybind11 portalocker lark fire ccimport pccm cumm spconv pcdet
+# python3 -m pip install pcdet
+# RUN mkdir ${HOME}/VOTR \
+# && cd ${HOME}/VOTR \
+# && git clone https://github.com/PointsCoder/VOTR.git ${HOME}/VOTR \
+# && python3 -m pip  install -e .
+
+
+
 # cd /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet
 # python3 -m pip  install -e .
 
 RUN mkdir ${HOME}/apex \
-&& git clone https://github.com/NVIDIA/apex ${HOME}/apex \
-&& cd ${HOME}/apex \
-&& python3 -m pip  install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./
+    && git clone https://github.com/NVIDIA/apex ${HOME}/apex \
+    && cd ${HOME}/apex \
+    && python3 -m pip  install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
 
