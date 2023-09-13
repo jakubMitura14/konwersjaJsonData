@@ -211,7 +211,7 @@ def for_filter_unwanted(group):
 
 grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
-#my_proj_name="seg swin tests" tag="l4c lucid swa lr 0.07 non deep depth=1" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
+#my_proj_name="seg swin tests" tag="l4c lucid lr 0.07  depth=1" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
 #my_proj_name="seg debug" tag="l4a swin lucid simple" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
 
 

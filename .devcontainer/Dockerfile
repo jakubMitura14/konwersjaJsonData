@@ -365,9 +365,9 @@ RUN wget https://jaist.dl.sourceforge.net/project/boost/boost/1.68.0/boost_1_68_
     rm -rf ./boost_1_68_0.tar.gz 
 
 RUN pip uninstall -y SharedArray && \
-    pip install SharedArray
+    pip install SharedArray 
 
-RUN pip install spconv-cu102 
+
 
 
 # python3 -m pip install easydict termcolor tensorboardX pybind11 portalocker lark fire ccimport pccm cumm spconv pcdet
@@ -388,6 +388,9 @@ RUN mkdir ${HOME}/apex \
     && python3 -m pip  install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
+
+RUN apt-get install -y default-libmysqlclient-dev
+RUN pip install spconv-cu102 mysqlclient
 
 
 ENV nnUNet_raw="/home/sliceruser/nnunetMainFolder/nnUNet_raw"
