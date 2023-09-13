@@ -140,8 +140,11 @@ class Pl_anatomy_model(pl.LightningModule):
             # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
             
         elif(self.is_swin):    
-            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.007)#learning rate set by learning rate finder
+            optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.007)#learning rate set by learning rate finder
+
+            # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+
 
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.00001)#learning rate set by learning rate finder
             

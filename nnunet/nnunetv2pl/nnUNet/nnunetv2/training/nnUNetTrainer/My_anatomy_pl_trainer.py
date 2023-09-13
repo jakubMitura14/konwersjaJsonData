@@ -66,6 +66,9 @@ from .med_next.create_mednext_v1 import *
 from .swin_unetr.swin_organized.SwinUNETR import *
 from lightning.pytorch.callbacks import LearningRateFinder
 
+from .swin_unetr.old.Swin_unetr_model_old import SwinUNETR_old
+
+from lightning.pytorch.strategies.ddp import DDPStrategy
 class FineTuneLearningRateFinder(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -169,12 +172,34 @@ class My_Anatomy_trainer(nnUNetTrainer):
             # ,distances=(8,8,16)
             ,distances=(7,7,7)
             ,spacing=(3.299999952316284,0.78125, 0.78125)
-            ,feature_size=16
+            ,feature_size=24
             ,depths=(2,2,2,2)
             ,is_lucid=True
-            ,window_size=(8,8,8)
+            ,window_size=(7,7,7)
             # ,is_deformable=True
             )
+            
+            # self.network=SwinUNETR_old(in_channels=self.num_input_channels
+            # ,num_heads=  (1, 3, 6, 12)
+            # # ,num_heads=  (1, 1, 1, 1)
+            # ,out_channels=self.label_manager.num_segmentation_heads
+            # ,use_v2=True#
+            # ,img_size=(48, 192, 160)
+            # ,patch_size=(2,2,2)
+            # ,batch_size=self.batch_size
+            # ,attn_masks_h5f=attn_masks_h5f
+            # ,is_swin=False
+            # ,is_local_iso=False
+            # ,is_local_non_iso=True
+            # # ,distances=(8,8,16)
+            # ,distances=(7,7,7)
+            # ,spacing=(3.299999952316284,0.78125, 0.78125)
+            # ,feature_size=24
+            # ,depths=(2,2,2,2)
+            # ,is_lucid=True
+            # ,window_size=(7,7,7)
+            # # ,is_deformable=True
+            # )
 
 
         if self._do_i_compile():
@@ -232,7 +257,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         toMonitor="avgHausdorff_all_val"
         checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode='min', save_top_k=1, monitor=toMonitor)
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
-        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=1e-4)
+        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=0.07)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
@@ -246,7 +271,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             max_epochs=1000,
             #gpus=1,
             # precision='16-mixed', 
-            callbacks=[checkpoint_callback], #  ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[checkpoint_callback,stochasticAveraging], #  ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       
@@ -255,9 +280,10 @@ class My_Anatomy_trainer(nnUNetTrainer):
             check_val_every_n_epoch=self.log_every_n,
             accumulate_grad_batches= 12,
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
-            log_every_n_steps=self.log_every_n
+            log_every_n_steps=self.log_every_n,
+            strategy=DDPStrategy(find_unused_parameters=True)
                         # ,reload_dataloaders_every_n_epochs=1
-            ,strategy="deepspeed_stage_1"#_offload
+            # ,strategy="deepspeed_stage_1"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """

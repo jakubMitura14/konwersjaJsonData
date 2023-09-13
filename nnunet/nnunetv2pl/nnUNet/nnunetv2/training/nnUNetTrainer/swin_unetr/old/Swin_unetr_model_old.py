@@ -54,7 +54,8 @@ class SwinUNETR_old(nn.Module):
         img_size: Sequence[int] | int,
         in_channels: int,
         out_channels: int,
-        depths: Sequence[int] = (2, 2, 2, 2),
+        batch_size:int,
+        depths: Sequence[int] = (2, 2, 2),
         num_heads: Sequence[int] = (3, 6, 12, 24),
         feature_size: int = 24,
         norm_name: tuple | str = "instance",
@@ -66,6 +67,17 @@ class SwinUNETR_old(nn.Module):
         spatial_dims: int = 3,
         downsample="merging",
         use_v2=False,
+        patch_size=(2,2,2)
+        ,attn_masks_h5f=""
+        ,is_swin=False
+        ,is_local_iso=False
+        ,is_local_non_iso=False
+        ,distances=(10,10,10)
+        ,spacing=(1.0,1.0,1.0)
+        ,window_size=4
+        ,shift_size=2
+        ,is_deformable=False
+        ,is_lucid=False
     ) -> None:
         """
         Args:
@@ -109,10 +121,10 @@ class SwinUNETR_old(nn.Module):
         if spatial_dims not in (2, 3):
             raise ValueError("spatial dimension should be 2 or 3.")
 
-        for m, p in zip(img_size, patch_size):
-            for i in range(5):
-                if m % np.power(p, i + 1) != 0:
-                    raise ValueError("input image size (img_size) should be divisible by stage-wise image resolution.")
+        # for m, p in zip(img_size, patch_size):
+        #     for i in range(5):
+        #         if m % np.power(p, i + 1) != 0:
+        #             raise ValueError("input image size (img_size) should be divisible by stage-wise image resolution.")
 
         if not (0 <= drop_rate <= 1):
             raise ValueError("dropout rate should be between 0 and 1.")
@@ -305,7 +317,7 @@ class SwinUNETR_old(nn.Module):
                 weights["state_dict"]["module.layers4.0.downsample.norm.bias"]
             )
 
-    def forward(self, x_in):
+    def forward(self, x_in,clinical):
         hidden_states_out = self.swinViT(x_in, self.normalize)
         enc0 = self.encoder1(x_in)
         enc1 = self.encoder2(hidden_states_out[0])

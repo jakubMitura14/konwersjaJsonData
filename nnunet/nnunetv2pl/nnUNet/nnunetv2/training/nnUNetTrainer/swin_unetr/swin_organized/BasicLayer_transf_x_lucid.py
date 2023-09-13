@@ -177,7 +177,7 @@ class SwinTransformerBlock_lucid(nn.Module):
             max_seq_len = 10024,
             attn_layers = Encoder_my(
                 dim = dim,
-                depth = 6,
+                depth = 1,
                 heads = num_heads,
                 is_Relative_position_embedding_3d=True,
                 window_size=window_size_corr,
@@ -189,11 +189,11 @@ class SwinTransformerBlock_lucid(nn.Module):
         )
 
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
-        self.norm2 = norm_layer(dim)
-        mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(hidden_size=dim, mlp_dim=mlp_hidden_dim, act=act_layer, dropout_rate=drop, dropout_mode="swin")
-        self.clinical_dense=nn.Linear(3,dim)
+        # self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        # self.norm2 = norm_layer(dim)
+        # mlp_hidden_dim = int(dim * mlp_ratio)
+        # self.mlp = Mlp(hidden_size=dim, mlp_dim=mlp_hidden_dim, act=act_layer, dropout_rate=drop, dropout_mode="swin")
+        # self.clinical_dense=nn.Linear(3,dim)
 
     def forward_part1(self, x, mask_matrix,clinical):
         # print(f"ffffffffffff  forward_part1  dim {self.dim} x {x.shape} calced_input_size {self.calced_input_size} ")
