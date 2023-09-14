@@ -219,7 +219,7 @@ class SwinTransformer(nn.Module):
         return x
 
     def forward(self, x,clinical):
-        normalize=True
+        normalize=False
         x0 =  checkpoint.checkpoint(self.patch_embed,x)
         # print(f"pppp after patch embed {x0.shape }")
         x0 = self.pos_drop(x0)

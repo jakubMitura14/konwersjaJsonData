@@ -189,10 +189,11 @@ class SwinUNETR(nn.Module):
         dec1= dec2+enc0#self.decoders[0].to('cuda')(dec2,enc0)
 
 
-        return [self.outs[0].to('cuda')(dec1)+self.outs[1].to('cuda')(dec2)
-                ,self.outs[2].to('cuda')(dec3)
-                ,self.outs[3].to('cuda')(dec4)
-                ,self.outs[4].to('cuda')(dec5)]
+        return [self.outs[0].to('cuda')(dec1)]
+                # +self.outs[1].to('cuda')(dec2)
+                # ,self.outs[2].to('cuda')(dec3)
+                # ,self.outs[3].to('cuda')(dec4)
+                # ,self.outs[4].to('cuda')(dec5)]
 
 
 

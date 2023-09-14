@@ -140,10 +140,10 @@ class Pl_anatomy_model(pl.LightningModule):
             # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
             
         elif(self.is_swin):    
-            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
             # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.007)#learning rate set by learning rate finder
 
-            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
 
 
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.00001)#learning rate set by learning rate finder
@@ -178,13 +178,13 @@ class Pl_anatomy_model(pl.LightningModule):
             output = network(data,clinical)
         else:
             output = network(data)        
-        if(not self.is_classic_nnunet):
-            target=self.transform_gold(target)
+        # if(not self.is_classic_nnunet):
+        #     target=self.transform_gold(target)
 
         epoch=self.current_epoch
         l=self.loss(output, target)
-        # print(f"loss {l.detach().cpu().item()}")
-        self.log("train loss",l.detach().cpu().item(),sync_dist=True)
+        print(f"loss {l.detach().cpu().item()}")
+        self.log("train loss",l.detach().cpu().item())
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
                 save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train",True)   
@@ -221,8 +221,8 @@ class Pl_anatomy_model(pl.LightningModule):
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
 
 
-        if(not self.is_classic_nnunet):
-            target=self.transform_gold(target)
+        # if(not self.is_classic_nnunet):
+        #     target=self.transform_gold(target)
         
         
         epoch=self.current_epoch
@@ -247,7 +247,7 @@ class Pl_anatomy_model(pl.LightningModule):
 
         l = loss(output, target)
         save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)
-        self.log("val loss",l.detach().cpu().item(),sync_dist=True)
+        self.log("val loss",l.detach().cpu().item())
         # we only need the output with the highest output resolution
         # output = output[0]
         # target = target[0]
@@ -258,8 +258,8 @@ class Pl_anatomy_model(pl.LightningModule):
     def my_anato_log(self,tupl,name): 
         print(f"ttt {tupl} {name}")       
         if(np.isnan(tupl[1])):
-            self.log(f"{tupl[0]}_{name}", 100.0,sync_dist=True)
-        self.log(f"{tupl[0]}_{name}", tupl[1],sync_dist=True)
+            self.log(f"{tupl[0]}_{name}", 100.0)
+        self.log(f"{tupl[0]}_{name}", tupl[1])
         if(tupl[0]=="avgHausdorff_all" ):
             return True
         
@@ -273,7 +273,7 @@ class Pl_anatomy_model(pl.LightningModule):
         is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
         
         if(np.sum(np.array(is_there))==0):
-             self.log(main_to_monitor, 100.0,sync_dist=True)
+             self.log(main_to_monitor, 100.0)
              
     def on_train_epoch_end(self):
         if(self.current_epoch%self.log_every_n==0):

@@ -252,6 +252,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             project_name=os.getenv('my_proj_name'), # Optional
             #experiment_name="baseline" # Optional
         )
+        
 
 
         toMonitor="avgHausdorff_all_val"
@@ -283,7 +284,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             log_every_n_steps=self.log_every_n,
             # strategy=DDPStrategy(find_unused_parameters=True)
                         # ,reload_dataloaders_every_n_epochs=1
-            strategy="deepspeed_stage_1"#_offload
+            # strategy="deepspeed_stage_1"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """
