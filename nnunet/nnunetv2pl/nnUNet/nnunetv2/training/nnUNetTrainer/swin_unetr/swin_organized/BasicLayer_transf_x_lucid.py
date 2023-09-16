@@ -183,7 +183,7 @@ class SwinTransformerBlock_lucid(nn.Module):
                 window_size=window_size_corr,
                 calced_input_size=calced_input_size,
                 return_hiddens=False,
-                attn_flash = True,
+                # attn_flash = True,
                 ff_glu = True
             )
         )
@@ -343,10 +343,11 @@ class BasicLayer_lucid(nn.Module):
         hp = int(np.ceil(h / window_size[1])) * window_size[1]
         wp = int(np.ceil(w / window_size[2])) * window_size[2]
         attn_mask = compute_mask([dp, hp, wp], window_size, shift_size, x.device)
-
         for blk in self.blocks:
             x = blk(x, attn_mask,clinical)
         x = x.view(b, d, h, w, -1)
+        
+        
         if self.downsample is not None:
             x = self.downsample(x)
         x = rearrange(x, "b d h w c -> b c d h w")
