@@ -229,7 +229,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             ,spacing=(3.299999952316284,0.78125, 0.78125)
             ,feature_size=24
             ,depths=(2,2,2,2)
-            ,is_lucid=False
+            ,is_lucid=True
             ,window_size=(7,7,7)
             ,use_checkpoint=True
             # ,is_deformable=True
