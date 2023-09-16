@@ -80,6 +80,7 @@ class nnUNetDataLoader3D(nnUNetDataLoaderBase):
             seg_all[j] = np.pad(seg, ((0, 0), *padding), 'constant', constant_values=-1)
             clinical = list(map(lambda row : np.array([my_to_float(row['dre_result']),my_to_float(row['patient_age']),my_to_float(row['psa_result'])]), rows))
             clinical= np.stack(clinical)
+            clinical=np.nan_to_num(clinical, copy=True, nan=-1.0, posinf=-1.0, neginf=-1.0)
 
             # seg_all=transform_gold(seg_all,self.seg_shape)
         return {'data': data_all, 'seg': seg_all, 'properties': case_properties, 'keys': selected_keys, 'clinical':clinical}

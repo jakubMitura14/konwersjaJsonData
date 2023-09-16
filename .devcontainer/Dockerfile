@@ -337,7 +337,7 @@ RUN mkdir /usr/share/desktop-directories/ \
 
 # /home/sliceruser/NBIA/opt/nbia-data-retriever/nbia-data-retriever --cli /workspaces/konwersjaJsonData/nnunet/pretraining/manifests/UPENN-GBM_DownloadManifest20221129.tcia -d /home/sliceruser/preprocessed/raw -l /home/sliceruser/NBIA/passwd.txt -v –f
 
-RUN python3 -m pip install xformers==0.0.21 triton fairscale==0.4.13 hiddenlayer==0.3 x-transformers==1.19.1
+RUN python3 -m pip install xformers==0.0.21 triton fairscale==0.4.13 hiddenlayer==0.3 x-transformers==1.19.1 intensity-normalization==2.2.4
 RUN mkdir ${HOME}/bolts \
     && cd ${HOME}/bolts \
     && git clone https://github.com/Lightning-Universe/lightning-bolts.git ${HOME}/bolts \
