@@ -421,7 +421,6 @@ class SwinTransformerBlock(nn.Module):
         else:
             shifted_x = x
             attn_mask = None
-        print(f"sssssssss shifted_x {shifted_x.shape}")
         x_windows = window_partition(shifted_x, window_size)
 
 

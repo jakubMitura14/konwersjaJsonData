@@ -174,7 +174,7 @@ class SwinUNETR(nn.Module):
 
     def forward(self, x_in,clinical):
         normalize=False
-        hidden_states_out = self.swinViT(x_in,clinical= clinical,normalize=normalize)
+        hidden_states_out = self.swinViT(x_in,clinical= clinical)#,normalize=normalize
         # print(f"x_in {x_in.shape} \n hidden_states_out [0] {hidden_states_out[0].shape} 1) {hidden_states_out[1].shape} 2) {hidden_states_out[2].shape} 3) {hidden_states_out[3].shape} 4) {hidden_states_out[4].shape}" )
 
         enc0 = self.encoder_0(x_in)
@@ -190,7 +190,6 @@ class SwinUNETR(nn.Module):
         if(self.patch_size[0]==2):
             dec2=self.adaptor.to('cuda')(dec2)
         # enc0=self.adaptorB(enc0)
-        print(f"ddd dec2 {dec2.shape} enc0 {enc0.shape} ")
         dec1= dec2+enc0#self.decoders[0].to('cuda')(dec2,enc0)
 
         # dec1= self.decoders[0].to('cuda')(dec2,enc0)
