@@ -213,12 +213,12 @@ class My_Anatomy_trainer(nnUNetTrainer):
             attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
 
             self.network=SwinUNETR(in_channels=self.num_input_channels
-            # ,num_heads=  (1, 3, 6, 12)
+            ,num_heads=  (1, 3, 6, 12)
             # ,num_heads=  (1, 1, 1, 1)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
             ,img_size=(64, 192, 160)
-            ,patch_size=(2,2,2)
+            ,patch_size=(1,1,1)
             ,batch_size=self.batch_size
             ,attn_masks_h5f=attn_masks_h5f
             ,is_swin=False

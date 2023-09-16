@@ -5,7 +5,7 @@ attn_masks_h5f_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
 
 attn_masks_h5f=h5py.File(attn_masks_h5f_path,'r') 
 network=SwinUNETR(in_channels=3
-        # ,num_heads= (1, 1, 1, 1)
+        ,num_heads= (1, 1, 1, 1)
         # ,num_heads= (3, 6, 12, 24)
         ,out_channels=3
         ,use_v2=True#

@@ -252,7 +252,6 @@ class D2_Pl_model(pl.LightningModule):
         label_manager=self.label_manager
 
         data = batch['data']
-        print(f"aaaaiiiiiuuuu {data.keys()} mask labels {data['mask_labels'].shape} class_labels  {data['class_labels'].shape} ")
         # for k in data.keys():
         #     print(f"jjjj {k}  {data[k].shape}")
         

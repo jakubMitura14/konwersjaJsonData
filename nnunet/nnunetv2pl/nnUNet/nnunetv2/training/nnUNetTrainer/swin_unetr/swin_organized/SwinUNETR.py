@@ -79,7 +79,7 @@ class SwinUNETR(nn.Module):
         super().__init__()
 
         img_size = ensure_tuple_rep(img_size, spatial_dims)
-        patch_size = patch_size
+        self.patch_size = patch_size
         # window_size = ensure_tuple_rep(7, spatial_dims)
 
         if spatial_dims not in (2, 3):
@@ -169,7 +169,7 @@ class SwinUNETR(nn.Module):
             conv_only=False,
             is_transposed=False,
         )
-        # self.decoders[0]=None
+        self.decoders[0]=None
         self.outs[0]=UnetOutBlock(spatial_dims=spatial_dims, in_channels=feature_size, out_channels=out_channels)
 
     def forward(self, x_in,clinical):
@@ -187,12 +187,12 @@ class SwinUNETR(nn.Module):
         dec4= self.decoders[3].to('cuda')(dec5,enc3)
         dec3= self.decoders[2].to('cuda')(dec4,enc2)
         dec2= self.decoders[1].to('cuda')(dec3,enc1)
-
-        dec2=self.adaptor.to('cuda')(dec2)
+        if(self.patch_size[0]==2):
+            dec2=self.adaptor.to('cuda')(dec2)
         # enc0=self.adaptorB(enc0)
-
+        print(f"ddd dec2 {dec2.shape} enc0 {enc0.shape} ")
         dec1= dec2+enc0#self.decoders[0].to('cuda')(dec2,enc0)
-        # print(f"\n iiiiuuu dec3 {dec3.shape} enc1 {enc1.shape}  \n dec2 {dec2.shape} enc0 {enc0.shape} x_in {x_in.shape}  \n ")
+
         # dec1= self.decoders[0].to('cuda')(dec2,enc0)
 
 
