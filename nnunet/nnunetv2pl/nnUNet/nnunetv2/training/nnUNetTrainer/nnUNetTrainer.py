@@ -214,7 +214,7 @@ class nnUNetTrainer(object):
             #     self.network = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.network)
             #     self.network = DDP(self.network, device_ids=[self.local_rank])
 
-            self.loss = self._build_loss()
+            # self.loss = self._build_loss()
             self.was_initialized = True
         else:
             raise RuntimeError("You have called self.initialize even though the trainer was already initialized. "

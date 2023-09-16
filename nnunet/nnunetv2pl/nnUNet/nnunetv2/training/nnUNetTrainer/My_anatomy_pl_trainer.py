@@ -60,6 +60,7 @@ from transformers import (
     AutoTokenizer,
     get_linear_schedule_with_warmup,
 )
+from nnunetv2.training.loss.compound_losses import DC_and_CE_loss, DC_and_BCE_loss
 
 from transformers import AutoImageProcessor
 from .med_next.create_mednext_v1 import *
@@ -69,6 +70,8 @@ from lightning.pytorch.callbacks import LearningRateFinder
 from .swin_unetr.old.Swin_unetr_model_old import SwinUNETR_old
 
 from lightning.pytorch.strategies.ddp import DDPStrategy
+from monai.networks.nets.swin_unetr import SwinUNETR as SwinUNETR_monai
+
 class FineTuneLearningRateFinder(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -90,10 +93,18 @@ class My_Anatomy_trainer(nnUNetTrainer):
         self.log_every_n=5
         self.num_batch_to_eval=20
         # self.batch_size=2
-        
+        self.is_deep_supervision=False
         self.is_classic_nnunet=False
-        self.is_swin=True
+        self.is_swin=False
+        self.is_swin_monai=True
         self.is_med_next=False
+
+        if(self.is_classic_nnunet or self.is_med_next):
+            self.is_deep_supervision=True
+
+
+
+
         
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
@@ -131,6 +142,14 @@ class My_Anatomy_trainer(nnUNetTrainer):
         nnUNetTrainer.on_train_start(self)
 
 
+        if(self.is_deep_supervision):
+            self.loss = self._build_loss()
+        else:
+            self.loss=DC_and_BCE_loss({},
+                                   {'batch_dice': self.configuration_manager.batch_dice,
+                                    'do_bg': True, 'smooth': 1e-5, 'ddp': self.is_ddp},
+                                   use_ignore_label=self.label_manager.ignore_label is not None,
+                                   dice_class=MemoryEfficientSoftDiceLoss)
 
 
         self.num_input_channels = determine_num_input_channels(self.plans_manager, self.configuration_manager,
@@ -178,28 +197,43 @@ class My_Anatomy_trainer(nnUNetTrainer):
             ,window_size=(7,7,7)
             # ,is_deformable=True
             )
-            
-            # self.network=SwinUNETR_old(in_channels=self.num_input_channels
+
+
+        if(self.is_swin_monai):
+            # self.network=SwinUNETR_monai(in_channels=self.num_input_channels
+            #     # ,num_heads=  (1, 3, 6, 12)
+            #     # ,num_heads=  (1, 1, 1, 1)
+            #     ,out_channels=self.label_manager.num_segmentation_heads
+            #     ,use_v2=True#
+            #     ,img_size=(64, 192, 160)
+            #     ,feature_size=48
+            #     ,depths=(2,2,2,2)
+            #     )
+
+            attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
+
+            self.network=SwinUNETR(in_channels=self.num_input_channels
             # ,num_heads=  (1, 3, 6, 12)
-            # # ,num_heads=  (1, 1, 1, 1)
-            # ,out_channels=self.label_manager.num_segmentation_heads
-            # ,use_v2=True#
-            # ,img_size=(48, 192, 160)
-            # ,patch_size=(2,2,2)
-            # ,batch_size=self.batch_size
-            # ,attn_masks_h5f=attn_masks_h5f
-            # ,is_swin=False
-            # ,is_local_iso=False
-            # ,is_local_non_iso=True
-            # # ,distances=(8,8,16)
-            # ,distances=(7,7,7)
-            # ,spacing=(3.299999952316284,0.78125, 0.78125)
-            # ,feature_size=24
-            # ,depths=(2,2,2,2)
-            # ,is_lucid=True
-            # ,window_size=(7,7,7)
-            # # ,is_deformable=True
-            # )
+            # ,num_heads=  (1, 1, 1, 1)
+            ,out_channels=self.label_manager.num_segmentation_heads
+            ,use_v2=True#
+            ,img_size=(64, 192, 160)
+            ,patch_size=(2,2,2)
+            ,batch_size=self.batch_size
+            ,attn_masks_h5f=attn_masks_h5f
+            ,is_swin=False
+            ,is_local_iso=False
+            ,is_local_non_iso=False
+            # ,distances=(8,8,16)
+            ,distances=(7,7,7)
+            ,spacing=(3.299999952316284,0.78125, 0.78125)
+            ,feature_size=24
+            ,depths=(2,2,2,2)
+            ,is_lucid=False
+            ,window_size=(7,7,7)
+            ,use_checkpoint=True
+            # ,is_deformable=True
+            )
 
 
         if self._do_i_compile():
@@ -237,7 +271,8 @@ class My_Anatomy_trainer(nnUNetTrainer):
                                 ,is_classic_nnunet=self.is_classic_nnunet
                                 ,is_swin=self.is_swin
                                 ,is_med_next=self.is_med_next
-                                
+                                ,is_swin_monai=self.is_swin_monai
+                                ,is_deep_supervision=self.is_deep_supervision
                                 )
         
         # self.pl_model= Pl_anatomy_model.load_from_checkpoint('/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=4-step=125.ckpt')        
@@ -284,7 +319,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             log_every_n_steps=self.log_every_n,
             # strategy=DDPStrategy(find_unused_parameters=True)
                         # ,reload_dataloaders_every_n_epochs=1
-            # strategy="deepspeed_stage_1"#_offload
+            strategy="deepspeed_stage_1"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """

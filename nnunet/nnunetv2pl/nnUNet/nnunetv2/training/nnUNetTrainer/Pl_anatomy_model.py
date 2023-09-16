@@ -94,6 +94,8 @@ class Pl_anatomy_model(pl.LightningModule):
                  ,is_classic_nnunet
                  ,is_swin
                  ,is_med_next
+                 ,is_swin_monai
+                 ,is_deep_supervision
                  ):
         
 
@@ -117,7 +119,8 @@ class Pl_anatomy_model(pl.LightningModule):
         self.is_classic_nnunet=is_classic_nnunet
         self.is_swin=is_swin
         self.is_med_next=is_med_next
-
+        self.is_swin_monai=is_swin_monai
+        self.is_deep_supervision=is_deep_supervision
 
     def setup(self, stage=None):
         self.logger.experiment.log_text(os.getenv('my_proj_desc'))
@@ -139,9 +142,9 @@ class Pl_anatomy_model(pl.LightningModule):
                                         momentum=0.99, nesterov=True)
             # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
             
-        elif(self.is_swin):    
-            optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-            # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.007)#learning rate set by learning rate finder
+        elif(self.is_swin or self.is_swin_monai):    
+            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.076)#learning rate set by learning rate finder
 
             # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
 
@@ -154,7 +157,7 @@ class Pl_anatomy_model(pl.LightningModule):
         
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
-        if(self.is_swin):
+        if(self.is_swin or self.is_swin_monai):
             # lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*40, warmup_duration=30)
             scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=30)
             lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[30])
@@ -168,13 +171,28 @@ class Pl_anatomy_model(pl.LightningModule):
         #recreating to remove all data
         self.network.train()
 
+    def pad_data_if_needed(self,arr):
+        if(self.is_swin_monai):
+            return F.pad(arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
+        return arr
+    def pad_target_if_needed(self,arr):
+        if(self.is_swin_monai):
+            if(self.is_deep_supervision):
+                return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0),arr))
+            else :
+                return F.pad(arr[0], (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
+        return arr
+            
+
+
+
     def training_step(self, batch, batch_idx):
         
-        data = batch['data']
-        target = batch['target']
+        data = self.pad_data_if_needed(batch['data'])
+        target = self.pad_target_if_needed(batch['target'])
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
         network=self.network
-        if(self.is_swin):
+        if(self.is_swin or self.is_swin_monai):
             output = network(data,clinical)
         else:
             output = network(data)        
@@ -216,8 +234,8 @@ class Pl_anatomy_model(pl.LightningModule):
         loss=self.loss
         label_manager=self.label_manager
 
-        data = batch['data']
-        target = batch['target']
+        data = self.pad_data_if_needed(batch['data'])
+        target = self.pad_target_if_needed(batch['target'])
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
 
 
@@ -237,7 +255,7 @@ class Pl_anatomy_model(pl.LightningModule):
         # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
         # So autocast will only be active if we have a cuda device.
         # with autocast(device.type, enabled=True) if device.type == 'cuda' else dummy_context():
-        if(self.is_swin):
+        if(self.is_swin or self.is_swin_monai):
             output = network(data,clinical)
         else:
             output = network(data)

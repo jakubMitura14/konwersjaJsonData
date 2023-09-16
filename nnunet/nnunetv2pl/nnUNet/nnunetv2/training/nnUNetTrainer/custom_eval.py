@@ -448,20 +448,16 @@ def save_to_hdf5_anatomy(f,inner_id,group_name,batch_id,target,output,data):
         f[predicted_segmentation_onehot_str][:]= curr.detach().cpu().numpy()
         f[data_str][:] = data.detach().cpu().numpy()
 
-
+def get_first_if_list(inn):
+    if(isinstance(inn, list)):
+        return inn[0]
+    return inn
 
 def save_for_metrics(epoch,target,output,data,log_every_n,batch_id,f,group_name,is_anatomy_metr=False):
-    if(isinstance(output, list)):
-        # list(map(lambda i: save_to_hdf5(f,i,group_name,batch_id,target[i],output[i],data[i]),range(len(output))))
-        if(is_anatomy_metr):
-            save_to_hdf5_anatomy(f,0,group_name,batch_id,target[0],output[0],data)
-        else:    
-            save_to_hdf5(f,0,group_name,batch_id,target[0],output[0],data)
-    else:
-        if(is_anatomy_metr):
-            save_to_hdf5(f,0,group_name,batch_id,target,output,data)  
-        else:
-            save_to_hdf5(f,0,group_name,batch_id,target,output,data)  
-
+    # list(map(lambda i: save_to_hdf5(f,i,group_name,batch_id,target[i],output[i],data[i]),range(len(output))))
+    if(is_anatomy_metr):
+        save_to_hdf5_anatomy(f,0,group_name,batch_id,get_first_if_list(target),get_first_if_list(output),data)
+    else:    
+        save_to_hdf5(f,0,group_name,batch_id,get_first_if_list(target),get_first_if_list(output),data)
 
 
