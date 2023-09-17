@@ -100,12 +100,12 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     if('inferred_pg' not in group[1]):
         print(f"nnnnno inferred_pg")
         return ' '
-    # if(new_col_parts_name not in group[1]):
-    #     print(f"nnnnno tz_inferred")
-    #     return ' '    
-    # if(group[1][new_col_parts_name]==' '):
-    #     print(f"nnnnno tz_inferred")
-    #     return ' '    
+    if("pz_noSeg" not in group[1]):
+        print(f"nnnnno pz_noSeg")
+        return ' '    
+    if("tz_noSeg" not in group[1]):
+        print(f"nnnnno tz_noSeg")
+        return ' '    
 
         
     
