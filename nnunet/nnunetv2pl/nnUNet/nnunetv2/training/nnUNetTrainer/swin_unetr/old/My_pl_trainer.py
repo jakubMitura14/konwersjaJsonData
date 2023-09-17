@@ -39,7 +39,7 @@ from nnunetv2.training.data_augmentation.custom_transforms.transforms_for_dummy_
 
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper
-from .Pl_model import *
+# from .Pl_model import *
 import shutil
 import h5py
 import lightning.pytorch as pl
@@ -62,8 +62,8 @@ from transformers import (
 )
 
 from transformers import AutoImageProcessor
-from .med_next.create_mednext_v1 import *
-from .swin_unetr.swin_organized.SwinUNETR import *
+from ...med_next.create_mednext_v1 import *
+from ..swin_organized.SwinUNETR import *
 
 class My_pl_trainer(nnUNetTrainer):
 

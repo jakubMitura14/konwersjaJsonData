@@ -72,7 +72,7 @@ from optuna.integration import PyTorchLightningPruningCallback
 from lightning.pytorch.callbacks import ModelCheckpoint
 from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
-from .custom_eval import *
+from ...custom_eval import *
 
 
 class Pl_Model(pl.LightningModule):

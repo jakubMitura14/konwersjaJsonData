@@ -63,11 +63,11 @@ from transformers import (
 from nnunetv2.training.loss.compound_losses import DC_and_CE_loss, DC_and_BCE_loss
 
 from transformers import AutoImageProcessor
-from .med_next.create_mednext_v1 import *
-from .swin_unetr.swin_organized.SwinUNETR import *
+from ...med_next.create_mednext_v1 import *
+from ..swin_organized.SwinUNETR import *
 from lightning.pytorch.callbacks import LearningRateFinder
 
-from .swin_unetr.old.Swin_unetr_model_old import SwinUNETR_old
+from .Swin_unetr_model_old import SwinUNETR_old
 
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from monai.networks.nets.swin_unetr import SwinUNETR as SwinUNETR_monai

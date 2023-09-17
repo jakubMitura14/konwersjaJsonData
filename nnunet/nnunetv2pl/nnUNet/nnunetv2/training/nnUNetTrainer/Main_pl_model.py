@@ -76,7 +76,7 @@ from .custom_eval import *
 import ignite
 import deepspeed
 
-class Pl_anatomy_model(pl.LightningModule):
+class Pl_main_model(pl.LightningModule):
     def __init__(self,network
                  ,dataloader_train
                  ,dataloader_val
@@ -96,6 +96,8 @@ class Pl_anatomy_model(pl.LightningModule):
                  ,is_med_next
                  ,is_swin_monai
                  ,is_deep_supervision
+                 ,is_anatomy_segm
+                 ,is_lesion_segm
                  ):
         
 
@@ -122,6 +124,10 @@ class Pl_anatomy_model(pl.LightningModule):
         self.is_swin_monai=is_swin_monai
         self.is_deep_supervision=is_deep_supervision
 
+        self.is_anatomy_segm=is_anatomy_segm
+        self.is_lesion_segm=is_lesion_segm
+
+
     def setup(self, stage=None):
         self.logger.experiment.log_text(os.getenv('my_proj_desc'))
         self.logger.experiment.add_tag(os.getenv('tag'))
@@ -146,12 +152,6 @@ class Pl_anatomy_model(pl.LightningModule):
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
             optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.076)#learning rate set by learning rate finder
 
-            # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-
-
-            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.00001)#learning rate set by learning rate finder
-            
-            # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), 0.07585775750291836)
         elif(self.is_med_next):    
             optimizer = torch.optim.AdamW(self.network.parameters(), 0.0019054607179632484)
         
@@ -159,8 +159,8 @@ class Pl_anatomy_model(pl.LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
         if(self.is_swin or self.is_swin_monai):
             # lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*40, warmup_duration=30)
-            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=30)
-            lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[30])
+            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=20)
+            lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[20])
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
 
@@ -184,10 +184,7 @@ class Pl_anatomy_model(pl.LightningModule):
         return arr
             
 
-
-
-    def training_step(self, batch, batch_idx):
-        
+    def training_step(self, batch, batch_idx):       
         data = self.pad_data_if_needed(batch['data'])
         target = self.pad_target_if_needed(batch['target'])
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
@@ -196,8 +193,6 @@ class Pl_anatomy_model(pl.LightningModule):
             output = network(data,clinical)
         else:
             output = network(data)        
-        # if(not self.is_classic_nnunet):
-        #     target=self.transform_gold(target)
 
         epoch=self.current_epoch
         l=self.loss(output, target)
@@ -205,7 +200,7 @@ class Pl_anatomy_model(pl.LightningModule):
         self.log("train loss",l.detach().cpu().item())
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
-                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train",True)   
+                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train",self.is_anatomy_segm)   
         return l
 
 
@@ -239,10 +234,6 @@ class Pl_anatomy_model(pl.LightningModule):
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
 
 
-        # if(not self.is_classic_nnunet):
-        #     target=self.transform_gold(target)
-        
-        
         epoch=self.current_epoch
         data = data.to(device, non_blocking=True)
         if isinstance(target, list):
@@ -260,19 +251,13 @@ class Pl_anatomy_model(pl.LightningModule):
         else:
             output = network(data)
 
-        # print(f"ooooooo max {output[0].max()} min {output[0].min()}")
-        # del data
-
         l = loss(output, target)
-        save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)
+        save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",self.is_anatomy_segm)
         self.log("val loss",l.detach().cpu().item())
-        # we only need the output with the highest output resolution
-        # output = output[0]
-        # target = target[0]
-        # if(epoch%self.log_every_n==0):
-            # if(batch_idx<self.num_batch_to_eval):
+
             
         return l
+
     def my_anato_log(self,tupl,name): 
         print(f"ttt {tupl} {name}")       
         if(np.isnan(tupl[1])):
@@ -282,22 +267,38 @@ class Pl_anatomy_model(pl.LightningModule):
             return True
         
         return False
-        
+    
+    def my_lesion_log(self,res,group_name):
+        self.log(f"percent_in_{group_name}", res[0]) #,sync_dist=True
+        self.log(f"percent_out_{group_name}", res[1]) #,sync_dist=True
+        self.log(f"percent_covered_{group_name}", res[2]) #,sync_dist=True
+        self.log(f"is_correct_{group_name}", res[3])#,sync_dist=True
+        self.log(f"my_sensitivity_{group_name}", res[4])#,sync_dist=True
+        self.log(f"my_specificity_{group_name}", res[5])#,sync_dist=True
+
+        self.log(f"num_components_{group_name}", res[6])#,sync_dist=True
+        self.log(f"in_inferred_{group_name}", res[7])#,sync_dist=True
+
+
     def on_validation_epoch_end(self):
         group_name='val'
-        res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True,batch_size=self.batch_size )
-        
-        main_to_monitor="avgHausdorff_all_val"
-        is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
-        
-        if(np.sum(np.array(is_there))==0):
-             self.log(main_to_monitor, 100.0)
-             
-    def on_train_epoch_end(self):
-        if(self.current_epoch%self.log_every_n==0):
-            group_name='train'
-            res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=True,batch_size=self.batch_size )
-            list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
+        res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=self.is_anatomy_segm,batch_size=self.batch_size )
+        if(self.is_anatomy_segm):
+            main_to_monitor="avgHausdorff_all_val"
+            is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
+            if(np.sum(np.array(is_there))==0):
+                self.log(main_to_monitor, 100.0)
+        if(self.is_lesion_segm):
+            self.my_lesion_log(res,group_name)
 
+
+    def on_train_epoch_end(self):
+        group_name='train'
+        if(self.current_epoch%self.log_every_n==0):
+            if(self.is_anatomy_segm):
+                res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=self.is_anatomy_segm,batch_size=self.batch_size )
+                list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
+            if(self.is_lesion_segm):
+                self.my_lesion_log(res,group_name)
 
 

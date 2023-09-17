@@ -149,6 +149,8 @@ def run_training(dataset_name_or_id: Union[str, int],
                  disable_checkpointing: bool = False,
                  val_with_best: bool = False,
                  device: torch.device = torch.device('cuda')):
+    
+    
     torch.set_float32_matmul_precision("high")
     if isinstance(fold, str):
         if fold != 'all':
@@ -267,6 +269,21 @@ def run_training_entry():
     else:
         device = torch.device('mps')
 
+    print(f"iii args.dataset_name_or_id {args.dataset_name_or_id}  ")
+    print(f"iii args.configuration {args.configuration}  ")
+    print(f"iii args.fold {args.fold}  ")
+    print(f"iii args.tr {args.tr}  ")
+    print(f"iii args.p {args.p}  ")
+    print(f"iii args.pretrained_weights {args.pretrained_weights}  ")
+    print(f"iii args.num_gpus {args.num_gpus}  ")
+    print(f"iii args.use_compressed {args.use_compressed}  ")
+    print(f"iii args.npz {args.npz}  ")
+    print(f"iii args.c {args.c}  ")
+    print(f"iii args.val {args.val}  ")
+    print(f"iii args.disable_checkpointing {args.disable_checkpointing}  ")
+    print(f"iii args.val_best {args.val_best}  ")
+    print(f"iii args.device {args.device}  ")
+ 
     run_training(args.dataset_name_or_id, args.configuration, args.fold, args.tr, args.p, args.pretrained_weights,
                  args.num_gpus, args.use_compressed, args.npz, args.c, args.val, args.disable_checkpointing, args.val_best,
                  device=device)

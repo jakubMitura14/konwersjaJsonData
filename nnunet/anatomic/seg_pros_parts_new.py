@@ -231,3 +231,12 @@ grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,labe
 #CUDA_VISIBLE_DEVICES=3 nnUNetv2_train 294 3d_fullres 4
 
 # /home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/nnUNet_preprocessed/Dataset281_Prostate/gt_segmentations
+
+
+# /workspaces/konwersjaJsonData/explore
+# pydeps /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet/nnunetv2/training/nnUNetTrainer/My_anatomy_pl_trainer.py --debug -T png --max-bacon 2 -o /workspaces/konwersjaJsonData/explore/exaple.png
+
+# --show-deps
+
+
+

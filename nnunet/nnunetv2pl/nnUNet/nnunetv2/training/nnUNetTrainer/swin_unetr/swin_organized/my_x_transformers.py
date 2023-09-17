@@ -576,7 +576,9 @@ class My_transformer_wrapper(nn.Module):
 
         x, intermediates = self.attn_layers(x, mask = mask, mems = mems, return_hiddens = True, **kwargs)
         #adding clinical data
+        
         x=x+torch.nn.functional.relu(self.clinical_dense(clinical))
+
         out = self.project_out(x) if not return_embeddings else x
 
         if return_intermediates:
