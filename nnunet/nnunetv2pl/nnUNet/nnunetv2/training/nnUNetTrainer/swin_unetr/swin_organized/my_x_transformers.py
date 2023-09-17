@@ -395,9 +395,9 @@ class AttentionLayers_my(nn.Module):
                 residual
             ]))
 
-        if deepnorm:
-            init_gain = (8 * depth) ** -0.25
-            deepnorm_init(self, init_gain)
+        # if deepnorm:
+        #     init_gain = (8 * depth) ** -0.25
+        #     deepnorm_init(self, init_gain)
 
     def forward(
         self,
@@ -411,7 +411,7 @@ class AttentionLayers_my(nn.Module):
         return_hiddens = False
     ):
         assert not (self.cross_attend ^ exists(context)), 'context must be passed in if cross_attend is set to True'
-
+        return_hiddens=False
         hiddens = []
         layer_hiddens = []
         intermediates = []
@@ -454,7 +454,10 @@ class AttentionLayers_my(nn.Module):
                 x = pre_norm(x)
 
             if layer_type == 'a':
-                out, inter = block(x, mask = mask, context_mask = self_attn_context_mask, attn_mask = attn_mask, rel_pos = self.rel_pos, rotary_pos_emb = rotary_pos_emb, prev_attn = prev_attn, mem = layer_mem)
+
+                out= block(x, mask = mask, context_mask = self_attn_context_mask, attn_mask = attn_mask, rel_pos = self.rel_pos, rotary_pos_emb = rotary_pos_emb, prev_attn = prev_attn, mem = layer_mem)
+                # print(f"rrrrrrr {len(ress)}")
+                # out, inter =ress
             elif layer_type == 'c':
                 out, inter = block(x, context = context, mask = mask, context_mask = context_mask, prev_attn = prev_cross_attn)
             elif layer_type == 'f':
@@ -574,24 +577,24 @@ class My_transformer_wrapper(nn.Module):
 
         x = self.emb_dropout(x)
 
-        x, intermediates = self.attn_layers(x, mask = mask, mems = mems, return_hiddens = True, **kwargs)
+        x = self.attn_layers(x, mask = mask, mems = mems, return_hiddens = True, **kwargs)
         #adding clinical data
         
         x=x+torch.nn.functional.relu(self.clinical_dense(clinical))
 
         out = self.project_out(x) if not return_embeddings else x
 
-        if return_intermediates:
-            return out, intermediates
+        # if return_intermediates:
+        #     return out, intermediates
 
-        if return_mems:
-            hiddens = intermediates.hiddens
-            new_mems = list(map(lambda t: t[..., -self.max_mem_len:, :].detach(), hiddens))
-            return out, new_mems
+        # if return_mems:
+        #     hiddens = intermediates.hiddens
+        #     new_mems = list(map(lambda t: t[..., -self.max_mem_len:, :].detach(), hiddens))
+        #     return out, new_mems
 
-        if return_attn:
-            attn_maps = list(map(lambda t: t.post_softmax_attn, intermediates.attn_intermediates))
-            return out, attn_maps
+        # if return_attn:
+        #     attn_maps = list(map(lambda t: t.post_softmax_attn, intermediates.attn_intermediates))
+        #     return out, attn_maps
 
         return out
     

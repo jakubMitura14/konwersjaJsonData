@@ -93,14 +93,14 @@ class My_Anatomy_trainer(nnUNetTrainer):
         self.log_every_n=5
         self.num_batch_to_eval=20
         # self.batch_size=2
-        self.is_deep_supervision=False
+        # self.is_deep_supervision=False
         self.is_classic_nnunet=False
         self.is_swin=False
         self.is_swin_monai=True
         self.is_med_next=False
 
-        if(self.is_classic_nnunet or self.is_med_next):
-            self.is_deep_supervision=True
+        # if(self.is_classic_nnunet or self.is_med_next or self.is_swin):
+        self.is_deep_supervision=True
 
 
 
@@ -177,12 +177,14 @@ class My_Anatomy_trainer(nnUNetTrainer):
             attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
 
             self.network=SwinUNETR(in_channels=self.num_input_channels
-            ,num_heads=  (1, 3, 6, 12)
+            # ,num_heads=  (1, 3, 6, 12)
             # ,num_heads=  (1, 1, 1, 1)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
-            ,img_size=(48, 192, 160)
-            ,patch_size=(1,1,1)
+            ,img_size=(64, 192, 160)
+            # ,img_size=(48, 192, 160)
+            
+            ,patch_size=(2,2,2)
             ,batch_size=self.batch_size
             ,attn_masks_h5f=attn_masks_h5f
             ,is_swin=False
@@ -191,10 +193,11 @@ class My_Anatomy_trainer(nnUNetTrainer):
             # ,distances=(8,8,16)
             ,distances=(7,7,7)
             ,spacing=(3.299999952316284,0.78125, 0.78125)
-            ,feature_size=24
+            ,feature_size=48
             ,depths=(2,2,2,2)
             ,is_lucid=True
             ,window_size=(7,7,7)
+            ,use_checkpoint=True
             # ,is_deformable=True
             )
 
@@ -307,7 +310,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             max_epochs=1000,
             #gpus=1,
             # precision='16-mixed', 
-            callbacks=[checkpoint_callback], # ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(0, 35))], # ,FineTuneLearningRateFinder(milestones=(0, 35)) ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       
@@ -319,7 +322,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             log_every_n_steps=self.log_every_n,
             # strategy=DDPStrategy(find_unused_parameters=True)
                         # ,reload_dataloaders_every_n_epochs=1
-            strategy="deepspeed_stage_1"#_offload
+            # strategy="deepspeed_stage_1"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """
