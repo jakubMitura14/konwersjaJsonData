@@ -301,11 +301,11 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     writer.Execute(t2w_image)
 
     writer = sitk.ImageFileWriter()
-    writer.SetFileName(out_pathsDict[new_col_parts_name])
+    writer.SetFileName(out_pathsDict["pz_noSeg"])
     writer.Execute(pz_image)
 
     writer = sitk.ImageFileWriter()
-    writer.SetFileName(out_pathsDict['tz_inferred'])
+    writer.SetFileName(out_pathsDict['tz_noSeg'])
     writer.Execute(tz_image)
 
     return group[0]
