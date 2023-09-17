@@ -56,14 +56,14 @@ prostate_col= 'pg_noSeg' # name of the column with segmentaton of whole prostate
 new_col_name= 'inferred_pg'
 new_col_parts_name='pg_parts_inferred'
 
-non_mri_inputs=[new_col_name,new_col_parts_name,'tz_inferred']
+non_mri_inputs=[new_col_name,"pz_noSeg",'tz_noSeg']
 
 channel_names={  
     "0": "adc",
     "1": "hbv",
     "2": "t2w",
-    "3": non_mri_inputs[1],
-    "4":'tz_inferred',
+    "3": "pz_noSeg",
+    "4":'tz_noSeg',
     "5":new_col_name
     
     }
@@ -100,12 +100,12 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     if('inferred_pg' not in group[1]):
         print(f"nnnnno inferred_pg")
         return ' '
-    if(new_col_parts_name not in group[1]):
-        print(f"nnnnno tz_inferred")
-        return ' '    
-    if(group[1][new_col_parts_name]==' '):
-        print(f"nnnnno tz_inferred")
-        return ' '    
+    # if(new_col_parts_name not in group[1]):
+    #     print(f"nnnnno tz_inferred")
+    #     return ' '    
+    # if(group[1][new_col_parts_name]==' '):
+    #     print(f"nnnnno tz_inferred")
+    #     return ' '    
 
         
     
@@ -128,9 +128,12 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     #http://insightsoftwareconsortium.github.io/SimpleITK-Notebooks/Python_html/20_Expand_With_Interpolators.html
     # print(f"aaaaaaa d  main {sources_dict[main_modality][0]} adc {sources_dict['adc'][0]}")
 
-   
+    print(f"ssss sources_dict {sources_dict.keys()}")
     adc_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['adc'][0], sitk.sitkBSpline)                                 
-    hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline)                                 
+    hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline) 
+
+    pz_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['pz_noSeg'][0], sitk.sitkNearestNeighbor)                                 
+    tz_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['tz_noSeg'][0], sitk.sitkNearestNeighbor)                                 
                                                   
     registered_prostate= reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict[new_col_name][0], sitk.sitkNearestNeighbor)
 
@@ -246,19 +249,20 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     # max_y=adc_arr.shape[2]
     t2w_image = sitk.ReadImage(group[1][main_modality][0])
     
-    inferred_parts_image= sitk.ReadImage(sources_dict[new_col_parts_name][0])
+    # inferred_parts_image= sitk.ReadImage(sources_dict[new_col_parts_name][0])
 
-    inferred_parts_image_arr=sitk.GetArrayFromImage(inferred_parts_image)
+    # inferred_parts_image_arr=sitk.GetArrayFromImage(inferred_parts_image)
 
 
     label_image = get_from_arr(labRes,t2w_image)
 
-    pz_arrr=(inferred_parts_image_arr==1)
-    tz_arrr=(inferred_parts_image_arr==2)
+    # pz_arrr=(inferred_parts_image_arr==1)
+    # tz_arrr=(inferred_parts_image_arr==2)
     
 
-    pz_image = get_from_arr(pz_arrr.astype(int),t2w_image)
-    tz_image = get_from_arr((inferred_parts_image_arr==2).astype(int),t2w_image)
+    # pz_image = get_from_arr(pz_arrr.astype(int),t2w_image)
+    # tz_image = get_from_arr((inferred_parts_image_arr==2).astype(int),t2w_image)
+
 
 
     adc_image=my_crop(adc_image,min_z,min_y,min_x,max_z,max_x,max_y)
@@ -458,13 +462,13 @@ plans['configurations']['3d_lowres'] = {
 , 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
 , 'use_mask_for_norm': [False, False, False, False, False]
 , 'UNet_class_name': 'PlainConvUNet'
-, 'UNet_base_num_features': 32
+, 'UNet_base_num_features': 128
 , 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2)
 , 'n_conv_per_stage_decoder': (2, 2, 2, 2)
 , 'num_pool_per_axis': [2, 4, 4]
 , 'pool_op_kernel_sizes': [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
-# , 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
-, 'conv_kernel_sizes': [[1, 5, 5], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
+, 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
+# , 'conv_kernel_sizes': [[1, 5, 5], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
 , 'unet_max_num_features': 320
 , 'resampling_fn_data': 'resample_data_or_seg_to_shape'
 , 'resampling_fn_seg': 'resample_data_or_seg_to_shape'

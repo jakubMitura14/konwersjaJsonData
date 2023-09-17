@@ -94,9 +94,9 @@ class Main_trainer_pl(nnUNetTrainer):
         self.num_batch_to_eval=20
         # self.batch_size=2
         self.is_deep_supervision=True
-        self.is_classic_nnunet=False
+        self.is_classic_nnunet=True
         self.is_swin=False
-        self.is_swin_monai=True
+        self.is_swin_monai=False
         self.is_med_next=False
 
         self.is_lesion_segm=True

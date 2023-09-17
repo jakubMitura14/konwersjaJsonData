@@ -144,7 +144,7 @@ class Pl_anatomy_model(pl.LightningModule):
 
     def configure_optimizers(self):
         if(self.is_classic_nnunet):
-            optimizer = torch.optim.SGD(self.network.parameters(), self.learning_rate, weight_decay=self.weight_decay,
+            optimizer = torch.optim.SGD(self.network.parameters(), 0.017, weight_decay=self.weight_decay,
                                         momentum=0.99, nesterov=True)
             # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
             

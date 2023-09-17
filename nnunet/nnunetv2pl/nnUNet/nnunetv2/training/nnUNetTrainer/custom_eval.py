@@ -402,7 +402,7 @@ def get_pred_one_hot(output,is_regions):
         return predicted_segmentation_onehot
         
 
-def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data,is_regions):
+def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data):
     
     
     output=torch.stack([output[:,0,:,:,:],output[:,2,:,:,:]],dim=1)
@@ -423,10 +423,6 @@ def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data,is_regions):
         f[target_str][:] = target.detach().cpu().numpy()
         f[predicted_segmentation_onehot_str][:]= curr.detach().cpu().numpy()
         f[data_str][:] = data.detach().cpu().numpy()
-
-
-
-
 
 
 def save_to_hdf5_anatomy(f,inner_id,group_name,batch_id,target,output,data):
