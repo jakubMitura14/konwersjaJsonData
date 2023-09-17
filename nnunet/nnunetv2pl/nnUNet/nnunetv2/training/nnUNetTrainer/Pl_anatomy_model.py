@@ -144,7 +144,7 @@ class Pl_anatomy_model(pl.LightningModule):
             
         elif(self.is_swin or self.is_swin_monai):    
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.076)#learning rate set by learning rate finder
+            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.066)#learning rate set by learning rate finder
 
             # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
 
@@ -176,7 +176,7 @@ class Pl_anatomy_model(pl.LightningModule):
             return F.pad(arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
         return arr
     def pad_target_if_needed(self,arr):
-        if(self.is_swin_monai):
+        if(self.is_swin_monai or self.is_swin):
             if(self.is_deep_supervision):
                 return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0),arr))
             else :
@@ -196,8 +196,8 @@ class Pl_anatomy_model(pl.LightningModule):
             output = network(data,clinical)
         else:
             output = network(data)        
-        # if(not self.is_classic_nnunet):
-        #     target=self.transform_gold(target)
+        if(not self.is_classic_nnunet):
+            target=self.transform_gold(target)
 
         epoch=self.current_epoch
         l=self.loss(output, target)
@@ -239,8 +239,8 @@ class Pl_anatomy_model(pl.LightningModule):
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
 
 
-        # if(not self.is_classic_nnunet):
-        #     target=self.transform_gold(target)
+        if(not self.is_classic_nnunet):
+            target=self.transform_gold(target)
         
         
         epoch=self.current_epoch

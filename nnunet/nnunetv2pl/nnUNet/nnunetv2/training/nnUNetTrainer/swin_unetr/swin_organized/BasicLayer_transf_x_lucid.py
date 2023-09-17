@@ -183,7 +183,7 @@ class SwinTransformerBlock_lucid(nn.Module):
                 window_size=window_size_corr,
                 calced_input_size=calced_input_size,
                 return_hiddens=False,
-                # attn_flash = True,
+                 attn_flash = True,
                 ff_glu = True
             )
         )
