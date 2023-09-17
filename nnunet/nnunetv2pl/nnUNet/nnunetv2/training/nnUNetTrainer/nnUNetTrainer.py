@@ -351,7 +351,7 @@ class nnUNetTrainer(object):
                                   ignore_label=self.label_manager.ignore_label, dice_class=MemoryEfficientSoftDiceLoss)
 
         deep_supervision_scales = self._get_deep_supervision_scales()
-
+        print(f"ddddd {deep_supervision_scales}")
         # we give each output a weight which decreases exponentially (division by 2) as the resolution decreases
         # this gives higher resolution outputs more weight in the loss
         weights = np.array([1 / (2 ** i) for i in range(len(deep_supervision_scales))])

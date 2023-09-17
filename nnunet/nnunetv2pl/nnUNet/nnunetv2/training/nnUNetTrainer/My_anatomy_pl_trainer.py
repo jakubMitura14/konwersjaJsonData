@@ -93,14 +93,14 @@ class My_Anatomy_trainer(nnUNetTrainer):
         self.log_every_n=5
         self.num_batch_to_eval=20
         # self.batch_size=2
-        self.is_deep_supervision=False
+        # self.is_deep_supervision=False
         self.is_classic_nnunet=False
-        self.is_swin=True
-        self.is_swin_monai=False
+        self.is_swin=False
+        self.is_swin_monai=True
         self.is_med_next=False
 
-        if(self.is_classic_nnunet or self.is_med_next or self.is_swin):
-            self.is_deep_supervision=True
+        # if(self.is_classic_nnunet or self.is_med_next or self.is_swin):
+        self.is_deep_supervision=True
 
 
 
@@ -197,6 +197,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             ,depths=(2,2,2,2)
             ,is_lucid=True
             ,window_size=(7,7,7)
+            ,use_checkpoint=True
             # ,is_deformable=True
             )
 
@@ -309,7 +310,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             max_epochs=1000,
             #gpus=1,
             # precision='16-mixed', 
-            callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(0, 10))], # ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(0, 35))], # ,FineTuneLearningRateFinder(milestones=(0, 35)) ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       

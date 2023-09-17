@@ -143,9 +143,10 @@ class Pl_anatomy_model(pl.LightningModule):
             # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
             
         elif(self.is_swin or self.is_swin_monai):    
+            # print(f"ssss self.learning_rate {self.learning_rate}")
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.066)#learning rate set by learning rate finder
-
+            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 3.98107e-07)#learning rate set by learning rate finder
+            # Lear
             # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
 
 
@@ -176,6 +177,7 @@ class Pl_anatomy_model(pl.LightningModule):
             return F.pad(arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
         return arr
     def pad_target_if_needed(self,arr):
+        # print(f"iiin pad_target_if_needed {arr.shape}")
         if(self.is_swin_monai or self.is_swin):
             if(self.is_deep_supervision):
                 return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0),arr))
@@ -201,7 +203,7 @@ class Pl_anatomy_model(pl.LightningModule):
 
         epoch=self.current_epoch
         l=self.loss(output, target)
-        print(f"loss {l.detach().cpu().item()}")
+        # print(f"loss {l.detach().cpu().item()}")
         self.log("train loss",l.detach().cpu().item())
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
@@ -236,6 +238,7 @@ class Pl_anatomy_model(pl.LightningModule):
 
         data = self.pad_data_if_needed(batch['data'])
         target = self.pad_target_if_needed(batch['target'])
+
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
 
 
@@ -263,6 +266,12 @@ class Pl_anatomy_model(pl.LightningModule):
         # print(f"ooooooo max {output[0].max()} min {output[0].min()}")
         # del data
 
+        # for i,el in enumerate(output):
+        #     print(f"ooo {i} {el.shape}")
+        
+        # for i,el in enumerate(target):
+        #     print(f"ttt {i} {el.shape}")
+                
         l = loss(output, target)
         save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)
         self.log("val loss",l.detach().cpu().item())

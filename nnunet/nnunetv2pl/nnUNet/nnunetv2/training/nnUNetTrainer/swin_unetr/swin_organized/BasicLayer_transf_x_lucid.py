@@ -574,7 +574,6 @@ class SwinTransformerBlock_lucid(nn.Module):
             attn_mask= einops.rearrange(attn_mask,'bb a b-> bb 1 a b')
             attn_mask=(attn_mask*(-1))/100
             attn_mask=torch.logical_not(attn_mask.bool())
-            # print(f"aaaaaaaaaaattn_mask  unique {attn_mask.unique()} ")
         print(f"xxfff {x_windows.shape}")
         attn_windows = self.attn(x_windows, attn_mask=attn_mask,clinical=clinical)
 

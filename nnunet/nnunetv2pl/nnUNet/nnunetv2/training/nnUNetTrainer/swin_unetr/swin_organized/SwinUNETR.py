@@ -169,7 +169,19 @@ class SwinUNETR(nn.Module):
             conv_only=False,
             is_transposed=False,
         )
+        self.adaptorC= self.transp_conv = get_conv_layer(
+            spatial_dims,
+            int(feature_size),
+            out_channels,
+            kernel_size=3,
+            stride=(2,2,2),
+            act=None,
+            norm=None,
+            conv_only=False,
+            is_transposed=False,
+        )
         self.decoders[0]=None
+        self.outs[1]=None
         self.outs[0]=UnetOutBlock(spatial_dims=spatial_dims, in_channels=feature_size, out_channels=out_channels)
 
     def forward(self, x_in,clinical):
@@ -194,13 +206,12 @@ class SwinUNETR(nn.Module):
 
         # dec1= self.decoders[0].to('cuda')(dec2,enc0)
 
-
-        return self.outs[0].to('cuda')(dec1)
-                #self.outs[0].to('cuda')(dec1)
-                # +self.outs[1].to('cuda')(dec2)
-                # ,self.outs[2].to('cuda')(dec3)
-                # ,self.outs[3].to('cuda')(dec4)
-                # ,self.outs[4].to('cuda')(dec5)]
+        # return self.outs[0].to('cuda')(dec1)
+        return [self.outs[0].to('cuda')(dec1)
+                ,self.adaptorC.to('cuda')(dec2)
+                ,self.outs[2].to('cuda')(dec3)
+                ,self.outs[3].to('cuda')(dec4)
+                ,self.outs[4].to('cuda')(dec5)]
 
 
 

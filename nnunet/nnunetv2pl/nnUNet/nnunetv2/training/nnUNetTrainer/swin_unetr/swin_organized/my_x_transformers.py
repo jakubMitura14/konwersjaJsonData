@@ -454,8 +454,7 @@ class AttentionLayers_my(nn.Module):
                 x = pre_norm(x)
 
             if layer_type == 'a':
-                if(attn_mask is not None):
-                    print(f"aaaaa x{x.shape } mask {attn_mask.shape} ")
+
                 out= block(x, mask = mask, context_mask = self_attn_context_mask, attn_mask = attn_mask, rel_pos = self.rel_pos, rotary_pos_emb = rotary_pos_emb, prev_attn = prev_attn, mem = layer_mem)
                 # print(f"rrrrrrr {len(ress)}")
                 # out, inter =ress
