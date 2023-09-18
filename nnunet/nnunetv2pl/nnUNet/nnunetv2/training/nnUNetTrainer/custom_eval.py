@@ -113,15 +113,15 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
     #if(False):
     if(to_save_files):
-        
+        # print(f"fffffffffffff curr_bigger_mask {np.sum(curr_bigger_mask.flatten())} curr_twos {np.sum(curr_twos.flatten())} ")
         save_single_arr(curr_in,batch_idd, bn, 0,for_explore,"curr_in",np.uint8 ,sensitivity)
         save_single_arr(curr_twos,batch_idd, bn, 0,for_explore,"curr_twos",np.uint8 ,sensitivity)
         save_single_arr(inferred,batch_idd, bn, 0,for_explore,"inferred",np.uint8 ,sensitivity)
         save_single_arr(curr_bigger_mask,batch_idd, bn, 0,for_explore,"curr_bigger_mask",np.uint8 ,sensitivity)
 
-        save_single_arr(data[0,:,:,:],batch_idd, bn, 0,for_explore,"data",float,sensitivity)
-        save_single_arr(data[1,:,:,:],batch_idd, bn, 1,for_explore,"data",float,sensitivity)
-        save_single_arr(data[2,:,:,:],batch_idd, bn, 2,for_explore,"data",float,sensitivity)
+        save_single_arr(data[0,:,:,:],batch_idd, bn, 0,for_explore,"adc",float,sensitivity)
+        save_single_arr(data[1,:,:,:],batch_idd, bn, 1,for_explore,"hbv",float,sensitivity)
+        save_single_arr(data[2,:,:,:],batch_idd, bn, 2,for_explore,"t2w",float,sensitivity)
         save_single_arr(data[3,:,:,:],batch_idd, bn, 3,for_explore,"data",float,sensitivity)
         save_single_arr(data[4,:,:,:],batch_idd, bn, 4,for_explore,"data",float,sensitivity)
         

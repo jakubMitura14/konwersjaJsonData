@@ -195,8 +195,12 @@ class Pl_main_model(pl.LightningModule):
             output = network(data)        
 
         epoch=self.current_epoch
+        
+        if(not self.is_classic_nnunet):
+            target=self.transform_gold(target)        
+        
         l=self.loss(output, target)
-        print(f"loss {l.detach().cpu().item()}")
+        # print(f"loss {l.detach().cpu().item()}")
         self.log("train loss",l.detach().cpu().item())
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
@@ -240,7 +244,8 @@ class Pl_main_model(pl.LightningModule):
             target = [i.to(device, non_blocking=True) for i in target]
         else:
             target = target.to(device, non_blocking=True)
-
+        if(not self.is_classic_nnunet):
+            target=self.transform_gold(target)
         # Autocast is a little bitch.
         # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
         # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
@@ -283,6 +288,7 @@ class Pl_main_model(pl.LightningModule):
     def on_validation_epoch_end(self):
         group_name='val'
         res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=self.is_anatomy_segm,batch_size=self.batch_size )
+        print(f"rrr {res}")
         if(self.is_anatomy_segm):
             main_to_monitor="avgHausdorff_all_val"
             is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
