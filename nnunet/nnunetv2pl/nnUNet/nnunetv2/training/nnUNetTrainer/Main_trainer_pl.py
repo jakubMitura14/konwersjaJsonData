@@ -101,7 +101,7 @@ class Main_trainer_pl(nnUNetTrainer):
 
         self.is_lesion_segm=True
         self.is_anatomy_segm= not self.is_lesion_segm
-        self.is_priming_segm= True
+        self.is_priming_segm= False
 
         # if(self.is_classic_nnunet or self.is_med_next):
         #     self.is_deep_supervision=True
@@ -150,7 +150,7 @@ class Main_trainer_pl(nnUNetTrainer):
 
         if(self.is_deep_supervision and not self.is_lesion_segm):
             self.loss = self._build_loss()
-        else:
+        if(self.is_anatomy_segm):
             self.loss=DC_and_BCE_loss({},
                                    {'batch_dice': self.configuration_manager.batch_dice,
                                     'do_bg': True, 'smooth': 1e-5, 'ddp': self.is_ddp},
@@ -209,18 +209,7 @@ class Main_trainer_pl(nnUNetTrainer):
 
 
         if(self.is_swin_monai):
-            # self.network=SwinUNETR_monai(in_channels=self.num_input_channels
-            #     # ,num_heads=  (1, 3, 6, 12)
-            #     # ,num_heads=  (1, 1, 1, 1)
-            #     ,out_channels=self.label_manager.num_segmentation_heads
-            #     ,use_v2=True#
-            #     ,img_size=(64, 192, 160)
-            #     ,feature_size=48
-            #     ,depths=(2,2,2,2)
-            #     )
-
             attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
-
             self.network=SwinUNETR(in_channels=self.num_input_channels
             # ,num_heads=  (1, 3, 6, 12)
             # ,num_heads=  (1, 1, 1, 1)
@@ -314,7 +303,7 @@ class Main_trainer_pl(nnUNetTrainer):
             max_epochs=1000,
             #gpus=1,
             # precision='16-mixed', 
-            callbacks=[checkpoint_callback], # ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(5, 10,40))], # ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       
@@ -347,7 +336,8 @@ class Main_trainer_pl(nnUNetTrainer):
         return optimizer, lr_scheduler
 
     def _build_loss_lesions(self):
-        loss= FocalLossV2_orig()
+        # loss= FocalLossV2_orig()
+        loss=Picai_FL_and_CE_loss()
 
         deep_supervision_scales = self._get_deep_supervision_scales()
 
