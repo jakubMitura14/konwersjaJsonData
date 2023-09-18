@@ -312,10 +312,10 @@ class Main_trainer_pl(nnUNetTrainer):
             check_val_every_n_epoch=self.log_every_n,
             accumulate_grad_batches= 12,
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
-            log_every_n_steps=self.log_every_n,
+            log_every_n_steps=self.log_every_n
             # strategy=DDPStrategy(find_unused_parameters=True)
                         # ,reload_dataloaders_every_n_epochs=1
-            strategy="deepspeed_stage_1"#_offload
+            # strategy="deepspeed_stage_1"#_offload
         )
     # def set_deep_supervision_enabled(self, enabled: bool):
     #     """
