@@ -90,7 +90,7 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=1
+        self.log_every_n=5
         self.num_batch_to_eval=20
         # self.batch_size=2
         self.is_deep_supervision=True
@@ -148,7 +148,7 @@ class Main_trainer_pl(nnUNetTrainer):
         if(self.is_lesion_segm):
             self.loss =self._build_loss_lesions()
 
-        if(self.is_deep_supervision):
+        if(self.is_deep_supervision and not self.is_lesion_segm):
             self.loss = self._build_loss()
         else:
             self.loss=DC_and_BCE_loss({},
@@ -186,7 +186,7 @@ class Main_trainer_pl(nnUNetTrainer):
             attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
 
             self.network=SwinUNETR(in_channels=self.num_input_channels
-            ,num_heads=  (1, 3, 6, 12)
+            # ,num_heads=  (1, 3, 6, 12)
             # ,num_heads=  (1, 1, 1, 1)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#

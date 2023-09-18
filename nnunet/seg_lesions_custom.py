@@ -519,6 +519,7 @@ p.wait()
 
 
 # cp -a /home/sliceruser/nnunetMainFolder/nnUNet_raw/Dataset101_Prostate/imagesTr /workspaces/konwersjaJsonData/explore/preprocessed
+# cp -a /home/sliceruser/nnunetMainFolder/nnUNet_raw/Dataset101_Prostate/labelsTr /workspaces/konwersjaJsonData/explore/preprocessed_labels
 
 
 #### image_processing_oneformer is modified
