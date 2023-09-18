@@ -209,9 +209,9 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
 
         labRes=reduced_sum#(reduced_sum>0).astype(int)
-        labRes=labRes+(reduced_common.astype(int))
+        labRes=(labRes+(reduced_common.astype(np.uint8))).astype(np.uint8)
 
-        # print(f"reduced_sum {np.sum(reduced_sum.flatten())}  reduced_common {np.sum(reduced_common.flatten())} labRes 2 {np.sum((labRes==2).flatten())}")
+        
 
 
 
@@ -257,7 +257,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
     # inferred_parts_image_arr=sitk.GetArrayFromImage(inferred_parts_image)
 
-
+    print(f"labRes 1 {np.sum((labRes==1).flatten())}  labRes 2 {np.sum((labRes==2).flatten())}")
     label_image = get_from_arr(labRes,t2w_image)
 
     # pz_arrr=(inferred_parts_image_arr==1)

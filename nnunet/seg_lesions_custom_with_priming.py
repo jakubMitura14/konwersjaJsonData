@@ -97,7 +97,7 @@ def mod_path(pathh,lab_num):
     print(f"iii {res}")
     return res
 
-def save_outputs(label_new_path,out_pathsDict, lab_data,adc_image,hbv_image,t2w_image,pz_image,tz_image,min_z,min_y,min_x,max_z,max_x,max_y):
+def save_outputs(label_new_path,out_pathsDict, lab_data,adc_image,hbv_image,t2w_image,pz_image,tz_image,min_z,min_y,min_x,max_z,max_x,max_y,t2w_image_orig):
     lab_arr,lesion_num=lab_data
     lab_arr=(lab_arr>0).astype(np.uint8)
     label_new_path=label_new_path.replace('0.nii.gz',f"{lesion_num}.nii.gz") 
@@ -108,7 +108,7 @@ def save_outputs(label_new_path,out_pathsDict, lab_data,adc_image,hbv_image,t2w_
     path_tz_noSeg=mod_path(out_pathsDict['tz_noSeg'],lesion_num)
     path_priming=mod_path(out_pathsDict['priming'],lesion_num)
 
-    label_image = get_from_arr(lab_arr,t2w_image)
+    label_image = get_from_arr(lab_arr,t2w_image_orig)
     label_image=my_crop(label_image,min_z,min_y,min_x,max_z,max_x,max_y)
 
     writer = sitk.ImageFileWriter()
@@ -302,7 +302,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
     # min_y=0
     # max_y=adc_arr.shape[2]
-    t2w_image = sitk.ReadImage(group[1][main_modality][0])
+    t2w_image_orig = sitk.ReadImage(group[1][main_modality][0])
     
     # inferred_parts_image= sitk.ReadImage(sources_dict[new_col_parts_name][0])
 
@@ -337,7 +337,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     label_new_path,out_pathsDict=prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder,non_mri_inputs,channel_names )
 
     lab_datas=list(zip(grouped_by_lesion_num_arrs,label_nums))
-    list(map(lambda lab_data : save_outputs(label_new_path,out_pathsDict, lab_data,adc_image,hbv_image,t2w_image,pz_image,tz_image,min_z,min_y,min_x,max_z,max_x,max_y),lab_datas))
+    list(map(lambda lab_data : save_outputs(label_new_path,out_pathsDict, lab_data,adc_image,hbv_image,t2w_image,pz_image,tz_image,min_z,min_y,min_x,max_z,max_x,max_y,t2w_image_orig),lab_datas))
 
 
     # print(f"ooo out_pathsDict {out_pathsDict}")
@@ -515,31 +515,34 @@ plans = json.load(f)
 plans['configurations']['3d_lowres'] = {
     "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time
     'inherits_from': '3d_fullres',
-   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 12, 'patch_size': [32, 96, 96]
-    #   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 2, 'patch_size': [96, 96, 96] # for swin
-                                                , 'median_image_size_in_voxels': [32., 84., 95.]
-, 'spacing': [0.78125, 0.78125   , 0.78125   ] #for swin
-# , 'spacing': [3.30000019, 0.78125   , 0.78125   ]
+   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 2
+#    , 'patch_size': [32, 96, 96]
+#     #   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 2, 'patch_size': [96, 96, 96] # for swin
+#                                                 , 'median_image_size_in_voxels': [32., 84., 95.]
+# , 'spacing': [0.78125, 0.78125   , 0.78125   ] #for swin
+# # , 'spacing': [3.30000019, 0.78125   , 0.78125   ]
 
-, 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
-, 'use_mask_for_norm': [False, False, False, False, False]
-, 'UNet_class_name': 'PlainConvUNet'
-, 'UNet_base_num_features': 128
-, 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2)
-, 'n_conv_per_stage_decoder': (2, 2, 2, 2)
-, 'num_pool_per_axis': [2, 4, 4]
-, 'pool_op_kernel_sizes': [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
-, 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
-# , 'conv_kernel_sizes': [[1, 5, 5], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
-, 'unet_max_num_features': 320
-, 'resampling_fn_data': 'resample_data_or_seg_to_shape'
-, 'resampling_fn_seg': 'resample_data_or_seg_to_shape'
-, 'resampling_fn_data_kwargs': {'is_seg': False, 'order': 3, 'order_z': 0, 'force_separate_z': None}
-, 'resampling_fn_seg_kwargs': {'is_seg': True, 'order': 1, 'order_z': 0, 'force_separate_z': None}
-, 'resampling_fn_probabilities': 'resample_data_or_seg_to_shape'
-, 'resampling_fn_probabilities_kwargs': {'is_seg': False, 'order': 1, 'order_z': 0, 'force_separate_z': None}, 'batch_dice': False}
+# , 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
+# , 'use_mask_for_norm': [False, False, False, False, False]
+# , 'UNet_class_name': 'PlainConvUNet'
+, 'UNet_base_num_features': 180
+}
 
-
+# 3D fullres U-Net configuration:
+# {'data_identifier': 'nnUNetPlans_3d_fullres', 'preprocessor_name': 'DefaultPreprocessor'
+# , 'batch_size': 10, 'patch_size': array([40, 96, 96]), 'median_image_size_in_voxels': array([40., 84., 95.])
+# , 'spacing': array([3.30000019, 0.78125   , 0.78125   ])
+# , 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
+# , 'use_mask_for_norm': [False, False, False, False, False], 'UNet_class_name': 'PlainConvUNet'
+# , 'UNet_base_num_features': 32, 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2), 'n_conv_per_stage_decoder': (2, 2, 2, 2)
+# , 'num_pool_per_axis': [2, 4, 4], 'pool_op_kernel_sizes': [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
+# , 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]], 'unet_max_num_features': 320
+# , 'resampling_fn_data': 'resample_data_or_seg_to_shape', 'resampling_fn_seg': 'resample_data_or_seg_to_shape'
+# , 'resampling_fn_data_kwargs': {'is_seg': False, 'order': 3, 'order_z': 0, 'force_separate_z': None}
+# , 'resampling_fn_seg_kwargs': {'is_seg': True, 'order': 1, 'order_z': 0, 'force_separate_z': None}
+# , 'resampling_fn_probabilities': 'resample_data_or_seg_to_shape'
+# , 'resampling_fn_probabilities_kwargs': {'is_seg': False, 'order': 1, 'order_z': 0
+# , 'force_separate_z': None}, 'batch_dice': False}
 
 
 json_string = json.dumps(plans)     
@@ -556,10 +559,11 @@ data = {
     "numTraining" : len(ids),
     
     # "nnUNetPlans" : ['2d','3d_fullres','3d_fullres_custom','3d_lowres','3d_cascade_fullres'],
-    "nnUNetPlans" : ['3d_lowres'],
+    "nnUNetPlans" : ['2d','3d_fullres','3d_fullres_custom'],
     
     # 'conv_kernel_sizes': [[1, 3, 3], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
 }
+
 
 
 json_string = json.dumps(data)
