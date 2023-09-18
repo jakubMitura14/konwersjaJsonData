@@ -90,7 +90,7 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=5
+        self.log_every_n=1
         self.num_batch_to_eval=20
         # self.batch_size=2
         self.is_deep_supervision=True
@@ -172,8 +172,10 @@ class Main_trainer_pl(nnUNetTrainer):
             else:
                 self.network.decoder.deep_supervision = True
         
-
-
+        img_size=(48, 192, 160)
+        if(self.is_anatomy_segm):
+            img_size=(40, 96, 96)
+        
 
         if(self.is_med_next):
             self.network=create_mednextv1_large(num_input_channels=self.num_input_channels
@@ -188,7 +190,7 @@ class Main_trainer_pl(nnUNetTrainer):
             # ,num_heads=  (1, 1, 1, 1)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
-            ,img_size=(48, 192, 160)
+            ,img_size=img_size
             ,patch_size=(1,1,1)
             ,batch_size=self.batch_size
             ,attn_masks_h5f=attn_masks_h5f
@@ -224,7 +226,7 @@ class Main_trainer_pl(nnUNetTrainer):
             # ,num_heads=  (1, 1, 1, 1)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
-            ,img_size=(64, 192, 160)
+            ,img_size=img_size
             ,patch_size=(2,2,2)
             ,batch_size=self.batch_size
             ,attn_masks_h5f=attn_masks_h5f

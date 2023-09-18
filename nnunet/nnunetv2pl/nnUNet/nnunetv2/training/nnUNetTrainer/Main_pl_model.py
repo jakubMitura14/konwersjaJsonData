@@ -294,9 +294,9 @@ class Pl_main_model(pl.LightningModule):
 
     def on_train_epoch_end(self):
         group_name='train'
+        res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=self.is_anatomy_segm,batch_size=self.batch_size )
         if(self.current_epoch%self.log_every_n==0):
             if(self.is_anatomy_segm):
-                res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=self.is_anatomy_segm,batch_size=self.batch_size )
                 list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
             if(self.is_lesion_segm):
                 self.my_lesion_log(res,group_name)
