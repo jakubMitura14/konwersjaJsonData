@@ -308,7 +308,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
     # inferred_parts_image_arr=sitk.GetArrayFromImage(inferred_parts_image)
 
-
+    t2w_image=t2w_image_orig
     label_image = get_from_arr(labRes,t2w_image)
 
     # pz_arrr=(inferred_parts_image_arr==1)
