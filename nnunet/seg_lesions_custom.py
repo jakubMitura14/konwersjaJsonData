@@ -128,6 +128,10 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     #http://insightsoftwareconsortium.github.io/SimpleITK-Notebooks/Python_html/20_Expand_With_Interpolators.html
     # print(f"aaaaaaa d  main {sources_dict[main_modality][0]} adc {sources_dict['adc'][0]}")
 
+    if(sources_dict['pz_noSeg'][0]==" "):
+        return " "
+    if(sources_dict['tz_noSeg'][0]==" "):
+        return " "    
     print(f"ssss sources_dict {sources_dict.keys()}")
     adc_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['adc'][0], sitk.sitkBSpline)                                 
     hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline) 
@@ -453,31 +457,34 @@ plans = json.load(f)
 plans['configurations']['3d_lowres'] = {
     "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time
     'inherits_from': '3d_fullres',
-   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 12, 'patch_size': [32, 96, 96]
-    #   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 2, 'patch_size': [96, 96, 96] # for swin
-                                                , 'median_image_size_in_voxels': [32., 84., 95.]
-, 'spacing': [0.78125, 0.78125   , 0.78125   ] #for swin
-# , 'spacing': [3.30000019, 0.78125   , 0.78125   ]
+   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 2
+#    , 'patch_size': [32, 96, 96]
+#     #   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 2, 'patch_size': [96, 96, 96] # for swin
+#                                                 , 'median_image_size_in_voxels': [32., 84., 95.]
+# , 'spacing': [0.78125, 0.78125   , 0.78125   ] #for swin
+# # , 'spacing': [3.30000019, 0.78125   , 0.78125   ]
 
-, 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
-, 'use_mask_for_norm': [False, False, False, False, False]
-, 'UNet_class_name': 'PlainConvUNet'
-, 'UNet_base_num_features': 128
-, 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2)
-, 'n_conv_per_stage_decoder': (2, 2, 2, 2)
-, 'num_pool_per_axis': [2, 4, 4]
-, 'pool_op_kernel_sizes': [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
-, 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
-# , 'conv_kernel_sizes': [[1, 5, 5], [1, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]]
-, 'unet_max_num_features': 320
-, 'resampling_fn_data': 'resample_data_or_seg_to_shape'
-, 'resampling_fn_seg': 'resample_data_or_seg_to_shape'
-, 'resampling_fn_data_kwargs': {'is_seg': False, 'order': 3, 'order_z': 0, 'force_separate_z': None}
-, 'resampling_fn_seg_kwargs': {'is_seg': True, 'order': 1, 'order_z': 0, 'force_separate_z': None}
-, 'resampling_fn_probabilities': 'resample_data_or_seg_to_shape'
-, 'resampling_fn_probabilities_kwargs': {'is_seg': False, 'order': 1, 'order_z': 0, 'force_separate_z': None}, 'batch_dice': False}
+# , 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
+# , 'use_mask_for_norm': [False, False, False, False, False]
+# , 'UNet_class_name': 'PlainConvUNet'
+, 'UNet_base_num_features': 180
+}
 
-
+# 3D fullres U-Net configuration:
+# {'data_identifier': 'nnUNetPlans_3d_fullres', 'preprocessor_name': 'DefaultPreprocessor'
+# , 'batch_size': 10, 'patch_size': array([40, 96, 96]), 'median_image_size_in_voxels': array([40., 84., 95.])
+# , 'spacing': array([3.30000019, 0.78125   , 0.78125   ])
+# , 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
+# , 'use_mask_for_norm': [False, False, False, False, False], 'UNet_class_name': 'PlainConvUNet'
+# , 'UNet_base_num_features': 32, 'n_conv_per_stage_encoder': (2, 2, 2, 2, 2), 'n_conv_per_stage_decoder': (2, 2, 2, 2)
+# , 'num_pool_per_axis': [2, 4, 4], 'pool_op_kernel_sizes': [[1, 1, 1], [1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
+# , 'conv_kernel_sizes': [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]], 'unet_max_num_features': 320
+# , 'resampling_fn_data': 'resample_data_or_seg_to_shape', 'resampling_fn_seg': 'resample_data_or_seg_to_shape'
+# , 'resampling_fn_data_kwargs': {'is_seg': False, 'order': 3, 'order_z': 0, 'force_separate_z': None}
+# , 'resampling_fn_seg_kwargs': {'is_seg': True, 'order': 1, 'order_z': 0, 'force_separate_z': None}
+# , 'resampling_fn_probabilities': 'resample_data_or_seg_to_shape'
+# , 'resampling_fn_probabilities_kwargs': {'is_seg': False, 'order': 1, 'order_z': 0
+# , 'force_separate_z': None}, 'batch_dice': False}
 
 
 json_string = json.dumps(plans)     
@@ -517,7 +524,7 @@ p.wait()
 #### image_processing_oneformer is modified
 
 
-# my_proj_name="seg lesions 4" tag="l4a test" my_proj_desc="l4a test" nnUNetv2_train 101 3d_lowres 0 -tr My_pl_trainer
+# my_proj_name="seg lesions 4" tag="l4d  classic nnunet" my_proj_desc="" nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl
 # my_proj_name="seg lesions debug" tag="l4a test" my_proj_desc="l4a test" nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl
 
 
