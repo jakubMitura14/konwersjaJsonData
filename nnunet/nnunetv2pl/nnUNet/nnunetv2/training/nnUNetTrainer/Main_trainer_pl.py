@@ -101,6 +101,7 @@ class Main_trainer_pl(nnUNetTrainer):
 
         self.is_lesion_segm=True
         self.is_anatomy_segm= not self.is_lesion_segm
+        self.is_priming_segm= True
 
         # if(self.is_classic_nnunet or self.is_med_next):
         #     self.is_deep_supervision=True
@@ -289,17 +290,20 @@ class Main_trainer_pl(nnUNetTrainer):
         )
         
         toMonitor="is_correct_val" 
+        mode="max"
         if(self.is_anatomy_segm):
             toMonitor="avgHausdorff_all_val" 
+            mode="min"
 
-        checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode='min', save_top_k=1, monitor=toMonitor)
+        checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode=mode, save_top_k=1, monitor=toMonitor)
+
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
         stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=0.07)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
             patience=15,
-            mode="min",
+            mode=mode,
             #divergence_threshold=(-0.1)
         )
         # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()

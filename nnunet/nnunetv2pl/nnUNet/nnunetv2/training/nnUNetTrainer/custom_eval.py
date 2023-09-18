@@ -24,7 +24,7 @@ import pymia.evaluation.metric as metric
 import pymia.evaluation.evaluator as eval_
 import pymia.evaluation.writer as writer
 import math
-
+from sklearn.metrics import auc, precision_recall_curve, roc_curve
 
 def analyze_single_label(uniq_num,centers, big_mask, connected,in_min):
     infered_inner=(connected==uniq_num)
@@ -128,12 +128,6 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
     return specificity,sensitivity,num_components,np.sum(inferred.flatten())
 
 
-
-
-
-
-
-
 def concat_local(batch_ids,f,group_name,name):
     res=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/{name}"][:,:,:,:],batch_ids))
     return np.concatenate(res,axis=0)
@@ -142,9 +136,6 @@ def concat_local_data(batch_ids,f,group_name,name):
     res=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/{name}"][:,:,:,:,:],batch_ids))
     return np.concatenate(res,axis=0)
     
-
-
-
 
 def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=False, batch_size=1):    
     batch_nums= np.array(list(f[group_name].keys()))
@@ -293,22 +284,10 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
 
     ####### full anatomy metrics
     if(anatomy_metr):
-        # if(to_save_files):
-        #     list(map(lambda bn:save_arrs_anatomy(bn,predicted_segmentation_onehot,data,target,batch_idd,for_explore),range(shapp[0]) ))
-       
-        
-        # if(group_name=='val'):
-        #     print(f"bbbbatch_idd {batch_idd} batch_ids {batch_ids} group_name {group_name} shapp {shapp}")
         arrs=list(map(lambda bi: (predicted_segmentation_onehot[bi,:,:,:],target[bi,:,:,:]) ,range(shapp[0])))
-            
-        # metr_res ='/workspaces/konwersjaJsonData/explore/metr.csv'
-        # batch_idd=int(batch_ids[0])
+
         anatomy_arrs=prep_arr_list_anatomy(predicted_segmentation_onehot,target,data,shapp[0],batch_idd)
         res=list(map(partial(evaluate_single_anatomy_case,tempdir=tempdir,to_save_files=to_save_files,for_explore=for_explore),anatomy_arrs))
-        # with mp.Pool(processes = mp.cpu_count()) as pool:
-        #     res=map(partial(evaluate_single_anatomy_case,tempdir=tempdir),anatomy_arrs)
-
-
         return res
     ####### lesions metrics
 

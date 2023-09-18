@@ -103,8 +103,6 @@ def replace_in_path(pathh,num):
     return new_name
 
 
-
-
 def erode_and_get_random_coord(arr):
     new_arr=ndimage.binary_erosion(arr,iterations=1)
     if(np.sum(new_arr.flatten())==0):
@@ -166,10 +164,7 @@ def process_labels_prim(labels,group,main_modality,label_new_path,newPaths,out_p
     # save_from_arr(reduced,sitk.ReadImage(group[1][main_modality][0]),label_new_path)
     
 
-    newPaths_new= list(map(lambda num:  list(map(lambda pathh:  replace_in_path(pathh,num), newPaths)) ,label_nums))
-
-
-    
+    newPaths_new= list(map(lambda num:  list(map(lambda pathh:  replace_in_path(pathh,num), newPaths)) ,label_nums)) 
 
 
     list(map(lambda file_path_tupl:os.remove(file_path_tupl[1]),newPaths))

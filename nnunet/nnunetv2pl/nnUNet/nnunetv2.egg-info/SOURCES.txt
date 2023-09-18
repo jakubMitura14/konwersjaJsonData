@@ -93,6 +93,7 @@ nnunetv2/preprocessing/resampling/utils.py
 nnunetv2/run/__init__.py
 nnunetv2/run/load_pretrained_weights.py
 nnunetv2/run/run_training.py
+nnunetv2/run/run_training_my.py
 nnunetv2/tests/__init__.py
 nnunetv2/tests/integration_tests/__init__.py
 nnunetv2/tests/integration_tests/add_lowres_and_cascade.py
@@ -124,10 +125,8 @@ nnunetv2/training/loss/dice.py
 nnunetv2/training/loss/robust_ce_loss.py
 nnunetv2/training/lr_scheduler/__init__.py
 nnunetv2/training/lr_scheduler/polylr.py
-nnunetv2/training/nnUNetTrainer/My_anatomy_pl_trainer.py
-nnunetv2/training/nnUNetTrainer/My_pl_trainer.py
-nnunetv2/training/nnUNetTrainer/Pl_anatomy_model.py
-nnunetv2/training/nnUNetTrainer/Pl_model.py
+nnunetv2/training/nnUNetTrainer/Main_pl_model.py
+nnunetv2/training/nnUNetTrainer/Main_trainer_pl.py
 nnunetv2/training/nnUNetTrainer/SAM.py
 nnunetv2/training/nnUNetTrainer/__init__.py
 nnunetv2/training/nnUNetTrainer/custom_eval.py
@@ -147,6 +146,10 @@ nnunetv2/training/nnUNetTrainer/swin_unetr/cross_attention.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/play_xformers.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/prepare_masks.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_utils.py
+nnunetv2/training/nnUNetTrainer/swin_unetr/old/My_anatomy_pl_trainer.py
+nnunetv2/training/nnUNetTrainer/swin_unetr/old/My_pl_trainer.py
+nnunetv2/training/nnUNetTrainer/swin_unetr/old/Pl_anatomy_model.py
+nnunetv2/training/nnUNetTrainer/swin_unetr/old/Pl_model.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/old/Swin_unetr_model_old.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/old/orig_swin_v2.py
 nnunetv2/training/nnUNetTrainer/swin_unetr/swin_organized/BasicLayer.py
