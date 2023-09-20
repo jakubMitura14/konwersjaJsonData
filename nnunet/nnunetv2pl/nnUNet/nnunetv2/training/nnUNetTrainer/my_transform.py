@@ -126,111 +126,42 @@ class My_PseudoLesion_adder(LocalTransform):
             dat_curr=augment_two_channel(dat_curr,target_curr)
             #)we save result in data dictionary
             data[bi, :,:,:,:] =dat_curr
+        data_dict["data"]=data    
         return data_dict
 
-     
-def processing(processor,data,task_inputs,segmentation_maps):
-    processed=processor(images=data, task_inputs=task_inputs, segmentation_maps=segmentation_maps ,return_tensors="pt")
-    processed['mask_labels']= torch.stack(processed['mask_labels'])
-    processed['class_labels']= torch.stack(processed['class_labels'])
-    return processed
 
-
-# aaaaah pixel_values  <class 'torch.Tensor'>
-# aaaaah pixel_mask  <class 'torch.Tensor'>
-# aaaaah mask_labels  <class 'list'>
-# aaaaah class_labels  <class 'list'>
-# aaaaah text_inputs  <class 'torch.Tensor'>
-# aaaaah task_inputs  <class 'torch.Tensor'>
-
-class One_former_preprocess(LocalTransform):
-    def __init__(self,processor):
+class My_priming_setter(LocalTransform):
+    def __init__(self,
+                 max_strength: ScalarType = 1.,
+                 same_for_all_channels: bool = True,
+                 mean_centered: bool = True,
+                 p_per_sample: float = 1.,
+                 p_per_channel: float = 1.,
+                 clip_intensities: bool = False,
+                 data_key: str = "data"):
         super().__init__(1.0)
 
-        self.processor = processor
-        self.processor.num_text=0
-        self.processor.metadata={"class_names":["background","sum","common"]}
 
-        
     def __call__(self, **data_dict):
         data = data_dict.get("data")
-        data_orig=np.copy(data)
-        target= data_dict.get("target")
-        target_orig= np.copy(target)
-        orig_shape=data.shape
+        target= data_dict.get("seg")
+        
         assert data is not None, "Could not find data key '%s'" % self.data_key
-        n_split=20
+        b, c, *img_shape = data.shape
+        for bi in range(b):
+            dat_curr= data[bi,:,:,:,:]
+            target_curr= target[bi,:,:,:]
+            twos_curr= dat_curr[5,:,:,:]==2
+            res_bool= np.zeros_like(twos_curr)
+            indicies=np.argwhere(twos_curr)
+            rng = np.random.default_rng()
+            rng.shuffle(indicies,axis=0)
+            n_points=1
+            indicies=indicies[0:n_points,:]
 
-        data = einops.rearrange(data,'b c x y z  -> (b z) x y c')#.astype('float16')
-        target = einops.rearrange(target,'b c x y z -> (b z) x y c').astype(int)#.astype('float16')
-        # target_0=(target==0)
-        # target_1=(target==1)
-        # target_2=(target==2)
-        # target= np.concatenate([target_0,target_1,target_2],axis=1).astype(int)
-
-        data_0 = data[:,:,:,0]
-        data_1 = data[:,:,:,1]
-        data_2 = data[:,:,:,2]
-        # data_0 = data[:,0,:,:]
-        # data_1 = data[:,1,:,:]
-        # data_2 = data[:,2,:,:]
-
-        data_0 = (data_0-np.min(data_0.flatten()))/((np.max(data_0.flatten())-np.min(data_0.flatten()))+0.000000000000000001)
-        data_1 = (data_1-np.min(data_1.flatten()))/((np.max(data_1.flatten())-np.min(data_1.flatten()))+0.000000000000000001)
-        data_2 = (data_2-np.min(data_2.flatten()))/((np.max(data_2.flatten())-np.min(data_2.flatten()))+0.000000000000000001)
-        data=np.stack([data_0,data_1,data_2],axis=1)
-        lenn=data.shape[0]
-        task_inputs=list(itertools.repeat("semantic",lenn))
-
-        # 
-        # data=list(map(lambda i: data[i,:,:,0:3],range(lenn)))
-        data=list(map(lambda i: im.fromarray(data[i,:,:,0:3]),range(lenn)))
-        segmentation_maps=list(map(lambda i: target[i,:,:,:].astype(int),range(lenn)))
-
-
-        data= data[0:2]# TODO remove
-        segmentation_maps= segmentation_maps[0:2]# TODO remove
-        task_inputs= task_inputs[0:2]# TODO remove
-        # print(f"dddddddddddddata {data[0].shape}  segmentation_maps {segmentation_maps[0].shape} task_inputs {task_inputs} ")
-        
-
-
-        # data=list(batched(data,n_split))
-        # task_inputs=list(batched(task_inputs,n_split))
-        # segmentation_maps=list(batched(segmentation_maps,n_split))
-
-
-        data = processing(self.processor,data,task_inputs,segmentation_maps )
-                            
-
-        
-
-
-        # kk=data[0].keys()
-        # for k in kk:
-        #     print(f"aaaaah {k}  {type(data[0][k])}")
-        # for k in kk:
-        #     print(f"bbbbbbh {k}  {type(data[0][k][0])}")
-
-
-# aaaaah pixel_values  <class 'torch.Tensor'>
-# aaaaah pixel_mask  <class 'torch.Tensor'>
-# aaaaah mask_labels  <class 'list'>
-# aaaaah class_labels  <class 'list'>
-# aaaaah text_inputs  <class 'torch.Tensor'>
-# aaaaah task_inputs  <class 'torch.Tensor'>
-
-# bbbbbbh pixel_values  <class 'torch.Tensor'>
-# bbbbbbh pixel_mask  <class 'torch.Tensor'>
-# bbbbbbh mask_labels  <class 'torch.Tensor'>
-# bbbbbbh class_labels  <class 'torch.Tensor'>
-# bbbbbbh text_inputs  <class 'torch.Tensor'>
-# bbbbbbh task_inputs  <class 'torch.Tensor'>
-
-        # print(f"iiiiiiiiiiiiiiiiiiiiiii data {type(data)}  ii {type(data[0])} \n \n {data[0].keys()}  \n \n {data[0]}")
-        # data_b = self.processor(images=data_b, task_inputs=["semantic"], return_tensors="pt")
-        #data = einops.rearrange(data,'(b z) c x y->b c x y z',b=orig_shape[0])
-        #target = einops.rearrange(target,'(b z) c x y c->b c x y z',b=orig_shape[0])      
-        
-        return {"data":data  ,"target":torch.tensor(target_orig),"orig_shape":orig_shape,"data_orig":torch.tensor(data_orig)}
-
+            res_bool[indicies[:,0],indicies[:,1],indicies[:,2]]=True
+            res_bool.astype(float)
+            data[bi, 5,:,:,:] =res_bool.astype(float)
+        data_dict["data"]=data      
+        return data_dict
+     

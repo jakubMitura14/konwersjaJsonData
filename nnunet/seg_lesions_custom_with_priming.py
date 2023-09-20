@@ -73,7 +73,8 @@ channel_names={
 #     }
 label_names= {  
     "background": 0,
-    "lesion": 1,
+    "lesion_big": 1,
+    "lesion_center": 2,
     }
 
 
@@ -99,7 +100,9 @@ def mod_path(pathh,lab_num):
 
 def save_outputs(label_new_path,out_pathsDict, lab_data,adc_image,hbv_image,t2w_image,pz_image,tz_image,min_z,min_y,min_x,max_z,max_x,max_y,t2w_image_orig):
     lab_arr,lesion_num=lab_data
-    lab_arr=(lab_arr>0).astype(np.uint8)
+    lab_arr_ones=(lab_arr>0).astype(np.uint8)
+    lab_arr_twos=(lab_arr>1).astype(np.uint8)
+    lab_arr=lab_arr_ones+lab_arr_twos
     label_new_path=label_new_path.replace('0.nii.gz',f"{lesion_num}.nii.gz") 
     path_adc=mod_path(out_pathsDict['adc'],lesion_num)
     path_hbv=mod_path(out_pathsDict['hbv'],lesion_num)

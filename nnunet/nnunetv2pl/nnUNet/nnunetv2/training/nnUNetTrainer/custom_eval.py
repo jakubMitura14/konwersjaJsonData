@@ -49,11 +49,28 @@ def get_my_specifity(arrs):
     res= np.mean(np.array(res).astype(int))
     return res,len(uniqq)
 
+def get_dice_single(one_hot,target):
+    labelPred=sitk.GetImageFromArray(one_hot.astype(np.uint8))
+    labelTrue=sitk.GetImageFromArray(target.astype(np.uint8))
+    dicecomputer=sitk.LabelOverlapMeasuresImageFilter()
+    dicecomputer.Execute(labelTrue>0.5,labelPred>0.5)
+    return dicecomputer.GetDiceCoefficient()
+
+def get_dice_lesions(arrs):
+
+    curr_in,centers,inferred,big_mask,data=arrs
+    
+
+    return [get_dice_single(inferred,centers),get_dice_single(inferred,big_mask)]
+
+
+
+
 def is_sth_in_areas(uniq_num,arr,inferred):
 
     bool_arr=(arr.copy()==uniq_num)
     summ=np.sum(inferred[bool_arr].flatten())
-    res= summ>0
+    res= summ> np.sum(bool_arr.flatten())//2
     return res
 
 def get_connected_components_num(arr):
@@ -87,7 +104,6 @@ def get_my_sensitivity(arrs):
     uniqq=np.unique(connected)
     uniqq= list(filter(lambda el:el>0,uniqq))
 
-
     res=np.array(list(map(lambda uniq_num: is_sth_in_areas(uniq_num,connected,inferred),uniqq)))
     res=res.astype(int)
     return np.mean(res.flatten())
@@ -109,6 +125,8 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
     specificity=ress[0]
     num_components=ress[1]
     sensitivity=get_my_sensitivity(arrs)
+    dice=get_dice_lesions(arrs)
+    # print(f"ddddd dice {dice}")
     # print(f"specificity {specificity} sensitivity {sensitivity}")
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
     #if(False):
@@ -124,8 +142,10 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
         save_single_arr(data[2,:,:,:],batch_idd, bn, 2,for_explore,"t2w",float,sensitivity)
         save_single_arr(data[3,:,:,:],batch_idd, bn, 3,for_explore,"data",float,sensitivity)
         save_single_arr(data[4,:,:,:],batch_idd, bn, 4,for_explore,"data",float,sensitivity)
-        
-    return specificity,sensitivity,num_components,np.sum(inferred.flatten())
+        if(data.shape[0]==6):
+            save_single_arr(data[5,:,:,:],batch_idd, bn, 5,for_explore,"priming",float,sensitivity)
+
+    return specificity,sensitivity,num_components,np.sum(inferred.flatten()),dice[0],dice[1]
 
 
 def concat_local(batch_ids,f,group_name,name):
@@ -335,14 +355,17 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     my_sensitivity=ress[:,1]
     num_components=ress[:,2]
     in_inferred=ress[:,3]
+    dice_centers=ress[:,4]
+    dice_all=ress[:,5]
     
-
 
     my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
     if(len(my_sensitivity)>0):
         my_sensitivity= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_sensitivity))))
         my_specificity= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_specificity))))
         num_components= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),num_components))))
+        dice_centers= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),dice_centers))))
+        dice_all= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),dice_all))))
         in_inferred= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),in_inferred))))
         is_correct= (my_sensitivity*2+my_specificity)/3
     
@@ -354,6 +377,8 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     
     num_components=np.array(np.nanmean(np.array(num_components).flatten()))
     in_inferred=np.array(np.nanmean(np.array(in_inferred).flatten()))
+    dice_centers=np.array(np.nanmean(np.array(dice_centers).flatten()))
+    dice_all=np.array(np.nanmean(np.array(dice_all).flatten()))
 
 
     return np.array([np.nanmean(percent_in).flatten()
@@ -364,7 +389,8 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
                      ,np.nanmean(my_specificity).flatten()
                      ,np.nanmean(num_components).flatten()
                      ,np.nanmean(in_inferred).flatten()
-                     
+                     ,np.nanmean(dice_centers).flatten()                     
+                     ,np.nanmean(dice_all).flatten()                     
                      ])
 
 

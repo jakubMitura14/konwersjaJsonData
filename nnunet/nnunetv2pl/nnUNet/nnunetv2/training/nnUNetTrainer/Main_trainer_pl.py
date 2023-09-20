@@ -1,4 +1,4 @@
-from nnunetv2.training.nnUNetTrainer.my_transform import My_PseudoLesion_adder
+from nnunetv2.training.nnUNetTrainer.my_transform import My_PseudoLesion_adder,My_priming_setter
 from nnunetv2.training.nnUNetTrainer.custom_loss import *
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import inspect
@@ -101,7 +101,7 @@ class Main_trainer_pl(nnUNetTrainer):
 
         self.is_lesion_segm=True
         self.is_anatomy_segm= not self.is_lesion_segm
-        self.is_priming_segm= False
+        self.is_priming_segm= True
 
         # if(self.is_classic_nnunet or self.is_med_next):
         #     self.is_deep_supervision=True
@@ -336,8 +336,10 @@ class Main_trainer_pl(nnUNetTrainer):
         return optimizer, lr_scheduler
 
     def _build_loss_lesions(self):
-        # loss= FocalLossV2_orig()
-        loss=Picai_FL_and_CE_loss()
+        if(self.is_priming_segm):
+            loss= FocalLossV2_orig()
+        else:
+            loss=Picai_FL_and_CE_loss()
 
         deep_supervision_scales = self._get_deep_supervision_scales()
 
@@ -419,6 +421,8 @@ class Main_trainer_pl(nnUNetTrainer):
 
         tr_transforms.append(RicianNoiseTransform(p_per_sample=0.1))
         tr_transforms.append(My_PseudoLesion_adder())
+        if(self.is_priming_segm):
+            tr_transforms.append(My_priming_setter())
         tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=0.2,
                                                    p_per_channel=0.5))
         # tr_transforms.append(BrightnessMultiplicativeTransform(multiplier_range=(0.75, 1.25), p_per_sample=0.15))
