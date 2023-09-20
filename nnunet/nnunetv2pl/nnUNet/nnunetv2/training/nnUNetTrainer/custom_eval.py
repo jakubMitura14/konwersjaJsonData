@@ -66,7 +66,7 @@ def get_dice_lesions(arrs):
 
 
 
-def is_sth_in_areas(uniq_num,arr,inferred):
+def is_sth_in_areas(uniq_num,arr,inferred,curr_twos):
 
     bool_arr=(arr.copy()==uniq_num)
     summ=np.sum(inferred[bool_arr].flatten())
