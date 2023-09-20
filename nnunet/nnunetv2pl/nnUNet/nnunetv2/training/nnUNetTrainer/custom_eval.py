@@ -49,11 +49,18 @@ def get_my_specifity(arrs):
     res= np.mean(np.array(res).astype(int))
     return res,len(uniqq)
 
-def is_sth_in_areas(uniq_num,arr,inferred):
+def is_sth_in_areas(uniq_num,arr,inferred,curr_twos):
 
     bool_arr=(arr.copy()==uniq_num)
     summ=np.sum(inferred[bool_arr].flatten())
-    res= summ>0
+    # res= summ> (np.sum(bool_arr.flatten())//2)
+    
+    curr_twos_loc=curr_twos.astype(bool)
+    curr_twos_loc= np.logical_and(curr_twos_loc,bool_arr)
+
+    # summ=np.sum(inferred[curr_twos_loc].flatten())
+    # res_b = summ> (np.sum(curr_twos_loc.flatten())//2)
+    res= summ> (np.sum(curr_twos_loc.flatten())//2)
     return res
 
 def get_connected_components_num(arr):
@@ -88,7 +95,7 @@ def get_my_sensitivity(arrs):
     uniqq= list(filter(lambda el:el>0,uniqq))
 
 
-    res=np.array(list(map(lambda uniq_num: is_sth_in_areas(uniq_num,connected,inferred),uniqq)))
+    res=np.array(list(map(lambda uniq_num: is_sth_in_areas(uniq_num,connected,inferred,curr_twos),uniqq)))
     res=res.astype(int)
     return np.mean(res.flatten())
 
@@ -138,59 +145,62 @@ def concat_local_data(batch_ids,f,group_name,name):
     
 
 def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=False, batch_size=1):    
-    batch_nums= np.array(list(f[group_name].keys()))
-    # print(f"111 batch_nums {batch_nums} group_name {group_name}")
-  
-    if(batch_nums.shape[0]<20):
-        chunk_size = 1
-        batch_nums=np.array_split(batch_nums, math.ceil(batch_nums.shape[0]/chunk_size))
-    else:
-        chunk_size=max(10//batch_size,1)
-        batch_nums=np.array_split(batch_nums, math.ceil(batch_nums.shape[0]/chunk_size))
+    try: 
+        batch_nums= np.array(list(f[group_name].keys()))
+        # print(f"111 batch_nums {batch_nums} group_name {group_name}")
     
-    # target=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/target"][:,:,:,:], batch_nums))
-    # predicted_segmentation_onehot=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:], batch_nums))
+        if(batch_nums.shape[0]<20):
+            chunk_size = 1
+            batch_nums=np.array_split(batch_nums, math.ceil(batch_nums.shape[0]/chunk_size))
+        else:
+            chunk_size=max(10//batch_size,1)
+            batch_nums=np.array_split(batch_nums, math.ceil(batch_nums.shape[0]/chunk_size))
+        
+        # target=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/target"][:,:,:,:], batch_nums))
+        # predicted_segmentation_onehot=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:], batch_nums))
 
-    # target=np.concatenate(target,axis=0)
-    # predicted_segmentation_onehot=np.concatenate(predicted_segmentation_onehot,axis=0)
-    if(to_save_files):
-        os.makedirs(for_explore,exist_ok=True)
-        shutil.rmtree(for_explore,ignore_errors=True)   
-        os.makedirs(for_explore,exist_ok=True)
+        # target=np.concatenate(target,axis=0)
+        # predicted_segmentation_onehot=np.concatenate(predicted_segmentation_onehot,axis=0)
+        if(to_save_files):
+            os.makedirs(for_explore,exist_ok=True)
+            shutil.rmtree(for_explore,ignore_errors=True)   
+            os.makedirs(for_explore,exist_ok=True)
 
-    tempdir='/workspaces/konwersjaJsonData/explore/temp_csv'
-    shutil.rmtree(tempdir,ignore_errors=True)       
-    os.makedirs(tempdir,exist_ok=True)
-    
+        tempdir='/workspaces/konwersjaJsonData/explore/temp_csv'
+        shutil.rmtree(tempdir,ignore_errors=True)       
+        os.makedirs(tempdir,exist_ok=True)
+        
 
-    if(anatomy_metr):
-        res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
-                                                                ,concat_local_data(batch_ids,f,group_name,"predicted_segmentation_onehot")
-                                                                ,concat_local_data(batch_ids,f,group_name,"data")
-                                                                ,f,for_explore,to_save_files,batch_ids,anatomy_metr=anatomy_metr,tempdir=tempdir,group_name=group_name),batch_nums))
-    else:
-        res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
-                                                                ,concat_local(batch_ids,f,group_name,"predicted_segmentation_onehot")
-                                                                ,concat_local_data(batch_ids,f,group_name,"data")
-                                                                ,f,for_explore,to_save_files,batch_ids,anatomy_metr=anatomy_metr,tempdir=tempdir,group_name=group_name),batch_nums))
-    if(anatomy_metr):
-        res= list(itertools.chain(*res))
-        res= list(itertools.chain(*res))
+        if(anatomy_metr):
+            res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
+                                                                    ,concat_local_data(batch_ids,f,group_name,"predicted_segmentation_onehot")
+                                                                    ,concat_local_data(batch_ids,f,group_name,"data")
+                                                                    ,f,for_explore,to_save_files,batch_ids,anatomy_metr=anatomy_metr,tempdir=tempdir,group_name=group_name),batch_nums))
+        else:
+            res= list(map(lambda batch_ids: calc_custom_metrics_inner(concat_local_data(batch_ids,f,group_name,"target")
+                                                                    ,concat_local(batch_ids,f,group_name,"predicted_segmentation_onehot")
+                                                                    ,concat_local_data(batch_ids,f,group_name,"data")
+                                                                    ,f,for_explore,to_save_files,batch_ids,anatomy_metr=anatomy_metr,tempdir=tempdir,group_name=group_name),batch_nums))
+        if(anatomy_metr):
+            res= list(itertools.chain(*res))
+            res= list(itertools.chain(*res))
 
-        grouped_by_metr_name=  list(dict(groupby(lambda row : row[0],res)).items())
-        grouped_by_metr_name =list(map(lambda tupl: (tupl[0],list(map(lambda inner_tupl: inner_tupl[1], tupl[1])) )   ,grouped_by_metr_name))
-        grouped_by_metr_name =list(map(lambda tupl: (tupl[0],np.nanmean(np.array(tupl[1])))  ,grouped_by_metr_name))
+            grouped_by_metr_name=  list(dict(groupby(lambda row : row[0],res)).items())
+            grouped_by_metr_name =list(map(lambda tupl: (tupl[0],list(map(lambda inner_tupl: inner_tupl[1], tupl[1])) )   ,grouped_by_metr_name))
+            grouped_by_metr_name =list(map(lambda tupl: (tupl[0],np.nanmean(np.array(tupl[1])))  ,grouped_by_metr_name))
 
 
 
-        # filtered=list(map(lambda name: list(filter(lambda tupl: tupl[0]==name ,res ))  , metrics_names))
-        # filtered= list(map( lambda listt: np.nanmean(np.array(list(map(lambda tupl :tupl[1] ,listt )))) ,filtered))
-        return grouped_by_metr_name
-    res=np.concatenate(res,axis=-1)
-    # res= list(map(lambda batch_ids: calc_custom_metrics_inner(f[f"{group_name}/{batch_id}/target"][:,:,:,:],f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:]),batch_nums))
-    res= np.nanmean(res,axis=-1)
-    res= np.nan_to_num(res,posinf=0.0, neginf=0.0)
-    return res
+            # filtered=list(map(lambda name: list(filter(lambda tupl: tupl[0]==name ,res ))  , metrics_names))
+            # filtered= list(map( lambda listt: np.nanmean(np.array(list(map(lambda tupl :tupl[1] ,listt )))) ,filtered))
+            return grouped_by_metr_name
+        res=np.concatenate(res,axis=-1)
+        # res= list(map(lambda batch_ids: calc_custom_metrics_inner(f[f"{group_name}/{batch_id}/target"][:,:,:,:],f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:]),batch_nums))
+        res= np.nanmean(res,axis=-1)
+        res= np.nan_to_num(res,posinf=0.0, neginf=0.0)
+        return res
+    except:
+        return np.zeros(8)-0.1
 
 def prep_arr_list(inn,twos,curr,bigger_mask,data,batch_num):
     
