@@ -267,6 +267,7 @@ class Pl_main_model(pl.LightningModule):
 
         epoch=self.current_epoch
         data = data.to(device, non_blocking=True)
+        print(f"ddddd {data.shape}")
         if isinstance(target, list):
             target = [i.to(device, non_blocking=True) for i in target]
         else:

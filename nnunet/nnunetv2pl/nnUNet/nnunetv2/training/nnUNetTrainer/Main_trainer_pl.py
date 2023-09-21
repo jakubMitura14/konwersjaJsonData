@@ -92,14 +92,14 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         self.log_every_n=5
         self.num_batch_to_eval=20
-        # self.batch_size=2
+        self.batch_size=1
         self.is_deep_supervision=False
-        self.is_classic_nnunet=True
+        self.is_classic_nnunet=False
         self.is_swin=False
         self.is_swin_monai=True
         self.is_med_next=False
 
-        self.is_lesion_segm=False
+        self.is_lesion_segm=True
         self.is_anatomy_segm= not self.is_lesion_segm
         self.is_priming_segm= False
 
