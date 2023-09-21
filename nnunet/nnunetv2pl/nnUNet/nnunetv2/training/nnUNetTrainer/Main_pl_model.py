@@ -162,7 +162,10 @@ class Pl_main_model(pl.LightningModule):
             
         elif(self.is_swin or self.is_swin_monai):    
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.076)#learning rate set by learning rate finder
+            if(self.is_lesion_segm):
+                optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.013)#learning rate set by learning rate finder
+            else:
+                optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.076)#learning rate set by learning rate finder
 
         elif(self.is_med_next):    
             optimizer = torch.optim.AdamW(self.network.parameters(), 0.0019054607179632484)
@@ -185,14 +188,26 @@ class Pl_main_model(pl.LightningModule):
 
     def pad_data_if_needed(self,arr):
         if(self.is_swin_monai):
-            return F.pad(arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
+            if(self.is_anatomy_segm):
+                return F.pad(arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
+            if(self.is_lesion_segm):
+                return F.pad(arr, (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0)
         return arr
     def pad_target_if_needed(self,arr):
-        if(self.is_swin_monai):
-            if(self.is_deep_supervision):
-                return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0),arr))
+        
+        if(self.is_swin_monai):            
+            if(self.is_anatomy_segm):
+                if(self.is_deep_supervision):
+                    return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0),arr))
+                else :
+                    return F.pad(arr[0], (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
+            if(self.is_lesion_segm):
+                # if(self.is_deep_supervision):
+                return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0),arr))
             else :
-                return F.pad(arr[0], (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
+                return F.pad(arr[0], (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0)
+                       
+        
         return arr
             
 
