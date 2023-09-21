@@ -208,7 +208,7 @@ class Pl_main_model(pl.LightningModule):
 
         epoch=self.current_epoch
         
-        if(not self.is_classic_nnunet):
+        if(not self.is_classic_nnunet and self.is_deep_supervision):
             target=self.transform_gold(target)        
         
         l=self.loss(output, target)
@@ -256,7 +256,7 @@ class Pl_main_model(pl.LightningModule):
             target = [i.to(device, non_blocking=True) for i in target]
         else:
             target = target.to(device, non_blocking=True)
-        if(not self.is_classic_nnunet):
+        if(not self.is_classic_nnunet and self.is_deep_supervision):
             target=self.transform_gold(target)
         # Autocast is a little bitch.
         # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.

@@ -99,9 +99,9 @@ class Main_trainer_pl(nnUNetTrainer):
         self.is_swin_monai=True
         self.is_med_next=False
 
-        self.is_lesion_segm=True
+        self.is_lesion_segm=False
         self.is_anatomy_segm= not self.is_lesion_segm
-        self.is_priming_segm= True
+        self.is_priming_segm= False
 
         # if(self.is_classic_nnunet or self.is_med_next):
         #     self.is_deep_supervision=True
@@ -172,10 +172,9 @@ class Main_trainer_pl(nnUNetTrainer):
 
         if(self.is_lesion_segm):
             self.loss =self._build_loss_lesions()
-
-        if(self.is_deep_supervision and not self.is_lesion_segm):
+        elif(self.is_deep_supervision and not self.is_lesion_segm):
             self.loss = self._build_loss()
-        if(self.is_anatomy_segm):
+        elif(self.is_anatomy_segm):
             self.loss=DC_and_BCE_loss({},
                                    {'batch_dice': self.configuration_manager.batch_dice,
                                     'do_bg': True, 'smooth': 1e-5, 'ddp': self.is_ddp},
@@ -241,7 +240,7 @@ class Main_trainer_pl(nnUNetTrainer):
             # attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
             self.network=SwinUNETR(in_channels=self.num_input_channels
             # ,num_heads=  (1, 3, 6, 12)
-            # ,num_heads=  (1, 1, 1, 1)
+             ,num_heads=  (6, 12, 24, 48)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
             ,img_size=img_size
@@ -254,7 +253,7 @@ class Main_trainer_pl(nnUNetTrainer):
             # ,distances=(8,8,16)
             ,distances=(7,7,7)
             ,spacing=(3.299999952316284,0.78125, 0.78125)
-            ,feature_size=24
+            ,feature_size=48
             ,depths=(2,2,2,2)
             ,is_lucid=True
             ,window_size=(7,7,7)

@@ -368,8 +368,8 @@ class SwinTransformerBlock_lucid(nn.Module):
             attn_mask=(attn_mask*(-1))/100
             attn_mask=torch.logical_not(attn_mask.bool())
 
-            print(f"aaaaaaaaaaaa  {x_windows.shape} attn_mask {attn_mask.shape} dim {self.dim} ")
-        print(f"** x_windows {x_windows.shape} ")
+        #     print(f"aaaaaaaaaaaa  {x_windows.shape} attn_mask {attn_mask.shape} dim {self.dim} ")
+        # print(f"** x_windows {x_windows.shape} ")
         attn_windows = self.attn(x_windows, attn_mask=attn_mask,clinical=clinical)
 
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))

@@ -297,17 +297,17 @@ class SwinUNETR(nn.Module):
 
         super().__init__()
 
-        img_size = ensure_tuple_rep(img_size, spatial_dims)
-        patch_size = ensure_tuple_rep(2, spatial_dims)
-        window_size = ensure_tuple_rep(7, spatial_dims)
+        # img_size = ensure_tuple_rep(img_size, spatial_dims)
+        # patch_size = ensure_tuple_rep(2, spatial_dims)
+        # window_size = ensure_tuple_rep(7, spatial_dims)
 
         if spatial_dims not in (2, 3):
             raise ValueError("spatial dimension should be 2 or 3.")
 
-        for m, p in zip(img_size, patch_size):
-            for i in range(5):
-                if m % np.power(p, i + 1) != 0:
-                    raise ValueError("input image size (img_size) should be divisible by stage-wise image resolution.")
+        # for m, p in zip(img_size, patch_size):
+        #     for i in range(5):
+        #         if m % np.power(p, i + 1) != 0:
+        #             raise ValueError("input image size (img_size) should be divisible by stage-wise image resolution.")
 
         if not (0 <= drop_rate <= 1):
             raise ValueError("dropout rate should be between 0 and 1.")
@@ -320,7 +320,7 @@ class SwinUNETR(nn.Module):
 
         if feature_size % 12 != 0:
             raise ValueError("feature_size should be divisible by 12.")
-
+        self.patch_size=patch_size
         self.normalize = normalize
         self.swinViT = SwinTransformer(
             in_chans=in_channels,
@@ -351,11 +351,6 @@ class SwinUNETR(nn.Module):
             ,is_deformable=is_deformable
             ,is_lucid=is_lucid
         )
-
-        convsss=list(map(lambda i: get_convs(spatial_dims,patch_size,img_size,batch_size,feature_size,i,in_channels,norm_name,out_channels),range(4)))
-        self.encoders= list(map(lambda tupl:tupl[0]  ,convsss))
-        self.decoders= list(map(lambda tupl:tupl[1]  ,convsss))
-        self.outs= list(map(lambda tupl:tupl[2]  ,convsss))
         self.encoder_0 = UnetrBasicBlock(
             spatial_dims=spatial_dims,
             in_channels=in_channels,
@@ -365,97 +360,23 @@ class SwinUNETR(nn.Module):
             norm_name=norm_name,
             res_block=True,
         )
-
-        self.encoder2 = UnetrBasicBlock(
-            spatial_dims=spatial_dims,
-            in_channels=feature_size,
-            out_channels=feature_size,
-            kernel_size=3,
-            stride=1,
-            norm_name=norm_name,
-            res_block=True,
-        )
-
-        self.encoder3 = UnetrBasicBlock(
-            spatial_dims=spatial_dims,
-            in_channels=2 * feature_size,
-            out_channels=2 * feature_size,
-            kernel_size=3,
-            stride=1,
-            norm_name=norm_name,
-            res_block=True,
-        )
-
-        self.encoder4 = UnetrBasicBlock(
-            spatial_dims=spatial_dims,
-            in_channels=4 * feature_size,
-            out_channels=4 * feature_size,
-            kernel_size=3,
-            stride=1,
-            norm_name=norm_name,
-            res_block=True,
-        )
-
-        self.encoder10 = UnetrBasicBlock(
-            spatial_dims=spatial_dims,
-            in_channels=16 * feature_size,
-            out_channels=16 * feature_size,
-            kernel_size=3,
-            stride=1,
-            norm_name=norm_name,
-            res_block=True,
-        )
-
-        self.decoder5 = UnetrUpBlock(
-            spatial_dims=spatial_dims,
-            in_channels=16 * feature_size,
-            out_channels=8 * feature_size,
-            kernel_size=3,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            res_block=True,
-        )
-
-        self.decoder4 = UnetrUpBlock(
-            spatial_dims=spatial_dims,
-            in_channels=feature_size * 8,
-            out_channels=feature_size * 4,
-            kernel_size=3,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            res_block=True,
-        )
-
-        self.decoder3 = UnetrUpBlock(
-            spatial_dims=spatial_dims,
-            in_channels=feature_size * 4,
-            out_channels=feature_size * 2,
-            kernel_size=3,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            res_block=True,
-        )
-        self.decoder2 = UnetrUpBlock(
-            spatial_dims=spatial_dims,
-            in_channels=feature_size * 2,
-            out_channels=feature_size,
-            kernel_size=3,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            res_block=True,
-        )
-
-        self.decoder1 = UnetrUpBlock(
-            spatial_dims=spatial_dims,
-            in_channels=feature_size,
-            out_channels=feature_size,
+        self.adaptor= self.transp_conv = get_conv_layer(
+            spatial_dims,
+            int(feature_size),
+            int(feature_size),
             kernel_size=3,
             stride=(2,2,2),
             act=None,
             norm=None,
             conv_only=False,
-            is_transposed=False,
+            is_transposed=True,
         )
+        
+        convsss=list(map(lambda i: get_convs(spatial_dims,patch_size,img_size,batch_size,feature_size,i,in_channels,norm_name,out_channels),range(4)))
+        self.encoders= list(map(lambda tupl:tupl[0]  ,convsss))
+        self.decoders= list(map(lambda tupl:tupl[1]  ,convsss))
+        self.outs= list(map(lambda tupl:tupl[2]  ,convsss))
+
         self.decoders[0]=None
         self.outs[1]=None
         self.outs[2]=None
