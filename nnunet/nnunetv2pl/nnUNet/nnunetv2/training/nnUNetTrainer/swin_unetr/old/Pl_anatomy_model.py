@@ -151,7 +151,7 @@ class Pl_anatomy_model(pl.LightningModule):
         elif(self.is_swin or self.is_swin_monai):    
             # print(f"ssss self.learning_rate {self.learning_rate}")
             # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 3.98107e-07)#learning rate set by learning rate finder
+            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.025)#learning rate set by learning rate finder
             # Lear
             # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
 
@@ -166,8 +166,8 @@ class Pl_anatomy_model(pl.LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
         if(self.is_swin or self.is_swin_monai):
             # lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*40, warmup_duration=30)
-            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=30)
-            lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[30])
+            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=20)
+            lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[20])
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
 
@@ -204,7 +204,7 @@ class Pl_anatomy_model(pl.LightningModule):
             output = network(data,clinical)
         else:
             output = network(data)        
-        if(not self.is_classic_nnunet):
+        if(not self.is_classic_nnunet and self.is_deep_supervision):
             target=self.transform_gold(target)
 
         epoch=self.current_epoch
@@ -248,7 +248,7 @@ class Pl_anatomy_model(pl.LightningModule):
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
 
 
-        if(not self.is_classic_nnunet):
+        if(not self.is_classic_nnunet and self.is_deep_supervision):
             target=self.transform_gold(target)
         
         

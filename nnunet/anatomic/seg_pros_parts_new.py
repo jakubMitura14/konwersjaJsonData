@@ -55,34 +55,6 @@ def get_id_from_file_name(path_str):
     path_str=path_str[1:5]
     return int(path_str)
 
-# def add_t2w_to_name(source):
-#     if(source==' '):
-#         return ' '
-#     # if('t2w' in source):
-#     #     return source
-#     # new_path= source.replace('.nii.gz','_t2w.nii.gz')
-#     # copy_changing_type(source, new_path)
-#     # return new_path
-#     return source
-    
-
-# def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name):
-#     """ 
-#     we have some inferred anatomical segmentations done by previous 
-#     models now we want to take the folder with 
-#     """
-#     list_files= os.listdir(dir_inferred_prost)
-#     list_files= list(filter(lambda el : el[0]=='9' ,list_files ))
-#     list_ids= list(map(get_id_from_file_name,list_files))
-#     list_files= list(map( lambda el: f"{dir_inferred_prost}/{el}" ,list_files))
-#     file_and_id= dict(list(zip(list_ids,list_files)))
-#     new_col_dat= list(map( lambda el: file_and_id.get(el,' ') ,df['masterolds'].to_numpy() ))
-#     #changing path name to mark it is t2w related
-#     new_col_dat= list(map(add_t2w_to_name,new_col_dat))
-
-#     df[new_col_name]=new_col_dat
-
-#     return df
 
 
 cols=sourceFrame.columns
@@ -211,7 +183,7 @@ def for_filter_unwanted(group):
 
 grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
-#my_proj_name="seg swin tests" tag="l4c simple monai non lucid + clinical" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
+#my_proj_name="seg swin tests" tag="l4b lucid depth 2 no deep supervision token 48 double heads" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
 #my_proj_name="seg debug" tag="pc swin lucid simple" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr My_Anatomy_trainer
 
 # 3.98107e-07
