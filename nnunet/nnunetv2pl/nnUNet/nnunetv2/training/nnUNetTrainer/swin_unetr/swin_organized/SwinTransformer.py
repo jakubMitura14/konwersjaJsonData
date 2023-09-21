@@ -417,9 +417,9 @@ class SwinTransformer(nn.Module):
             x2 =  checkpoint.checkpoint(self.layers3c[0],x2.contiguous())
         x3 =  checkpoint.checkpoint(self.layers3[0],x2.contiguous(),clinical)
         x3_out = self.proj_out(x3, normalize)
-        if self.use_v2:
-            x3 =  checkpoint.checkpoint(self.layers4c[0],x3.contiguous())
-        x4 =  checkpoint.checkpoint(self.layers4[0],x3.contiguous(),clinical)
-        x4_out = self.proj_out(x4, normalize)
-        return [x0_out, x1_out, x2_out, x3_out,x4_out]#x4_out
+        # if self.use_v2:
+        #     x3 =  checkpoint.checkpoint(self.layers4c[0],x3.contiguous())
+        # x4 =  checkpoint.checkpoint(self.layers4[0],x3.contiguous(),clinical)
+        # x4_out = self.proj_out(x4, normalize)
+        return [x0_out, x1_out, x2_out, x3_out]#x4_out
 

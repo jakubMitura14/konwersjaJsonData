@@ -47,6 +47,7 @@ from .swin_utils import*
 from .patch_merging import*
 from .Window_Attention import*
 from .my_x_transformers import *
+import os
 rearrange, _ = optional_import("einops", name="rearrange")
 
 
@@ -111,6 +112,117 @@ rearrange, _ = optional_import("einops", name="rearrange")
 
 
 
+def get_transf_from_hyper(dim,num_heads,window_size_corr,calced_input_size  ):
+        #transformer_level
+        # attn_flash = True,
+        #     ff_glu = True
+        kwargss_encoder={'ff_glu':True
+                         }
+
+        if(os.getenv('attn_num_mem_kv')=='1'):
+            kwargss_encoder["attn_num_mem_kv"] = 16
+        if(os.getenv('use_scalenorm')=='1'):
+            kwargss_encoder["use_scalenorm"] = True
+            kwargss_encoder["sandwich_norm"] = False
+        if(os.getenv('sandwich_norm')=='1'):
+            kwargss_encoder["use_scalenorm"] = False
+            kwargss_encoder["sandwich_norm"] = True
+        if(os.getenv('ff_swish')=='1'):
+            kwargss_encoder["ff_relu_squared"] = False
+            kwargss_encoder["ff_swish"] = True
+        if(os.getenv('ff_relu_squared')=='1'):
+            kwargss_encoder["ff_relu_squared"] = True
+            kwargss_encoder["ff_swish"] = False
+        if(os.getenv('attn_sparse_topk')=='1'):
+            kwargss_encoder["attn_sparse_topk"] = 12
+        if(os.getenv('attn_talking_heads')=='1'):
+            kwargss_encoder["attn_talking_heads"] = True
+        if(os.getenv('attn_on_attn')=='1'):
+            kwargss_encoder["attn_on_attn"] = True
+        if(os.getenv('attn_gate_values')=='1'):
+            kwargss_encoder["attn_gate_values"] = True
+        if(os.getenv('sandwich_coef')=='1'):
+            kwargss_encoder["sandwich_coef"] = 6
+        if(os.getenv('macaron')=='1'):
+            kwargss_encoder["macaron"] = True
+        if(os.getenv('residual_attn')=='1'):
+            kwargss_encoder["residual_attn"] = True
+            kwargss_encoder["pre_norm"] = False
+        if(os.getenv('gate_residual')=='1'):
+            kwargss_encoder["gate_residual"] = True
+        if(os.getenv('shift_tokens')=='1'):
+            kwargss_encoder["shift_tokens"] = 1
+        if(os.getenv('resi_dual')=='1'):
+            kwargss_encoder["resi_dual"] = True
+            kwargss_encoder["resi_dual_scale"] = 0.1
+        if(os.getenv('attn_head_scale')=='1'):
+            kwargss_encoder["attn_head_scale"] = True
+        if(os.getenv('ff_post_act_ln')=='1'):
+            kwargss_encoder["ff_post_act_ln"] = True
+        if(os.getenv('scale_residual')=='1'):
+            kwargss_encoder["scale_residual"] = True
+        if(os.getenv('attn_qk_norm')=='1'):
+            kwargss_encoder["attn_qk_norm"] = True
+            kwargss_encoder["attn_qk_norm_groups"] = 16
+        if(os.getenv('attn_qk_norm_dim_scale')=='1'):
+            kwargss_encoder["attn_qk_norm_dim_scale"] = True
+
+        depth=int(os.getenv('encoders_depth'))
+        kwargss_encoder["depth"]=depth
+        #performance
+        # ff_no_bias = True
+        # attn_one_kv_head = True
+        # attn_kv_heads = 2
+
+        attn_layers = Encoder_my(
+            dim = dim,
+            depth = 1,
+            heads = num_heads,
+            is_Relative_position_embedding_3d=True,
+            window_size=window_size_corr,
+            calced_input_size=calced_input_size,
+            return_hiddens=False,
+            **kwargss_encoder
+        )
+
+
+        #for transformer level
+        # num_memory_tokens = 20
+        # l2norm_embed = True | post_emb_norm = True
+        # shift_mem_down = 1,
+
+        if(os.getenv('num_memory_tokens')=='1'):
+            attn = My_transformer_wrapper(
+                dim_in = dim,
+                dim_out = dim,
+                max_seq_len = 10024,
+                attn_layers=attn_layers,
+                num_memory_tokens=20
+                )
+
+        if(os.getenv('shift_mem_down')=='1'):
+            attn = My_transformer_wrapper(
+                dim_in = dim,
+                dim_out = dim,
+                max_seq_len = 10024,
+                attn_layers=attn_layers,
+                shift_mem_down=1
+                )
+
+        if(os.getenv('num_memory_tokens')=='1' and os.getenv('shift_mem_down')=='1'):
+            attn = My_transformer_wrapper(
+                dim_in = dim,
+                dim_out = dim,
+                max_seq_len = 10024,
+                attn_layers=attn_layers,
+                num_memory_tokens=20,
+                shift_mem_down=1
+                )
+            
+
+        return attn
+
+
 
 class SwinTransformerBlock_lucid(nn.Module):
     """
@@ -169,6 +281,38 @@ class SwinTransformerBlock_lucid(nn.Module):
         #     attn_drop=attn_drop,
         #     proj_drop=drop,
         # )
+
+        #transformer_level
+        # num_memory_tokens = 20
+        # l2norm_embed = True | post_emb_norm = True
+        # shift_mem_down = 1,
+
+        # #encoder_level
+        # attn_num_mem_kv = 16
+        # use_scalenorm = True |sandwich_norm = True
+        # ff_swish = True | ff_relu_squared = True
+        # attn_sparse_topk = 10
+        # attn_talking_heads = True
+        # attn_on_attn = True
+        # attn_gate_values = True
+        # sandwich_coef = 6
+        # macaron = True
+        # residual_attn = True plus pre_norm = False
+        # gate_residual = True
+        # shift_tokens = 1
+        # resi_dual = True plus resi_dual_scale = 0.1
+        # attn_head_scale = True
+        # ff_post_act_ln = True
+        # scale_residual = True
+        # attn_qk_norm = True plus attn_qk_norm_groups = 8
+        # attn_qk_norm = True
+        # attn_qk_norm_dim_scale = True
+        # #performance
+        # ff_no_bias = True
+        # attn_one_kv_head = True
+        # attn_kv_heads = 2
+
+
         b, d, h, w, c = self.calced_input_size
         window_size_corr, shift_size = get_window_size((d, h, w), self.window_size, self.shift_size)
         self.attn = My_transformer_wrapper(
@@ -224,6 +368,8 @@ class SwinTransformerBlock_lucid(nn.Module):
             attn_mask=(attn_mask*(-1))/100
             attn_mask=torch.logical_not(attn_mask.bool())
 
+            print(f"aaaaaaaaaaaa  {x_windows.shape} attn_mask {attn_mask.shape} dim {self.dim} ")
+        print(f"** x_windows {x_windows.shape} ")
         attn_windows = self.attn(x_windows, attn_mask=attn_mask,clinical=clinical)
 
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))

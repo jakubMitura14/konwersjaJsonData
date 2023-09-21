@@ -93,10 +93,10 @@ class Main_trainer_pl(nnUNetTrainer):
         self.log_every_n=5
         self.num_batch_to_eval=20
         # self.batch_size=2
-        self.is_deep_supervision=True
+        self.is_deep_supervision=False
         self.is_classic_nnunet=True
         self.is_swin=False
-        self.is_swin_monai=False
+        self.is_swin_monai=True
         self.is_med_next=False
 
         self.is_lesion_segm=True
@@ -106,6 +106,31 @@ class Main_trainer_pl(nnUNetTrainer):
         # if(self.is_classic_nnunet or self.is_med_next):
         #     self.is_deep_supervision=True
 
+        os.environ['API_USER'] = 'username'
+
+        self.hparams_dict={"attn_num_mem_kv":os.getenv('attn_num_mem_kv')
+                           ,"use_scalenorm":os.getenv('use_scalenorm')
+                           ,"sandwich_norm":os.getenv('sandwich_norm')
+                           ,"ff_swish":os.getenv('ff_swish')
+                           ,"ff_relu_squared":os.getenv('ff_relu_squared')
+                           ,"attn_talking_heads":os.getenv('attn_talking_heads')
+                           ,"attn_on_attn":os.getenv('attn_on_attn')
+                           ,"attn_gate_values":os.getenv('attn_gate_values')
+                           ,"sandwich_coef":os.getenv('sandwich_coef')
+                           ,"macaron":os.getenv('macaron')
+                           ,"residual_attn":os.getenv('residual_attn')
+                           ,"gate_residual":os.getenv('gate_residual')
+                           ,"shift_tokens":os.getenv('shift_tokens')
+                           ,"attn_head_scale":os.getenv('attn_head_scale')
+                           ,"ff_post_act_ln":os.getenv('ff_post_act_ln')
+                           ,"scale_residual":os.getenv('scale_residual')
+                           ,"attn_qk_norm":os.getenv('attn_qk_norm')
+                           ,"attn_qk_norm_dim_scale":os.getenv('attn_qk_norm_dim_scale')
+                           ,"encoders_depth":os.getenv('encoders_depth')
+                           ,"num_memory_tokens":os.getenv('num_memory_tokens')
+                           ,"shift_mem_down":os.getenv('shift_mem_down')
+                           ,"num_memory_tokens":os.getenv('num_memory_tokens')                            
+                             }
 
 
 
@@ -173,7 +198,7 @@ class Main_trainer_pl(nnUNetTrainer):
                 self.network.decoder.deep_supervision = True
         
         img_size=(48, 192, 160)
-        if(self.is_anatomy_segm):
+        if(self.is_lesion_segm):
             img_size=(40, 96, 96)
         
 
@@ -204,12 +229,16 @@ class Main_trainer_pl(nnUNetTrainer):
             ,depths=(2,2,2,2)
             ,is_lucid=True
             ,window_size=(7,7,7)
+            ,hparams_dict=self.hparams_dict
             # ,is_deformable=True
             )
 
 
+
+
         if(self.is_swin_monai):
-            attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
+            img_size=(64,img_size[1],img_size[2])
+            # attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
             self.network=SwinUNETR(in_channels=self.num_input_channels
             # ,num_heads=  (1, 3, 6, 12)
             # ,num_heads=  (1, 1, 1, 1)
@@ -218,7 +247,7 @@ class Main_trainer_pl(nnUNetTrainer):
             ,img_size=img_size
             ,patch_size=(2,2,2)
             ,batch_size=self.batch_size
-            ,attn_masks_h5f=attn_masks_h5f
+            ,attn_masks_h5f=[]
             ,is_swin=False
             ,is_local_iso=False
             ,is_local_non_iso=False
@@ -269,7 +298,7 @@ class Main_trainer_pl(nnUNetTrainer):
                                 ,is_deep_supervision=self.is_deep_supervision
                                ,is_anatomy_segm=self.is_anatomy_segm
                                ,is_lesion_segm=self.is_lesion_segm
-                               
+                               ,hparams_dict=self.hparams_dict
                                 )
 
 
@@ -300,7 +329,7 @@ class Main_trainer_pl(nnUNetTrainer):
         # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
         self.trainer = pl.Trainer(
             #accelerator="cpu", #TODO(remove)
-            max_epochs=1000,
+            max_epochs=1,
             #gpus=1,
             # precision='16-mixed', 
             callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(5, 10,40))], # ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback

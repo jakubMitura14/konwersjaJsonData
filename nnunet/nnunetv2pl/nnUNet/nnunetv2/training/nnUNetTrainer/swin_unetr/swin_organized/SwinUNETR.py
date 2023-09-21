@@ -134,7 +134,7 @@ class SwinUNETR(nn.Module):
             ,is_lucid=is_lucid
         )
 
-        convsss=list(map(lambda i: get_convs(spatial_dims,patch_size,img_size,batch_size,feature_size,i,in_channels,norm_name,out_channels),range(5)))
+        convsss=list(map(lambda i: get_convs(spatial_dims,patch_size,img_size,batch_size,feature_size,i,in_channels,norm_name,out_channels),range(4)))
         self.encoders= list(map(lambda tupl:tupl[0]  ,convsss))
         self.decoders= list(map(lambda tupl:tupl[1]  ,convsss))
         self.outs= list(map(lambda tupl:tupl[2]  ,convsss))
@@ -182,6 +182,8 @@ class SwinUNETR(nn.Module):
         )
         self.decoders[0]=None
         self.outs[1]=None
+        self.outs[2]=None
+        self.outs[3]=None
         self.outs[0]=UnetOutBlock(spatial_dims=spatial_dims, in_channels=feature_size, out_channels=out_channels)
 
     def forward(self, x_in,clinical):
@@ -194,9 +196,9 @@ class SwinUNETR(nn.Module):
         enc2 = self.encoders[1].to('cuda')(hidden_states_out[1])
         enc3 = self.encoders[2].to('cuda')(hidden_states_out[2])
         enc4 = self.encoders[3].to('cuda')(hidden_states_out[3])
-        enc5 = self.encoders[4].to('cuda')(hidden_states_out[4])
-        dec5= self.decoders[4].to('cuda')(enc5,enc4)
-        dec4= self.decoders[3].to('cuda')(dec5,enc3)
+        # enc5 = self.encoders[4].to('cuda')(hidden_states_out[4])
+        # dec5= self.decoders[4].to('cuda')(enc5,enc4)
+        dec4= self.decoders[3].to('cuda')(enc4,enc3)
         dec3= self.decoders[2].to('cuda')(dec4,enc2)
         dec2= self.decoders[1].to('cuda')(dec3,enc1)
         if(self.patch_size[0]==2):
@@ -206,12 +208,12 @@ class SwinUNETR(nn.Module):
 
         # dec1= self.decoders[0].to('cuda')(dec2,enc0)
 
-        # return self.outs[0].to('cuda')(dec1)
-        return [self.outs[0].to('cuda')(dec1)
-                ,self.adaptorC.to('cuda')(dec2)
-                ,self.outs[2].to('cuda')(dec3)
-                ,self.outs[3].to('cuda')(dec4)
-                ,self.outs[4].to('cuda')(dec5)]
+        return self.outs[0].to('cuda')(dec1)
+        # return [self.outs[0].to('cuda')(dec1)
+        #         ,self.adaptorC.to('cuda')(dec2)
+        #         ,self.outs[2].to('cuda')(dec3)
+        #         ,self.outs[3].to('cuda')(dec4)
+        #         ,self.outs[4].to('cuda')(dec5)]
 
 
 
@@ -501,9 +503,9 @@ class SwinUNETR(nn.Module):
 #             self.swinViT.layers4[0].downsample.norm.bias.copy_(
 #                 weights["state_dict"]["module.layers4.0.downsample.norm.bias"]
 #             )
-
-#     def forward(self, x_in):
-#         hidden_states_out = self.swinViT(x_in, self.normalize)
+#     def forward(self, x_in,clinical):
+#         normalize=False
+#         hidden_states_out = self.swinViT(x_in,clinical= clinical)#,normalize=normalize
 #         enc0 = self.encoder1(x_in)
 #         enc1 = self.encoder2(hidden_states_out[0])
 #         enc2 = self.encoder3(hidden_states_out[1])

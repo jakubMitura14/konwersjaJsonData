@@ -98,6 +98,7 @@ class Pl_main_model(pl.LightningModule):
                  ,is_deep_supervision
                  ,is_anatomy_segm
                  ,is_lesion_segm
+                 ,hparams_dict
                  ):
         
 
@@ -126,6 +127,7 @@ class Pl_main_model(pl.LightningModule):
 
         self.is_anatomy_segm=is_anatomy_segm
         self.is_lesion_segm=is_lesion_segm
+        self.hparams_dict=hparams_dict
 
 
     def setup(self, stage=None):
@@ -133,6 +135,10 @@ class Pl_main_model(pl.LightningModule):
         self.logger.experiment.add_tag(os.getenv('tag'))
         self.f = h5py.File(self.hf5_path, 'w',driver='mpio', comm=MPI.COMM_WORLD)
         self.save_hyperparameters()
+
+        self.hparams_dict["learning_rate"]= self.learning_rate
+        # self.logger.log_hyperparams(self.hparams, self.hparams_dict)
+        self.logger.log_hyperparams(self.hparams_dict)
 
 
     def train_dataloader(self):
@@ -290,7 +296,7 @@ class Pl_main_model(pl.LightningModule):
         self.log(f"num_components_{group_name}", res[6])#,sync_dist=True
         self.log(f"in_inferred_{group_name}", res[7])#,sync_dist=True
         self.log(f"dice_centers_{group_name}", res[8])#,sync_dist=True
-        self.log(f"dice_all_{group_name}", res[8])#,sync_dist=True
+        self.log(f"dice_all_{group_name}", res[9])#,sync_dist=True
 
 
     def on_validation_epoch_end(self):
