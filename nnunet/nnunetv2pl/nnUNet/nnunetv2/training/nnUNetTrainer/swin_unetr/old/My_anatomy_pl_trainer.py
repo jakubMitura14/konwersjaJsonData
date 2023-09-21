@@ -100,7 +100,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         self.is_med_next=False
 
         # if(self.is_classic_nnunet or self.is_med_next or self.is_swin):
-        self.is_deep_supervision=True
+        self.is_deep_supervision=False
 
 
 
@@ -218,6 +218,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             self.network=SwinUNETR(in_channels=self.num_input_channels
             # ,num_heads=  (1, 3, 6, 12)
             # ,num_heads=  (1, 1, 1, 1)
+            ,num_heads= (6, 12, 24, 24)
             ,out_channels=self.label_manager.num_segmentation_heads
             ,use_v2=True#
             ,img_size=(64, 192, 160)
@@ -230,7 +231,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             # ,distances=(8,8,16)
             ,distances=(7,7,7)
             ,spacing=(3.299999952316284,0.78125, 0.78125)
-            ,feature_size=24
+            ,feature_size=48
             ,depths=(2,2,2,2)
             ,is_lucid=True
             ,window_size=(7,7,7)
@@ -296,7 +297,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
         toMonitor="avgHausdorff_all_val"
         checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode='min', save_top_k=1, monitor=toMonitor)
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
-        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=0.07)
+        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=3.98107e-07)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
@@ -310,7 +311,7 @@ class My_Anatomy_trainer(nnUNetTrainer):
             max_epochs=1000,
             #gpus=1,
             # precision='16-mixed', 
-            callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(0, 35))], # ,FineTuneLearningRateFinder(milestones=(0, 35)) ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[checkpoint_callback,stochasticAveraging], #,FineTuneLearningRateFinder(milestones=(0, 35))  ,FineTuneLearningRateFinder(milestones=(0, 35)) ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       
