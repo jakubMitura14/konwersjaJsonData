@@ -172,3 +172,4 @@ p = Popen(cmd_terminal, shell=True)
 p.wait()
 
 os.environ["nnUNet_raw"] ="/home/sliceruser/nnunetMainFolder/nnUNet_raw"
+
