@@ -188,7 +188,7 @@ class Pl_main_model(pl.LightningModule):
         self.network.train()
 
     def pad_data_if_needed(self,arr):
-        if(self.is_swin_monai):
+        if(self.is_swin_monai or (self.is_med_next and self.is_lesion_segm)):
             if(self.is_anatomy_segm):
                 return F.pad(arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
             if(self.is_lesion_segm):
@@ -196,7 +196,7 @@ class Pl_main_model(pl.LightningModule):
         return arr
     def pad_target_if_needed(self,arr):
         
-        if(self.is_swin_monai):            
+        if(self.is_swin_monai or (self.is_med_next and self.is_lesion_segm)):            
             if(self.is_anatomy_segm):
                 if(self.is_deep_supervision):
                     return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0),arr))
