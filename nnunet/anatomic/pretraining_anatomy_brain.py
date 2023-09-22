@@ -173,3 +173,4 @@ p.wait()
 
 os.environ["nnUNet_raw"] ="/home/sliceruser/nnunetMainFolder/nnUNet_raw"
 
+#my_proj_name="anatomy pretrain brain" tag="l4a mednext" my_proj_desc="l4a mednext" nnUNetv2_train 294 3d_lowres 0 -tr Main_trainer_pl
