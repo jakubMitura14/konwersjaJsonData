@@ -93,20 +93,29 @@ class Main_trainer_pl(nnUNetTrainer):
         self.log_every_n=5
         self.num_batch_to_eval=20
         self.batch_size=1
-        self.is_deep_supervision=False
+        self.is_deep_supervision=True
         self.is_classic_nnunet=False
         self.is_swin=False
-        self.is_swin_monai=True
-        self.is_med_next=False
+        self.is_swin_monai=False
+        self.is_med_next=True
 
-        self.is_lesion_segm=True
+        self.is_lesion_segm=False
         self.is_anatomy_segm= not self.is_lesion_segm
         self.is_priming_segm= False
 
         # if(self.is_classic_nnunet or self.is_med_next):
         #     self.is_deep_supervision=True
 
-        os.environ['API_USER'] = 'username'
+
+        self.learning_rate=self.initial_lr 
+        if(self.is_swin_monai and self.is_anatomy_segm):
+            self.learning_rate=0.02089296130854041
+        if(self.is_classic_nnunet and self.is_anatomy_segm):    
+            self.learning_rate=0.04365158322401657
+        if(self.is_med_next and self.is_anatomy_segm):    #3.77s/it
+            self.learning_rate=0.0013182567385564075
+                        
+
 
         self.hparams_dict={"attn_num_mem_kv":os.getenv('attn_num_mem_kv')
                            ,"use_scalenorm":os.getenv('use_scalenorm')
@@ -280,7 +289,7 @@ class Main_trainer_pl(nnUNetTrainer):
                                 ,dataloader_train=self.dataloader_train
                                 ,dataloader_val=self.dataloader_val
                                 ,loss=self.loss
-                                ,learning_rate=self.initial_lr
+                                ,learning_rate=self.learning_rate
                                 ,weight_decay=self.weight_decay
                                 ,label_manager=self.label_manager
                                 ,log_every_n=self.log_every_n
@@ -317,7 +326,7 @@ class Main_trainer_pl(nnUNetTrainer):
         checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode=mode, save_top_k=1, monitor=toMonitor)
 
         # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
-        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=0.07)
+        stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=self.learning_rate/2)
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
@@ -328,10 +337,10 @@ class Main_trainer_pl(nnUNetTrainer):
         # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
         self.trainer = pl.Trainer(
             #accelerator="cpu", #TODO(remove)
-            max_epochs=1000,
+            max_epochs=3000,
             #gpus=1,
             # precision='16-mixed', 
-            callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(5, 10,40))], # ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(5, 10,40))], # ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       

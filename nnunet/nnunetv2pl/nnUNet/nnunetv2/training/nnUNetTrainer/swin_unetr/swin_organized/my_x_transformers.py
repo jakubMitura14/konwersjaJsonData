@@ -544,7 +544,7 @@ class My_transformer_wrapper(nn.Module):
         self.project_in = nn.Linear(dim_in, dim) if exists(dim_in) else nn.Identity()
 
         self.attn_layers = attn_layers
-        self.clinical_dense=nn.Linear(3,dim)
+        # self.clinical_dense=nn.Linear(3,dim)
         self.project_out = nn.Linear(dim, dim_out) if exists(dim_out) else nn.Identity()
 
 
@@ -579,7 +579,7 @@ class My_transformer_wrapper(nn.Module):
         x = self.attn_layers(x, mask = mask, mems = mems, return_hiddens = True, **kwargs)
         #adding clinical data
         
-        x=x+torch.nn.functional.relu(self.clinical_dense(clinical))
+        # x=x+torch.nn.functional.relu(self.clinical_dense(clinical))
 
         out = self.project_out(x) if not return_embeddings else x
 

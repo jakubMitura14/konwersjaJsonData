@@ -149,32 +149,33 @@ class Pl_main_model(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        if(self.is_classic_nnunet):
-            lr=self.learning_rate   
-            if(self.is_lesion_segm):
-                lr=0.00091
+        optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), self.learning_rate )
+        # if(self.is_classic_nnunet):
+        #     lr=self.learning_rate   
+        #     if(self.is_lesion_segm):
+        #         lr=0.00091
 
                  
             
-            optimizer = torch.optim.SGD(self.network.parameters(), lr, weight_decay=self.weight_decay,
-                                        momentum=0.99, nesterov=True)
-            # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
+        #     optimizer = torch.optim.SGD(self.network.parameters(), lr, weight_decay=self.weight_decay,
+        #                                 momentum=0.99, nesterov=True)
+        #     # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
             
-        elif(self.is_swin or self.is_swin_monai):    
-            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
-            if(self.is_lesion_segm):
-                optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.013)#learning rate set by learning rate finder
-            else:
-                optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.076)#learning rate set by learning rate finder
+        # elif(self.is_swin or self.is_swin_monai):    
+        #     # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+        #     if(self.is_lesion_segm):
+        #         optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.013)#learning rate set by learning rate finder
+        #     else:
+        #         optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.076)#learning rate set by learning rate finder
 
-        elif(self.is_med_next):    
-            optimizer = torch.optim.AdamW(self.network.parameters(), 0.0019054607179632484)
+        # elif(self.is_med_next):    
+        #     optimizer = torch.optim.AdamW(self.network.parameters(), 0.0019054607179632484)
         
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
         if(self.is_swin or self.is_swin_monai):
             # lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*40, warmup_duration=30)
-            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=20)
+            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=self.learning_rate *50, total_iters=20)
             lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[20])
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
@@ -187,7 +188,7 @@ class Pl_main_model(pl.LightningModule):
         self.network.train()
 
     def pad_data_if_needed(self,arr):
-        if(self.is_swin_monai):
+        if(self.is_swin_monai or (self.is_med_next and self.is_lesion_segm)):
             if(self.is_anatomy_segm):
                 return F.pad(arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
             if(self.is_lesion_segm):
@@ -195,7 +196,7 @@ class Pl_main_model(pl.LightningModule):
         return arr
     def pad_target_if_needed(self,arr):
         
-        if(self.is_swin_monai):            
+        if(self.is_swin_monai or (self.is_med_next and self.is_lesion_segm)):            
             if(self.is_anatomy_segm):
                 if(self.is_deep_supervision):
                     return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0),arr))
@@ -267,7 +268,6 @@ class Pl_main_model(pl.LightningModule):
 
         epoch=self.current_epoch
         data = data.to(device, non_blocking=True)
-        print(f"ddddd {data.shape}")
         if isinstance(target, list):
             target = [i.to(device, non_blocking=True) for i in target]
         else:

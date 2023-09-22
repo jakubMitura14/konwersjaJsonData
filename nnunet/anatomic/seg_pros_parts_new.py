@@ -183,7 +183,7 @@ def for_filter_unwanted(group):
 
 grouped_rows= main_prepare_nnunet('294',modalities_of_intrest,channel_names,label_names,label_cols,process_labels_prim,non_mri_inputs,sourceFrame,main_modality,for_filter_unwanted)
 
-#my_proj_name="seg swin tests" tag="l4b lucid depth 2 no deep supervision token 48 double heads unet depth 3" my_proj_desc="l4b lucid depth 2 no deep supervision token 48 double heads unet depth 3" nnUNetv2_train 294 3d_lowres 0 -tr Main_trainer_pl
+#my_proj_name="seg swin tests" tag="l4b lucid depth 2 with deep supervision token 48 double heads unet depth 4 with clinical" my_proj_desc="l4b lucid depth 2 no deep supervision token 48 double heads unet depth 3" nnUNetv2_train 294 3d_lowres 0 -tr Main_trainer_pl
 #my_proj_name="seg debug" tag="pc swin lucid simple" my_proj_desc="" nnUNetv2_train 294 3d_lowres 0 -tr Main_trainer_pl
 
 # 3.98107e-07
