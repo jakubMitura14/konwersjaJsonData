@@ -313,8 +313,10 @@ class SwinTransformerBlock_lucid(nn.Module):
         # attn_kv_heads = 2
 
 
-        b, d, h, w, c = self.calced_input_size
+        b, c,d, h, w = self.calced_input_size
         window_size_corr, shift_size = get_window_size((d, h, w), self.window_size, self.shift_size)
+        self.dhw=(d, h, w)
+        self.window_size_corr=window_size_corr
         self.attn = My_transformer_wrapper(
             dim_in = dim,
             dim_out = dim,
@@ -346,6 +348,8 @@ class SwinTransformerBlock_lucid(nn.Module):
         # x = self.norm1(x)
         b, d, h, w, c = x.shape
         window_size, shift_size = get_window_size((d, h, w), self.window_size, self.shift_size)
+        # print(f"aaaa window_size {window_size} d, h, w {(d, h, w)} self.window_size_corr  {self.window_size_corr} self.dhw {self.dhw}")
+        window_size=self.window_size_corr 
         pad_l = pad_t = pad_d0 = 0
         pad_d1 = (window_size[0] - d % window_size[0]) % window_size[0]
         pad_b = (window_size[1] - h % window_size[1]) % window_size[1]
@@ -362,24 +366,24 @@ class SwinTransformerBlock_lucid(nn.Module):
         else:
             shifted_x = x
             attn_mask = None
-        x_windows = window_partition(shifted_x, window_size)
+        x_windows = window_partition(shifted_x, self.window_size_corr )
         if(attn_mask is not None):
             attn_mask= einops.rearrange(attn_mask,'bb a b-> bb 1 a b')
             attn_mask=(attn_mask*(-1))/100
             attn_mask=torch.logical_not(attn_mask.bool())
-
-        #     print(f"aaaaaaaaaaaa  {x_windows.shape} attn_mask {attn_mask.shape} dim {self.dim} ")
-        # print(f"** x_windows {x_windows.shape} ")
+        #     ww=self.window_size_corr 
+        #     print(f"aaaaaaaaaaaa window_size_corr {ww} mul {ww[0]*ww[1]*ww[2]}  x_windows {x_windows.shape} {x_windows.shape} attn_mask {attn_mask.shape} dim {self.dim} ")
+        # ww=self.window_size_corr 
+        # xw=x_windows.shape
+        # print(f"** window_size_corr {ww} mul {ww[0]*ww[1]*ww[2]}  x_windows {x_windows.shape} mul {np.product(list(xw))}")
         attn_windows = self.attn(x_windows, attn_mask=attn_mask,clinical=clinical)
 
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))
         shifted_x = window_reverse(attn_windows, window_size, dims)
         if any(i > 0 for i in shift_size):
             x = torch.roll(shifted_x, shifts=(shift_size[0], shift_size[1], shift_size[2]), dims=(1, 2, 3))
-
         else:
             x = shifted_x
-
         if pad_d1 > 0 or pad_r > 0 or pad_b > 0:
             x = x[:, :d, :h, :w, :].contiguous()
 
