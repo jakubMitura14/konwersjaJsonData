@@ -251,7 +251,6 @@ class MedNeXt(nn.Module):
 
     def forward(self, x):
 
-
         x = self.stem(x)
         if self.outside_block_checkpointing:
             x_res_0 = self.iterative_checkpoint(self.enc_block_0, x)

@@ -99,7 +99,7 @@ class Main_trainer_pl(nnUNetTrainer):
         self.is_swin_monai=False
         self.is_med_next=True
 
-        self.is_lesion_segm=False
+        self.is_lesion_segm=True
         self.is_anatomy_segm= not self.is_lesion_segm
         self.is_priming_segm= False
 
@@ -115,6 +115,9 @@ class Main_trainer_pl(nnUNetTrainer):
         if(self.is_med_next and self.is_anatomy_segm):    #3.77s/it
             self.learning_rate=0.0013182567385564075
                         
+
+        if(self.is_med_next and self.is_lesion_segm):   
+            self.learning_rate=0.00831
 
 
         self.hparams_dict={"attn_num_mem_kv":os.getenv('attn_num_mem_kv')
