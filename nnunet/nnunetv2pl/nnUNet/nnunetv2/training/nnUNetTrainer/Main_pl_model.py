@@ -202,10 +202,10 @@ class Pl_main_model(pl.LightningModule):
                 else :
                     return F.pad(arr[0], (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
             if(self.is_lesion_segm):
-                # if(self.is_deep_supervision):
-                return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0),arr))
-            else :
-                return F.pad(arr[0], (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0)
+                if(self.is_deep_supervision):
+                    return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0),arr))
+                else :
+                    return F.pad(arr[0], (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0)
                        
         
         return arr
@@ -284,6 +284,8 @@ class Pl_main_model(pl.LightningModule):
         else:
             output = network(data)
 
+
+        # print(f"oooo output {type(output)}  target {type(target)} ")
         l = loss(output, target)
         save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",self.is_anatomy_segm)
         self.log("val loss",l.detach().cpu().item())
@@ -294,25 +296,25 @@ class Pl_main_model(pl.LightningModule):
     def my_anato_log(self,tupl,name): 
         print(f"ttt {tupl} {name}")       
         if(np.isnan(tupl[1])):
-            self.log(f"{tupl[0]}_{name}", 100.0)
-        self.log(f"{tupl[0]}_{name}", tupl[1])
+            self.log(f"{tupl[0]}_{name}", 100.0,sync_dist=True)
+        self.log(f"{tupl[0]}_{name}", tupl[1],sync_dist=True)
         if(tupl[0]=="avgHausdorff_all" ):
             return True
         
         return False
     
     def my_lesion_log(self,res,group_name):
-        self.log(f"percent_in_{group_name}", res[0]) #,sync_dist=True
-        self.log(f"percent_out_{group_name}", res[1]) #,sync_dist=True
-        self.log(f"percent_covered_{group_name}", res[2]) #,sync_dist=True
-        self.log(f"is_correct_{group_name}", res[3])#,sync_dist=True
-        self.log(f"my_sensitivity_{group_name}", res[4])#,sync_dist=True
-        self.log(f"my_specificity_{group_name}", res[5])#,sync_dist=True
+        self.log(f"percent_in_{group_name}", res[0],sync_dist=True) #,sync_dist=True
+        self.log(f"percent_out_{group_name}", res[1],sync_dist=True) #,sync_dist=True
+        self.log(f"percent_covered_{group_name}", res[2],sync_dist=True) #,sync_dist=True
+        self.log(f"is_correct_{group_name}", res[3],sync_dist=True)#,sync_dist=True
+        self.log(f"my_sensitivity_{group_name}", res[4],sync_dist=True)#,sync_dist=True
+        self.log(f"my_specificity_{group_name}", res[5],sync_dist=True)#,sync_dist=True
 
-        self.log(f"num_components_{group_name}", res[6])#,sync_dist=True
-        self.log(f"in_inferred_{group_name}", res[7])#,sync_dist=True
-        self.log(f"dice_centers_{group_name}", res[8])#,sync_dist=True
-        self.log(f"dice_all_{group_name}", res[9])#,sync_dist=True
+        self.log(f"num_components_{group_name}", res[6],sync_dist=True)#,sync_dist=True
+        self.log(f"in_inferred_{group_name}", res[7],sync_dist=True)#,sync_dist=True
+        self.log(f"dice_centers_{group_name}", res[8],sync_dist=True)#,sync_dist=True
+        self.log(f"dice_all_{group_name}", res[9],sync_dist=True)#,sync_dist=True
 
 
     def on_validation_epoch_end(self):
@@ -323,7 +325,7 @@ class Pl_main_model(pl.LightningModule):
             main_to_monitor="avgHausdorff_all_val"
             is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
             if(np.sum(np.array(is_there))==0):
-                self.log(main_to_monitor, 100.0)
+                self.log(main_to_monitor, 100.0,sync_dist=True)
         if(self.is_lesion_segm):
             self.my_lesion_log(res,group_name)
 

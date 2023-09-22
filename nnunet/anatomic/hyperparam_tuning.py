@@ -1,6 +1,8 @@
 import optuna
 import os
 from subprocess import Popen
+import subprocess
+
 
 os.environ['attn_num_mem_kv'] = '0'
 os.environ['use_scalenorm'] = '0'
