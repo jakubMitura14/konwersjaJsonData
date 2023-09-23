@@ -168,12 +168,16 @@ def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
     modalities_to_normalize = list(map(sitk.GetArrayFromImage ,modalities_to_normalize))
     arrrr = lapgm.to_sequence_array(modalities_to_normalize)
     # Run debias procedure and take parameter output
-    params = debias_obj.estimate_parameters(arrrr, print_tols=True)
+    params = debias_obj.estimate_parameters(arrrr, print_tols=False)
     arrrr= lapgm.debias(arrrr, params)
     print(f"ppppp params {params.shape}")
-    modalities_to_normalize=  get_modalities_to_norm(os.getenv('to_include_normalize'), arrrr[0,:,:,:],arrrr[1,:,:,:],arrrr[2,:,:,:]) 
+    to_norm=os.getenv('to_include_normalize')
+    modalities_to_normalize=  get_modalities_to_norm( to_norm, arrrr[0,:,:,:],arrrr[1,:,:,:],arrrr[2,:,:,:]) 
     arrrr = lapgm.to_sequence_array(modalities_to_normalize)
-    arrrr = lapgm.normalize(brainweb_deb_ex0, params_ex0, target_intensity=TRGT)
+    #we need new parameters only if we are normalizing less than bias field correcting
+    if(to_norm!="to_include_normalize")
+        params = debias_obj.estimate_parameters(arrrr, print_tols=False)
+    arrrr = lapgm.normalize(arrrr, params, target_intensity=TRGT)
     return return_corrected(norm_str,arrrr,t2w_image,adc_image,hbv_image)
 
 def reg_a_to_b_by_metadata_single_d(fixed_image_path,moving_image_path,interpolator):
