@@ -21,8 +21,8 @@ from toolz import curry
 from os.path import basename, dirname, exists, isdir, join, split
 import nnunetv2
 
-import elastixRegister as elastixRegister
-from elastixRegister import reg_a_to_b,reg_a_to_b_be_meta_data
+# import elastixRegister as elastixRegister
+# from elastixRegister import reg_a_to_b,reg_a_to_b_be_meta_data
 import tempfile
 import shutil
 import re
@@ -179,11 +179,14 @@ def add_t2w_to_name(source,temp_folder):
     copy_changing_type(source, new_path)
     return new_path
 
-def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name, temp_folder):
+def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name, temp_folder,csv_dir):
     """ 
     we have some inferred anatomical segmentations done by previous 
     models now we want to take the folder with 
     """
+    if(pathOs.exists(csv_dir)):
+        return pd.read_csv(csv_dir) 
+
     list_files= os.listdir(dir_inferred_prost)
     
     list_files= list(filter(lambda el : el[0]=='9' ,list_files ))
@@ -196,6 +199,7 @@ def add_inferred_full_prost_to_dataframe(dir_inferred_prost, df,new_col_name, te
     new_col_dat= list(map(lambda name: add_t2w_to_name(name,temp_folder),new_col_dat))
 
     df[new_col_name]=new_col_dat
+    df.to_csv(csv_dir)
     return df
 
 

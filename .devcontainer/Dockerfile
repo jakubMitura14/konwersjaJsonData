@@ -390,8 +390,7 @@ RUN mkdir ${HOME}/apex \
 ENV TMP="/tmp"
 
 RUN apt-get install -y default-libmysqlclient-dev
-RUN pip install spconv-cu102 mysqlclient
-
+RUN pip install spconv-cu102 mysqlclient lapgm[gpu]
 
 ENV nnUNet_raw="/home/sliceruser/nnunetMainFolder/nnUNet_raw"
 ENV nnUNet_preprocessed="/home/sliceruser/nnunetMainFolder/nnUNet_preprocessed"

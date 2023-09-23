@@ -94,14 +94,14 @@ class Main_trainer_pl(nnUNetTrainer):
         self.num_batch_to_eval=20
         self.batch_size=1
         self.is_deep_supervision=True
-        self.is_classic_nnunet=False
+        self.is_classic_nnunet=True
         self.is_swin=False
         self.is_swin_monai=False
-        self.is_med_next=True
+        self.is_med_next=False
 
-        self.is_lesion_segm=False
+        self.is_lesion_segm=True
         self.is_anatomy_segm= not self.is_lesion_segm
-        self.is_priming_segm= False
+        self.is_priming_segm= True
 
         # if(self.is_classic_nnunet or self.is_med_next):
         #     self.is_deep_supervision=True
@@ -320,7 +320,7 @@ class Main_trainer_pl(nnUNetTrainer):
         toMonitor="is_correct_val" 
         mode="max"
         if(self.is_anatomy_segm):
-            toMonitor="avgHausdorff_all_val" 
+            toMonitor="avgHausdorff_pz_val" 
             mode="min"
 
         checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode=mode, save_top_k=1, monitor=toMonitor)
@@ -337,7 +337,7 @@ class Main_trainer_pl(nnUNetTrainer):
         # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
         self.trainer = pl.Trainer(
             #accelerator="cpu", #TODO(remove)
-            max_epochs=3000,
+            max_epochs=100,
             #gpus=1,
             # precision='16-mixed', 
             callbacks=[checkpoint_callback,FineTuneLearningRateFinder(milestones=(5, 10,40))], # ,stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
@@ -443,6 +443,22 @@ class Main_trainer_pl(nnUNetTrainer):
         else:
             patch_size_spatial = patch_size
             ignore_axes = None
+
+            
+        # float(os.getenv('p_rot_per_axis'))
+        # tr_transforms.append(SpatialTransform(
+        #     patch_size_spatial, patch_center_dist_from_border=None,
+        #     do_elastic_deform=True, alpha=(float(os.getenv('alpha_low')), float(os.getenv('alpha_high')))
+        #         , sigma=(float(os.getenv('alpha_low')), float(os.getenv('alpha_high'))),
+        #     do_rotation=True, angle_x=rotation_for_DA['x'], angle_y=rotation_for_DA['y'], angle_z=rotation_for_DA['z'],
+        #     p_rot_per_axis=int(os.getenv('p_rot_per_axis')) #1,  # todo experiment with this
+        #     do_scale=True, scale=(0.7, 1.4),
+        #     border_mode_data="constant", border_cval_data=0, order_data=order_resampling_data,
+        #     border_mode_seg="constant", border_cval_seg=border_val_seg, order_seg=order_resampling_seg,
+        #     random_crop=False,  # random cropping is part of our dataloaders
+        #     p_el_per_sample=0, p_scale_per_sample=0.2, p_rot_per_sample=0.2,
+        #     independent_scale_for_each_axis=False  # todo experiment with this
+        # ))
 
         tr_transforms.append(SpatialTransform(
             patch_size_spatial, patch_center_dist_from_border=None,

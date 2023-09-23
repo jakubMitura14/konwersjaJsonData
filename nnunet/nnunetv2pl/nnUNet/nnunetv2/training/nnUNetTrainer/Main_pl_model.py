@@ -328,6 +328,12 @@ class Pl_main_model(pl.LightningModule):
                 self.log(main_to_monitor, 100.0,sync_dist=True)
         if(self.is_lesion_segm):
             self.my_lesion_log(res,group_name)
+            #setting metric for hyperparameter tuning
+            prev_best=float(os.getenv('best_metric'))
+            curr=res[3]
+            if(curr>prev_best):
+                os.environ['best_metric'] = f"{curr}"
+
 
 
     def on_train_epoch_end(self):
