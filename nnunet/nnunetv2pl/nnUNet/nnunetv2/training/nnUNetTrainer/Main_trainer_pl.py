@@ -481,7 +481,7 @@ class Main_trainer_pl(nnUNetTrainer):
             tr_transforms.append(Convert2DTo3DTransform())
 
         tr_transforms.append(RicianNoiseTransform(p_per_sample=0.1))
-        tr_transforms.append(My_PseudoLesion_adder())
+        # tr_transforms.append(My_PseudoLesion_adder())
         if(self.is_priming_segm):
             tr_transforms.append(My_priming_setter())
         tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=0.2,

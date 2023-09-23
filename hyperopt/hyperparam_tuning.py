@@ -90,14 +90,14 @@ def set_env_variables_for_general_transforms(trial):
 def set_norm_and_bias_field(trial):
     os.environ['to_include_normalize'] = trial.suggest_categorical("to_include_normalize", ["t2w_adc_hbv", "t2w_adc","t2w_hbv","t2w"])
     os.environ['tau'] = f"{trial.suggest_float('tau',5e-2,5e-7)}"
-    os.environ['n_classes'] = f"{trial.suggest_int("n_classes", 1,20)}"
+    os.environ['n_classes'] = f"{trial.suggest_int( 'n_classes', 1,20)}"
     os.environ['log_initialize'] = trial.suggest_categorical("log_initialize", ["0", "1"])
 
 set_env_variables_for_swin()
 os.environ['best_metric'] ='0.0'
 
 
-set_norm_and_bias_field()
+# set_norm_and_bias_field(trial)
 seg_lesions_custom.main_func()
 
 

@@ -170,7 +170,7 @@ def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
     # Run debias procedure and take parameter output
     params = debias_obj.estimate_parameters(arrrr, print_tols=True)
     arrrr= lapgm.debias(arrrr, params)
-    # print(f"ppppp params {params.shape}")
+    print(f"ppppp params {params.shape}")
     modalities_to_normalize=  get_modalities_to_norm(os.getenv('to_include_normalize'), arrrr[0,:,:,:],arrrr[1,:,:,:],arrrr[2,:,:,:]) 
     arrrr = lapgm.to_sequence_array(modalities_to_normalize)
     arrrr = lapgm.normalize(brainweb_deb_ex0, params_ex0, target_intensity=TRGT)
@@ -439,9 +439,8 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
 
 def to_map_bias_corr_and_norm(tupl):
-    print(f"ttttt {tupl}")
     id,pathss=tupl
-    t2w_image,adc_image,hbv_image=bias_field_and_normalize(sitk.ReadImage(pathss[0]),sitk.ReadImage(pathss[1]),hbv_sitk.ReadImage(pathss[2]))
+    t2w_image,adc_image,hbv_image=bias_field_and_normalize(sitk.ReadImage(pathss[0]),sitk.ReadImage(pathss[1]),sitk.ReadImage(pathss[2]))
     writer = sitk.ImageFileWriter()
     writer.SetFileName(pathss[0])
     writer.Execute(t2w_image)
@@ -543,7 +542,7 @@ def main_func():
         @curry  
         def pmap(fun,iterable):
             return pool.map(fun,iterable)
-
+        sourceFrame=sourceFrame.head(100)#todo remove
         ids=toolz.pipe(sourceFrame.iterrows()
                                         ,filter(lambda row: row[1]['series_desc'] in modalities_of_intrest)
                                         ,filter(filter_ids) # filter out all of the test cases
@@ -561,7 +560,7 @@ def main_func():
     channel_names={  
         "1": "noNorm",
         "2": "noNorm",
-        "3": "zscore",
+        "3": "noNorm",
         "4": "noNorm",
         "5": "noNorm"
 
