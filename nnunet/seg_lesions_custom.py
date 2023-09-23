@@ -170,15 +170,14 @@ def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
     # Run debias procedure and take parameter output
     params = debias_obj.estimate_parameters(arrrr, print_tols=False)
     arrrr= lapgm.debias(arrrr, params)
-    print(f"ppppp params {params.shape}")
     to_norm=os.getenv('to_include_normalize')
     modalities_to_normalize=  get_modalities_to_norm( to_norm, arrrr[0,:,:,:],arrrr[1,:,:,:],arrrr[2,:,:,:]) 
     arrrr = lapgm.to_sequence_array(modalities_to_normalize)
     #we need new parameters only if we are normalizing less than bias field correcting
-    if(to_norm!="to_include_normalize")
+    if(to_norm!="to_include_normalize"):
         params = debias_obj.estimate_parameters(arrrr, print_tols=False)
     arrrr = lapgm.normalize(arrrr, params, target_intensity=TRGT)
-    return return_corrected(norm_str,arrrr,t2w_image,adc_image,hbv_image)
+    return return_corrected(to_norm,arrrr,t2w_image,adc_image,hbv_image)
 
 def reg_a_to_b_by_metadata_single_d(fixed_image_path,moving_image_path,interpolator):
     fixed_image=sitk.ReadImage(fixed_image_path)
@@ -546,7 +545,6 @@ def main_func():
         @curry  
         def pmap(fun,iterable):
             return pool.map(fun,iterable)
-        sourceFrame=sourceFrame.head(100)#todo remove
         ids=toolz.pipe(sourceFrame.iterrows()
                                         ,filter(lambda row: row[1]['series_desc'] in modalities_of_intrest)
                                         ,filter(filter_ids) # filter out all of the test cases

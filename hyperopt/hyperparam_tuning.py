@@ -89,22 +89,16 @@ def set_env_variables_for_general_transforms(trial):
 
 def set_norm_and_bias_field(trial):
     os.environ['to_include_normalize'] = trial.suggest_categorical("to_include_normalize", ["t2w_adc_hbv", "t2w_adc","t2w_hbv","t2w"])
-    os.environ['tau'] = f"{trial.suggest_float('tau',5e-2,5e-7)}"
+    os.environ['tau'] = f"{trial.suggest_float('tau',5e-7,5e-2)}"
     os.environ['n_classes'] = f"{trial.suggest_int( 'n_classes', 1,20)}"
     os.environ['log_initialize'] = trial.suggest_categorical("log_initialize", ["0", "1"])
 
 set_env_variables_for_swin()
 os.environ['best_metric'] ='0.0'
 
-os.environ['to_include_normalize'] ="t2w_adc_hbv" #TODO remove
-# set_norm_and_bias_field(trial)
-seg_lesions_custom.main_func()
-
-
-
 
 # experiment_name="general_augment"
-experiment_name="testt"
+experiment_name="bias_norm"#bias_norm
 
 
 def objective(trial: optuna.trial.Trial) -> float:
@@ -114,7 +108,8 @@ def objective(trial: optuna.trial.Trial) -> float:
     if(expId is None):
         expId=trial.number
 
-
+    set_norm_and_bias_field(trial)
+    seg_lesions_custom.main_func()
 
     cmd=f"my_proj_name='seg lesions debug' tag='priming test' my_proj_desc='l4a test' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
 
@@ -127,15 +122,16 @@ def objective(trial: optuna.trial.Trial) -> float:
     return float(os.getenv('best_metric'))
 
 # storage="mysql://root@34.90.134.17/testt"
-# study = optuna.create_study(
-#         study_name=experiment_name
-#         ,sampler=optuna.samplers.NSGAIISampler()    
-#         ,pruner=optuna.pruners.HyperbandPruner()
-#         ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
-#         ,load_if_exists=True
-#         ,direction="maximize"
-#         )
+study = optuna.create_study(
+        study_name=experiment_name
+        ,sampler=optuna.samplers.NSGAIISampler()    
+        ,pruner=optuna.pruners.HyperbandPruner()
+        # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
+        ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
+        ,load_if_exists=True
+        ,direction="maximize"
+        )
 
   
 #         #mysql://root@localhost/example
-# study.optimize(objective, n_trials=400)
+study.optimize(objective, n_trials=400)
