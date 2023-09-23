@@ -96,7 +96,7 @@ def set_norm_and_bias_field(trial):
 set_env_variables_for_swin()
 os.environ['best_metric'] ='0.0'
 
-
+os.environ['to_include_normalize'] ="t2w_adc_hbv" #TODO remove
 # set_norm_and_bias_field(trial)
 seg_lesions_custom.main_func()
 
