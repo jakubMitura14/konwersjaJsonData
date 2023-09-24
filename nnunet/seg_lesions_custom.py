@@ -58,7 +58,7 @@ import einops
 import matplotlib.pyplot as plt
 import lapgm
 
-lapgm.use_gpu(True)
+lapgm.use_gpu(True)# on cpu 16 9 iters
 
 
 debias_obj = lapgm.LapGM(downscale_factor=1)
@@ -73,8 +73,7 @@ resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
 # n_classes specifies the number of tissue classes visible (including ambient space)
 # log_initialize initializes clusters with log transform. Increases sensitivity to finding clusters
 #     of similar intensity. For less dispersed bias fields it may be better to set to true.
-debias_obj.set_hyperparameters(tau=5e-5, n_classes=6, log_initialize=False) #krowa
-# debias_obj.set_hyperparameters(tau=float(os.getenv('tau')), n_classes=int(os.getenv('n_classes')), log_initialize=int(os.getenv('log_initialize'))==1) #krowa
+# debias_obj.set_hyperparameters(tau=5e-5, n_classes=6, log_initialize=False) #krowa
 
 
 
@@ -84,7 +83,9 @@ cols=sourceFrame.columns
 # modalities that we want to include in the model
 modalities_of_intrest=['t2w','adc','hbv']
 prostate_col= 'pg_noSeg' # name of the column with segmentaton of whole prostate gland
-new_col_name= 'inferred_pg'
+# new_col_name= 'inferred_pg'
+new_col_name= 'pg_noSeg'
+
 new_col_parts_name='pg_parts_inferred'
 
 non_mri_inputs=[new_col_name,"pz_noSeg",'tz_noSeg']
@@ -145,21 +146,28 @@ def get_im_from_array(arr,channel,orig_im):
     return image
 
 
-def return_corrected(norm_str,arrrr,t2w_image,adc_image,hbv_image):
+def return_corrected(norm_str,arrrr,t2w_image,adc_image,hbv_image,arrrr_debiased):
+    
     if(norm_str=="t2w_adc_hbv"):
         return [get_im_from_array(arrrr,0,t2w_image), get_im_from_array(arrrr,1,adc_image), get_im_from_array(arrrr,2,hbv_image)]
     if(norm_str=="t2w_adc"):
-        return [get_im_from_array(arrrr,0,t2w_image), get_im_from_array(arrrr,1,adc_image),hbv_image]
+        return [get_im_from_array(arrrr,0,t2w_image), get_im_from_array(arrrr,1,adc_image),get_im_from_array(arrrr_debiased,2,hbv_image)]
     if(norm_str=="t2w_hbv"):
-        return [get_im_from_array(arrrr,0,t2w_image), adc_image, get_im_from_array(arrrr,1,hbv_image)]
+        return [get_im_from_array(arrrr,0,t2w_image), get_im_from_array(arrrr_debiased,1,adc_image), get_im_from_array(arrrr,2,hbv_image)]
     if(norm_str=="t2w"):
-        return [get_im_from_array(arrrr,0,t2w_image),adc_image, hbv_image]
+        return [get_im_from_array(arrrr,0,t2w_image),get_im_from_array(arrrr_debiased,1,adc_image), get_im_from_array(arrrr_debiased,2,hbv_image)]
 
 
-
+def get_paramss(arrrr):
+    try:
+        return debias_obj.estimate_parameters(arrrr, print_tols=True)
+    except:
+        return debias_obj.estimate_parameters(arrrr, print_tols=True)
+        
+            
 ### bias field correction and normalization
 #on the basis of https://github.com/lucianoAvinas/lapgm/blob/main/examples/image_correction.ipynb
-def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
+def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
     # Approximate location of farthest peak for true data.
     # In practice this can be set to any fixed value of choice.
     TRGT = 0.6
@@ -167,17 +175,50 @@ def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
     modalities_to_normalize=  [t2w_image,adc_image,hbv_image]
     modalities_to_normalize = list(map(sitk.GetArrayFromImage ,modalities_to_normalize))
     arrrr = lapgm.to_sequence_array(modalities_to_normalize)
+    params = get_paramss(arrrr)
     # Run debias procedure and take parameter output
-    params = debias_obj.estimate_parameters(arrrr, print_tols=False)
+    print(f"000000 {arrrr.shape}  naaan {np.sum(np.isnan(arrrr))}")
+
     arrrr= lapgm.debias(arrrr, params)
+    arrrr_debiased=arrrr.copy()
+    nan_summ=np.sum(np.isnan(arrrr))
+    if(nan_summ>0):
+        print(f"eeeeeeeeeeeeeerrorrr naaans")
+        raise Exception('nanns')
+    
+    print(f"111111 {arrrr.shape}  naaan {np.sum(np.isnan(arrrr))}")
+    
     to_norm=os.getenv('to_include_normalize')
-    modalities_to_normalize=  get_modalities_to_norm( to_norm, arrrr[0,:,:,:],arrrr[1,:,:,:],arrrr[2,:,:,:]) 
-    arrrr = lapgm.to_sequence_array(modalities_to_normalize)
+    # modalities_to_normalize=  get_modalities_to_norm( to_norm, arrrr[0,:,:,:],arrrr[1,:,:,:],arrrr[2,:,:,:]) 
+    
+    # arrrr = lapgm.to_sequence_array(modalities_to_normalize)
+    print(f"aaaa {arrrr.shape}  naaan {np.sum(np.isnan(arrrr))}")
+    arrrr=np.nan_to_num(arrrr, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
+    
     #we need new parameters only if we are normalizing less than bias field correcting
-    if(to_norm!="to_include_normalize"):
-        params = debias_obj.estimate_parameters(arrrr, print_tols=False)
+    # if(to_norm!="to_include_normalize"):
+    #     params = get_paramss(arrrr)#debias_obj.estimate_parameters(arrrr, print_tols=False)
     arrrr = lapgm.normalize(arrrr, params, target_intensity=TRGT)
-    return return_corrected(to_norm,arrrr,t2w_image,adc_image,hbv_image)
+    arrrr=np.nan_to_num(arrrr, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
+    return return_corrected(to_norm,arrrr,t2w_image,adc_image,hbv_image,arrrr_debiased)
+
+def bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image):
+    try:
+        return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image)
+    except:
+        return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image) 
+
+def bias_field_and_normalize_help_c(t2w_image,adc_image,hbv_image):
+    try:
+        return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
+    except:
+        return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image) 
+    
+def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
+    try:
+        return bias_field_and_normalize_help_c(t2w_image,adc_image,hbv_image)
+    except:
+        return bias_field_and_normalize_help_c(t2w_image,adc_image,hbv_image)     
 
 def reg_a_to_b_by_metadata_single_d(fixed_image_path,moving_image_path,interpolator):
     fixed_image=sitk.ReadImage(fixed_image_path)
@@ -221,9 +262,9 @@ def reg_a_to_b_by_metadata_single_b(fixed_image_path,moving_image_path,out_folde
 
 def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,labelsTrFolder,imagesTrFolder,out_folder):
     # print(f"ggggg {group[1]}")
-    if('inferred_pg' not in group[1]):
-        print(f"nnnnno inferred_pg")
-        return ' '
+    # if('inferred_pg' not in group[1]):
+    #     print(f"nnnnno inferred_pg")
+    #     return ' '
     if("pz_noSeg" not in group[1]):
         print(f"nnnnno pz_noSeg")
         return ' '    
@@ -262,11 +303,11 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
     pz_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['pz_noSeg'][0], sitk.sitkNearestNeighbor)                                 
     tz_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['tz_noSeg'][0], sitk.sitkNearestNeighbor)                                 
-    try:                                              
-        registered_prostate= reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict[new_col_name][0], sitk.sitkNearestNeighbor)
-    except:
-        print(f"nooo registered prostate !!")
-        return " "
+    # try:                                              
+    registered_prostate= reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict[new_col_name][0], sitk.sitkNearestNeighbor)
+    # except:
+    #     print(f"nooo registered prostate !!")
+    #     return " "
        
     prostate_arr= reg_a_to_b_by_metadata_single_c(sources_dict[main_modality][0],sources_dict[new_col_name][0], sitk.sitkNearestNeighbor)
 
@@ -467,6 +508,7 @@ def main_func():
     # dir_inferred_prost_parts='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_parts_infered'
 
 
+    debias_obj.set_hyperparameters(tau=float(os.getenv('tau')), n_classes=int(os.getenv('n_classes')), log_initialize=int(os.getenv('log_initialize'))==1) #krowa
 
     sourceFrame = pd.read_csv(resCSVDir)
 
@@ -481,8 +523,8 @@ def main_func():
     noSegCols=list(filter(lambda el: '_noSeg' in el , cols))+['series_MRI_path']
     lesion_cols=list(filter(lambda el: 'lesion' in el , noSegCols))
 
-    sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_name,out_folder,"/workspaces/konwersjaJsonData/explore/prost_full.csv")
-    sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_parts_name,out_folder,"/workspaces/konwersjaJsonData/explore/prost_parts.csv")
+    # sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_name,out_folder,"/workspaces/konwersjaJsonData/explore/prost_full.csv")
+    # sourceFrame=add_inferred_full_prost_to_dataframe(dir_inferred_prost, sourceFrame,new_col_parts_name,out_folder,"/workspaces/konwersjaJsonData/explore/prost_parts.csv")
     sourceFrame['tz_inferred']=' '
     test_ids = pd.read_csv('/workspaces/konwersjaJsonData/test_ids.csv' ).to_numpy().flatten()
 
@@ -545,6 +587,7 @@ def main_func():
         @curry  
         def pmap(fun,iterable):
             return pool.map(fun,iterable)
+        
         ids=toolz.pipe(sourceFrame.iterrows()
                                         ,filter(lambda row: row[1]['series_desc'] in modalities_of_intrest)
                                         ,filter(filter_ids) # filter out all of the test cases
@@ -556,8 +599,11 @@ def main_func():
                                         ,list
                                         ,filter(lambda el: el!=' ')
                                         ,list
-                                        ,map(to_map_bias_corr_and_norm)
-                                        ,list)
+                                        # ,pmap(to_map_bias_corr_and_norm)
+                                        # ,list
+                                        )
+        
+    ids=list(map(to_map_bias_corr_and_norm,ids))
 
     channel_names={  
         "1": "noNorm",
