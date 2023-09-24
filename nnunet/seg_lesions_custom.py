@@ -170,7 +170,7 @@ def get_paramss(arrrr):
 def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
     # Approximate location of farthest peak for true data.
     # In practice this can be set to any fixed value of choice.
-    TRGT = 0.6
+    TRGT = 1.0
     #first bias field correction
     modalities_to_normalize=  [t2w_image,adc_image,hbv_image]
     modalities_to_normalize = list(map(sitk.GetArrayFromImage ,modalities_to_normalize))
@@ -186,13 +186,13 @@ def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
         print(f"eeeeeeeeeeeeeerrorrr naaans")
         raise Exception('nanns')
     
-    print(f"111111 {arrrr.shape}  naaan {np.sum(np.isnan(arrrr))}")
+    # print(f"111111 {arrrr.shape}  naaan {np.sum(np.isnan(arrrr))}")
     
     to_norm=os.getenv('to_include_normalize')
     # modalities_to_normalize=  get_modalities_to_norm( to_norm, arrrr[0,:,:,:],arrrr[1,:,:,:],arrrr[2,:,:,:]) 
     
     # arrrr = lapgm.to_sequence_array(modalities_to_normalize)
-    print(f"aaaa {arrrr.shape}  naaan {np.sum(np.isnan(arrrr))}")
+    # print(f"aaaa {arrrr.shape}  naaan {np.sum(np.isnan(arrrr))}")
     arrrr=np.nan_to_num(arrrr, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
     
     #we need new parameters only if we are normalizing less than bias field correcting
@@ -202,23 +202,57 @@ def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
     arrrr=np.nan_to_num(arrrr, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
     return return_corrected(to_norm,arrrr,t2w_image,adc_image,hbv_image,arrrr_debiased)
 
+
+def z_score_normalize(image_orig):
+    arr=sitk.GetArrayFromImage(image_orig)
+    mean = arr.mean()
+    std = arr.std()
+    arr = (arr - mean) / (max(std, 1e-8))
+    
+    image = sitk.GetImageFromArray(arr)      
+    image.SetSpacing(image_orig.GetSpacing())
+    image.SetOrigin(image_orig.GetOrigin())
+    image.SetDirection(image_orig.GetDirection()) 
+    return image
+    
+def get_modalities_to_norm_classic(norm_str, t2w_image,adc_image,hbv_image):
+    
+    if(norm_str=="t2w_adc_hbv"):
+        return [z_score_normalize(t2w_image), z_score_normalize(adc_image), z_score_normalize(hbv_image)]
+    if(norm_str=="t2w_adc"):
+        return [z_score_normalize(t2w_image), z_score_normalize(adc_image), hbv_image]
+    if(norm_str=="t2w_hbv"):
+        return [z_score_normalize(t2w_image), adc_image, z_score_normalize(hbv_image)]
+    if(norm_str=="t2w"):
+        return [z_score_normalize(t2w_image), adc_image, hbv_image]
+
+def bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image):
+    print(f"sssssiiitttkkkk ")
+    norm_str=os.getenv('to_include_normalize')
+    corrector = sitk.N4BiasFieldCorrectionImageFilter()
+    t2w_image= corrector.Execute(t2w_image)
+    adc_image= corrector.Execute(adc_image)
+    hbv_image= corrector.Execute(hbv_image)
+    return get_modalities_to_norm_classic(norm_str, t2w_image,adc_image,hbv_image)
+
+
+
+
 def bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image):
     try:
         return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image)
     except:
         return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image) 
 
-def bias_field_and_normalize_help_c(t2w_image,adc_image,hbv_image):
+def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
+    t2w_image=sitk.Cast(t2w_image, sitk.sitkFloat32)
+    adc_image=sitk.Cast(adc_image, sitk.sitkFloat32)
+    hbv_image=sitk.Cast(hbv_image, sitk.sitkFloat32)
     try:
         return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
     except:
-        return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image) 
+        return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
     
-def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
-    try:
-        return bias_field_and_normalize_help_c(t2w_image,adc_image,hbv_image)
-    except:
-        return bias_field_and_normalize_help_c(t2w_image,adc_image,hbv_image)     
 
 def reg_a_to_b_by_metadata_single_d(fixed_image_path,moving_image_path,interpolator):
     fixed_image=sitk.ReadImage(fixed_image_path)
@@ -235,7 +269,7 @@ def reg_a_to_b_by_metadata_single_c(fixed_image_path,moving_image_path,interpola
     # fixed_image=sitk.Cast(fixed_image, sitk.sitkUInt8)
     # moving_image=sitk.Cast(moving_image, sitk.sitkInt)
     
-    arr=sitk.GetArrayFromImage(moving_image)
+    # arr=sitk.GetArrayFromImage(moving_image)
     resampled=sitk.Resample(moving_image, fixed_image, sitk.Transform(3, sitk.sitkIdentity), interpolator, 0)
     return sitk.GetArrayFromImage(resampled)
 
