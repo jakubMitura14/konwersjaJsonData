@@ -160,9 +160,9 @@ def return_corrected(norm_str,arrrr,t2w_image,adc_image,hbv_image,arrrr_debiased
 
 def get_paramss(arrrr):
     try:
-        return debias_obj.estimate_parameters(arrrr, print_tols=True)
+        return debias_obj.estimate_parameters(arrrr, print_tols=False)
     except:
-        return debias_obj.estimate_parameters(arrrr, print_tols=True)
+        return debias_obj.estimate_parameters(arrrr, print_tols=False)
         
             
 ### bias field correction and normalization
@@ -177,7 +177,6 @@ def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
     arrrr = lapgm.to_sequence_array(modalities_to_normalize)
     params = get_paramss(arrrr)
     # Run debias procedure and take parameter output
-    print(f"000000 {arrrr.shape}  naaan {np.sum(np.isnan(arrrr))}")
 
     arrrr= lapgm.debias(arrrr, params)
     arrrr_debiased=arrrr.copy()
@@ -233,6 +232,9 @@ def bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image):
     t2w_image= corrector.Execute(t2w_image)
     adc_image= corrector.Execute(adc_image)
     hbv_image= corrector.Execute(hbv_image)
+    
+    
+
     return get_modalities_to_norm_classic(norm_str, t2w_image,adc_image,hbv_image)
 
 
@@ -394,7 +396,6 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
         summ=np.sum(reduced_common.flatten())
         if(summ>0):
             ratio=(np.sum(reduced_common_eroded.flatten()) /np.sum(reduced_common.flatten()))
-            print(f"ratio {ratio}")
             if(ratio>0.15 ):
                 reduced_common=reduced_common_eroded
 
@@ -455,7 +456,6 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
     # inferred_parts_image_arr=sitk.GetArrayFromImage(inferred_parts_image)
 
-    print(f"labRes 1 {np.sum((labRes==1).flatten())}  labRes 2 {np.sum((labRes==2).flatten())}")
     label_image = get_from_arr(labRes,t2w_image)
 
     # pz_arrr=(inferred_parts_image_arr==1)
@@ -486,6 +486,13 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
 
     
     label_new_path,out_pathsDict=prepare_out_paths(group,modalities_of_intrest,labelsTrFolder,imagesTrFolder,non_mri_inputs,channel_names )
+
+    t2w_image=sitk.DICOMOrient(t2w_image, 'RAS')
+    adc_image=sitk.DICOMOrient(adc_image, 'RAS')
+    hbv_image=sitk.DICOMOrient(hbv_image, 'RAS')
+    label_image=sitk.DICOMOrient(label_image, 'RAS')
+    pz_image=sitk.DICOMOrient(pz_image, 'RAS')
+    tz_image=sitk.DICOMOrient(tz_image, 'RAS')
 
     # print(f"ooo out_pathsDict {out_pathsDict}")
 
@@ -626,6 +633,9 @@ def main_func():
                                         ,filter(lambda row: row[1]['series_desc'] in modalities_of_intrest)
                                         ,filter(filter_ids) # filter out all of the test cases
                                         ,groupByMaster
+                                        ,list
+                                        ,filter(lambda gg: int(gg[0])<60)#TODO remove
+                                        ,list
                                         ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=lesion_cols,non_mri_inputs=non_mri_inputs))
                                         ,filter(lambda group: ' ' not in group[1].keys() )
                                         ,list

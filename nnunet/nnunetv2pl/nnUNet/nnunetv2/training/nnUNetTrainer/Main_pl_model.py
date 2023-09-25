@@ -326,23 +326,34 @@ class Pl_main_model(pl.LightningModule):
             is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
             if(np.sum(np.array(is_there))==0):
                 self.log(main_to_monitor, 100.0,sync_dist=True)
-        if(self.is_lesion_segm):
-            self.my_lesion_log(res,group_name)
-            #setting metric for hyperparameter tuning
-            prev_best=float(os.getenv('best_metric'))
-            curr=res[3]
-            if(curr>prev_best):
-                os.environ['best_metric'] = f"{curr}"
+        # if(self.is_lesion_segm): TODO unhash
+        #     self.my_lesion_log(res,group_name)
+        #     #setting metric for hyperparameter tuning
+        #     prev_best=float(os.getenv('best_metric'))
+        #     curr=res[3]
+        #     if(curr>prev_best):
+        #         os.environ['best_metric'] = f"{curr}"
 
 
 
     def on_train_epoch_end(self):
         group_name='train'
-        res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=self.is_anatomy_segm,batch_size=self.batch_size )
         if(self.current_epoch%self.log_every_n==0):
+            res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=self.is_anatomy_segm,batch_size=self.batch_size )
+
             if(self.is_anatomy_segm):
                 list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
             if(self.is_lesion_segm):
                 self.my_lesion_log(res,group_name)
-
+            if(self.is_lesion_segm): #TODO hash
+                print(f"getttt best metric")
+                csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
+                # prev_best=float(os.getenv('best_metric'))
+                curr=res[3]
+                # if(curr>prev_best):
+                #     # os.environ['best_metric'] = f"{curr}"
+                curr_csv = pd.read_csv(csv_dir)
+                curr_csv = curr_csv.append({"ress":curr}, ignore_index=True)    
+                # os.environ['best_metric'] ='11.0'    
+                curr_csv.to_csv(csv_dir) 
 

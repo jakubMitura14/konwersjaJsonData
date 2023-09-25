@@ -448,6 +448,8 @@ def main_prepare_nnunet(dataset_id, modalities_of_intrest,channel_names,label_na
                                 ,groupByMaster
                                 ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=label_cols,non_mri_inputs=non_mri_inputs))
                                 ,filter(lambda group: ' ' not in group[1].keys() )
+                                ,list
+                                ,filter(lambda group: int(group[0])<10 )#TODO remove
                                 ,filter(for_filter_unwanted )
                                 ,list
                                 ,pmap(partial(add_files,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,reg_prop=reg_prop,

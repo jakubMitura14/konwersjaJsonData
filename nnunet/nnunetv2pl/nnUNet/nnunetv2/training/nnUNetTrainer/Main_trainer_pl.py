@@ -100,9 +100,8 @@ class Main_trainer_pl(nnUNetTrainer):
         self.is_med_next=False
 
         self.is_lesion_segm=True
-        self.is_lesion_segm=True
         self.is_anatomy_segm= not self.is_lesion_segm
-        self.is_priming_segm= True
+        self.is_priming_segm= False
 
         # if(self.is_classic_nnunet or self.is_med_next):
         #     self.is_deep_supervision=True
@@ -113,6 +112,8 @@ class Main_trainer_pl(nnUNetTrainer):
             self.learning_rate=0.02089296130854041
         if(self.is_classic_nnunet and self.is_anatomy_segm):    
             self.learning_rate=0.04365158322401657
+        if(self.is_classic_nnunet and not self.is_anatomy_segm):    
+            self.learning_rate=0.00012           
         if(self.is_med_next and self.is_anatomy_segm):    #3.77s/it
             self.learning_rate=0.0013182567385564075
                         
@@ -341,10 +342,10 @@ class Main_trainer_pl(nnUNetTrainer):
         # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
         self.trainer = pl.Trainer(
             #accelerator="cpu", #TODO(remove)
-            max_epochs=100,
+            max_epochs=80,
             #gpus=1,
             # precision='16-mixed', 
-            callbacks=[checkpoint_callback,stochasticAveraging], # stochasticAveraging ,stochasticAveraging ,  FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[stochasticAveraging], #  ,FineTuneLearningRateFinder(milestones=(5, 10,40)) checkpoint_callback stochasticAveraging ,stochasticAveraging ,  FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       
@@ -354,7 +355,7 @@ class Main_trainer_pl(nnUNetTrainer):
             accumulate_grad_batches= 12,
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
-            ,strategy="ddp_spawn"#DDPStrategy(find_unused_parameters=True)
+            # ,strategy="ddp_spawn"#DDPStrategy(find_unused_parameters=True)
                         # ,reload_dataloaders_every_n_epochs=1
             # strategy="deepspeed_stage_1"#_offload
         )

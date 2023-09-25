@@ -6,6 +6,8 @@ from optuna.storages import RetryFailedTrialCallback
 import importlib.util
 import importlib
 import sys
+import pandas as pd
+import numpy as np
 
 def loadLib(name,path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -15,6 +17,12 @@ def loadLib(name,path):
     return res
 
 seg_lesions_custom=loadLib("seg_lesions_custom","/workspaces/konwersjaJsonData/nnunet/seg_lesions_custom.py")
+
+csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
+curr_csv = pd.DataFrame([{"ress":0.0}])
+
+print(f"rrrrrrrrr {curr_csv}")
+curr_csv.to_csv(csv_dir) 
 
 def set_env_variables_for_swin():
     ###os.environ['attn_num_mem_kv'] = '0'
@@ -101,7 +109,7 @@ os.environ['best_metric'] ='0.0'
 
 
 # experiment_name="general_augment"
-experiment_name="bias_norm"#bias_norm
+experiment_name="bias_corr_b"#bias_norm
 
 
 def objective(trial: optuna.trial.Trial) -> float:
@@ -121,8 +129,9 @@ def objective(trial: optuna.trial.Trial) -> float:
 
     p.wait()
 
-
-    return float(os.getenv('best_metric'))
+    curr_csv = pd.read_csv(csv_dir)
+    print(f"bbbbbb {curr_csv}")    
+    return np.max(curr_csv["ress"].to_numpy())
 
 # storage="mysql://root@34.90.134.17/testt"
 study = optuna.create_study(
@@ -138,3 +147,5 @@ study = optuna.create_study(
   
 #         #mysql://root@localhost/example
 study.optimize(objective, n_trials=400)
+
+
