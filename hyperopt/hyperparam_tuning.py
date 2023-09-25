@@ -109,7 +109,7 @@ os.environ['best_metric'] ='0.0'
 
 
 # experiment_name="general_augment"
-experiment_name="bias_corr_b"#bias_norm
+experiment_name="bias_corr_c"#bias_norm
 
 
 def objective(trial: optuna.trial.Trial) -> float:
@@ -122,7 +122,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     set_norm_and_bias_field(trial)
     seg_lesions_custom.main_func()
 
-    cmd=f"my_proj_name='seg lesions debug' tag='priming test' my_proj_desc='l4a test' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
+    cmd=f"my_proj_name='bias_corr' tag='l4h' my_proj_desc='l4h' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
 
     # p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
     p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
