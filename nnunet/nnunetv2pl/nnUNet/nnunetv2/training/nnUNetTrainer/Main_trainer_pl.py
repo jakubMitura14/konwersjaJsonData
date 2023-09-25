@@ -90,9 +90,9 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=5
+        self.log_every_n=2
         self.num_batch_to_eval=20
-        self.batch_size=1
+        self.batch_size=4
         self.is_deep_supervision=True
         self.is_classic_nnunet=True
         self.is_swin=False
@@ -352,7 +352,7 @@ class Main_trainer_pl(nnUNetTrainer):
             default_root_dir= self.default_root_dir,
             # auto_scale_batch_size="binsearch",
             check_val_every_n_epoch=self.log_every_n,
-            accumulate_grad_batches= 12,
+            accumulate_grad_batches= 2,
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
             # ,strategy="ddp_spawn"#DDPStrategy(find_unused_parameters=True)

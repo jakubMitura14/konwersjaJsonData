@@ -547,9 +547,9 @@ def main_func():
     # dir_inferred_prost='/home/sliceruser/workspaces/konwersjaJsonData/nnunetMainFolder/my_prost_infered'
     # dir_inferred_prost='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_infered'
     # dir_inferred_prost_parts='/home/sliceruser/workspaces/konwersjaJsonData/my_prost_parts_infered'
-
-
-    debias_obj.set_hyperparameters(tau=float(os.getenv('tau')), n_classes=int(os.getenv('n_classes')), log_initialize=int(os.getenv('log_initialize'))==1) #krowa
+    tau=float(os.getenv('tau'))
+    print(f"tttt2222 tau {tau}")
+    debias_obj.set_hyperparameters(tau=tau, n_classes=int(os.getenv('n_classes')), log_initialize=int(os.getenv('log_initialize'))==1) #krowa
 
     sourceFrame = pd.read_csv(resCSVDir)
 
@@ -634,7 +634,7 @@ def main_func():
                                         ,filter(filter_ids) # filter out all of the test cases
                                         ,groupByMaster
                                         ,list
-                                        ,filter(lambda gg: int(gg[0])<60)#TODO remove
+                                        ,filter(lambda gg: int(gg[0])<15)#TODO remove
                                         ,list
                                         ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=lesion_cols,non_mri_inputs=non_mri_inputs))
                                         ,filter(lambda group: ' ' not in group[1].keys() )
