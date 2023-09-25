@@ -92,7 +92,7 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         self.log_every_n=2
         self.num_batch_to_eval=20
-        self.batch_size=4
+        self.batch_size=2
         self.is_deep_supervision=True
         self.is_classic_nnunet=True
         self.is_swin=False
