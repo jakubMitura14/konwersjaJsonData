@@ -634,7 +634,7 @@ def main_func():
                                         ,filter(filter_ids) # filter out all of the test cases
                                         ,groupByMaster
                                         ,list
-                                        ,filter(lambda gg: int(gg[0])<15)#TODO remove
+                                        ,filter(lambda gg: int(gg[0])<65)#TODO remove
                                         ,list
                                         ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=lesion_cols,non_mri_inputs=non_mri_inputs))
                                         ,filter(lambda group: ' ' not in group[1].keys() )
