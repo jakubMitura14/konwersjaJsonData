@@ -160,9 +160,9 @@ def return_corrected(norm_str,arrrr,t2w_image,adc_image,hbv_image,arrrr_debiased
 
 def get_paramss(arrrr):
     try:
-        return debias_obj.estimate_parameters(arrrr, print_tols=False)
+        return debias_obj.estimate_parameters(arrrr, print_tols=True)
     except:
-        return debias_obj.estimate_parameters(arrrr, print_tols=False)
+        return debias_obj.estimate_parameters(arrrr, print_tols=True)
         
             
 ### bias field correction and normalization
@@ -301,6 +301,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     # if('inferred_pg' not in group[1]):
     #     print(f"nnnnno inferred_pg")
     #     return ' '
+    print("*")
     if("pz_noSeg" not in group[1]):
         print(f"nnnnno pz_noSeg")
         return ' '    
@@ -396,6 +397,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
         summ=np.sum(reduced_common.flatten())
         if(summ>0):
             ratio=(np.sum(reduced_common_eroded.flatten()) /np.sum(reduced_common.flatten()))
+            print(f"ratio {ratio}")
             if(ratio>0.15 ):
                 reduced_common=reduced_common_eroded
 
@@ -637,7 +639,7 @@ def main_func():
                                         ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=lesion_cols,non_mri_inputs=non_mri_inputs))
                                         ,filter(lambda group: ' ' not in group[1].keys() )
                                         ,list
-                                        ,filter(lambda gg: int(gg[0])<65)#TODO remove
+                                        ,filter(lambda gg: int(gg[0])<200)#TODO remove
                                         ,list
                                         ,pmap(partial(add_files_custom,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,non_mri_inputs=non_mri_inputs,labelsTrFolder=labelsTrFolder,imagesTrFolder=imagesTrFolder,out_folder=out_folder))                            
                                         ,list
