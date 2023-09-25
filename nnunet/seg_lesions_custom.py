@@ -634,10 +634,10 @@ def main_func():
                                         ,filter(filter_ids) # filter out all of the test cases
                                         ,groupByMaster
                                         ,list
-                                        ,filter(lambda gg: int(gg[0])<65)#TODO remove
-                                        ,list
                                         ,pmap(partial(iterGroupModalities,modalities_of_intrest=modalities_of_intrest,label_cols=lesion_cols,non_mri_inputs=non_mri_inputs))
                                         ,filter(lambda group: ' ' not in group[1].keys() )
+                                        ,list
+                                        ,filter(lambda gg: int(gg[0])<65)#TODO remove
                                         ,list
                                         ,pmap(partial(add_files_custom,main_modality=main_modality,modalities_of_intrest=modalities_of_intrest,non_mri_inputs=non_mri_inputs,labelsTrFolder=labelsTrFolder,imagesTrFolder=imagesTrFolder,out_folder=out_folder))                            
                                         ,list
