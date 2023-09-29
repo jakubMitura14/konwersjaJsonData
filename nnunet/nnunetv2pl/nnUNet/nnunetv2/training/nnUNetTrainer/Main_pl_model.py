@@ -326,13 +326,13 @@ class Pl_main_model(pl.LightningModule):
             is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
             if(np.sum(np.array(is_there))==0):
                 self.log(main_to_monitor, 100.0,sync_dist=True)
-        # if(self.is_lesion_segm): TODO unhash
-        #     self.my_lesion_log(res,group_name)
-        #     #setting metric for hyperparameter tuning
-        #     prev_best=float(os.getenv('best_metric'))
-        #     curr=res[3]
-        #     if(curr>prev_best):
-        #         os.environ['best_metric'] = f"{curr}"
+        if(self.is_lesion_segm): #TODO unhash
+            self.my_lesion_log(res,group_name)
+            #setting metric for hyperparameter tuning
+            # prev_best=float(os.getenv('best_metric'))
+            # curr=res[3]
+            # if(curr>prev_best):
+            #     os.environ['best_metric'] = f"{curr}"
         if(self.is_lesion_segm): #TODO hash
             print(f"getttt best metric")
             csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
