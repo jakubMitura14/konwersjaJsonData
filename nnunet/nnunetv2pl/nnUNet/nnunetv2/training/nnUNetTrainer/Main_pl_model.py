@@ -333,6 +333,17 @@ class Pl_main_model(pl.LightningModule):
         #     curr=res[3]
         #     if(curr>prev_best):
         #         os.environ['best_metric'] = f"{curr}"
+        if(self.is_lesion_segm): #TODO hash
+            print(f"getttt best metric")
+            csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
+            # prev_best=float(os.getenv('best_metric'))
+            curr=res[3]
+            # if(curr>prev_best):
+            #     # os.environ['best_metric'] = f"{curr}"
+            curr_csv = pd.read_csv(csv_dir)
+            curr_csv = curr_csv.append({"ress":curr}, ignore_index=True)    
+            # os.environ['best_metric'] ='11.0'    
+            curr_csv.to_csv(csv_dir) 
 
 
 
@@ -345,15 +356,4 @@ class Pl_main_model(pl.LightningModule):
                 list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
             if(self.is_lesion_segm):
                 self.my_lesion_log(res,group_name)
-            if(self.is_lesion_segm): #TODO hash
-                print(f"getttt best metric")
-                csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
-                # prev_best=float(os.getenv('best_metric'))
-                curr=res[3]
-                # if(curr>prev_best):
-                #     # os.environ['best_metric'] = f"{curr}"
-                curr_csv = pd.read_csv(csv_dir)
-                curr_csv = curr_csv.append({"ress":curr}, ignore_index=True)    
-                # os.environ['best_metric'] ='11.0'    
-                curr_csv.to_csv(csv_dir) 
 
