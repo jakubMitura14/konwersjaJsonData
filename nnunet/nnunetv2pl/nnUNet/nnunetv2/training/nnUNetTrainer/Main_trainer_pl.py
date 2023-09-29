@@ -343,7 +343,7 @@ class Main_trainer_pl(nnUNetTrainer):
         # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
         self.trainer = pl.Trainer(
             #accelerator="cpu", #TODO(remove)
-            max_epochs=80,
+            max_epochs=120,
             #gpus=1,
             # precision='16-mixed', 
             callbacks=[stochasticAveraging], #  ,FineTuneLearningRateFinder(milestones=(5, 10,40)) checkpoint_callback stochasticAveraging ,stochasticAveraging ,  FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
