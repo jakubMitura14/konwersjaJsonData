@@ -149,3 +149,5 @@ study = optuna.create_study(
 study.optimize(objective, n_trials=400)
 
 
+# optuna-dashboard mysql://root@34.90.134.17/bias_corr_c
+# python3 /workspaces/konwersjaJsonData/hyperopt/hyperparam_tuning.py
