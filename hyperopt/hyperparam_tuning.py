@@ -98,10 +98,10 @@ def set_env_variables_for_general_transforms(trial):
 def set_norm_and_bias_field(trial):
     os.environ['to_include_normalize'] = "t2w_adc_hbv" # trial.suggest_categorical("to_include_normalize", ["t2w_adc_hbv", "t2w_adc","t2w_hbv","t2w"])
     
-    tau=f"{trial.suggest_float('tau',5e-7,5e-2)}"
+    tau=f"{trial.suggest_float('tau',5e-4,5e-1)}"
     print(f"tttttttttt {tau}")
     os.environ['tau'] = tau
-    os.environ['n_classes'] = f"{trial.suggest_int( 'n_classes', 1,20)}"
+    os.environ['n_classes'] = f"{trial.suggest_int( 'n_classes', 1,13)}"
     os.environ['log_initialize'] = "0"#trial.suggest_categorical("log_initialize", ["0", "1"])
 
 set_env_variables_for_swin()
@@ -122,7 +122,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     set_norm_and_bias_field(trial)
     seg_lesions_custom.main_func()
 
-    cmd=f"my_proj_name='bias_corr' tag='l4h' my_proj_desc='l4h' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
+    cmd=f"my_proj_name='bias_corr_val' tag='l4h' my_proj_desc='l4h' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
 
     # p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
     p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE

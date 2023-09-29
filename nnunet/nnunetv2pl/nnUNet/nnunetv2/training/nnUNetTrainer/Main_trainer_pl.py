@@ -143,7 +143,8 @@ class Main_trainer_pl(nnUNetTrainer):
                            ,"encoders_depth":os.getenv('encoders_depth')
                            ,"num_memory_tokens":os.getenv('num_memory_tokens')
                            ,"shift_mem_down":os.getenv('shift_mem_down')
-                           ,"num_memory_tokens":os.getenv('num_memory_tokens')                            
+                           ,"tau":os.getenv('tau')                            
+                           ,"n_classes":os.getenv('n_classes')                            
                              }
 
 
