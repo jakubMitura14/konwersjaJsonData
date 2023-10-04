@@ -144,9 +144,6 @@ class Main_trainer_pl(nnUNetTrainer):
                            ,"shift_mem_down":os.getenv('shift_mem_down')
                            ,"num_memory_tokens":os.getenv('num_memory_tokens')                            
                              }
-
-
-
         
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
