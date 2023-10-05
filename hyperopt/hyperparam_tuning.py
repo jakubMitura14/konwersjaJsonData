@@ -80,11 +80,16 @@ def set_env_variables_for_general_transforms(trial):
     os.environ['sigma_low'] = sigma_low
     os.environ['sigma_high'] = sigma_low+trial.suggest_float("sigma_high", 0.0, 20.0)
 
-    os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
+    # os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
 
     os.environ['RicianNoiseTransform'] = trial.suggest_float("RicianNoiseTransform", 0.0,0.9)
-    os.environ['RicianNoiseTransform'] = trial.suggest_float("RicianNoiseTransform", 0.0,0.9)
-
+    os.environ['ContrastAugmentationTransform'] = trial.suggest_float("ContrastAugmentationTransform", 0.0,0.9)
+    os.environ['SimulateLowResolutionTransform'] = trial.suggest_float("SimulateLowResolutionTransform", 0.0,0.9)
+    os.environ['GammaTransform_a'] = trial.suggest_float("GammaTransform_a", 0.0,0.9)
+    os.environ['GammaTransform_b'] = trial.suggest_float("GammaTransform_b", 0.0,0.9)
+    os.environ['p_el_per_sample'] = trial.suggest_float("p_el_per_sample", 0.0,0.9)
+    os.environ['p_scale_per_sample'] = trial.suggest_float("p_scale_per_sample", 0.0,0.9)
+    os.environ['p_rot_per_sample'] = trial.suggest_float("p_rot_per_sample", 0.0,0.9)
 
 
 def set_norm_and_bias_field(trial):

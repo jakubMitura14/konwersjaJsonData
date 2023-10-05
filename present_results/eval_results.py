@@ -454,7 +454,8 @@ def get_lesion_metr_from_files(folder_path):
 
 
 def seva_lesions_res():
-    lesion_cases_path= "/workspaces/konwersjaJsonData/data/for_explore_lesions_newest"
+    # lesion_cases_path= "/workspaces/konwersjaJsonData/data/for_explore_lesions_newest"
+    lesion_cases_path= "/workspaces/konwersjaJsonData/data/for_explore_newest_sens0.79"
     lesion_cases= os.listdir(lesion_cases_path)
     lesion_cases= list(map(lambda n : f"{lesion_cases_path}/{n}",lesion_cases))
     results=[]

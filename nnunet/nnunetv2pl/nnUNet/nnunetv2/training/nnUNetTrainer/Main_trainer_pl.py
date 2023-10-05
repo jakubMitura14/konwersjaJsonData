@@ -100,9 +100,8 @@ class Main_trainer_pl(nnUNetTrainer):
         self.is_med_next=False
 
         self.is_lesion_segm=True
-        self.is_lesion_segm=True
         self.is_anatomy_segm= not self.is_lesion_segm
-        self.is_priming_segm= True
+        self.is_priming_segm= False
 
         # if(self.is_classic_nnunet or self.is_med_next):
         #     self.is_deep_supervision=True
@@ -447,12 +446,31 @@ class Main_trainer_pl(nnUNetTrainer):
 
             
         # float(os.getenv('p_rot_per_axis'))
+        tr_transforms.append(SpatialTransform(
+            patch_size_spatial
+            ,patch_center_dist_from_border=None
+            ,do_elastic_deform=True
+            ,alpha=(float(os.getenv('alpha_low')), float(os.getenv('alpha_high')))
+            ,sigma=(float(os.getenv('sigma_low')), float(os.getenv('sigma_high')))
+            ,do_rotation=True, angle_x=rotation_for_DA['x']
+            ,angle_y=rotation_for_DA['y']
+            ,angle_z=rotation_for_DA['z']
+            ,p_rot_per_axis=1#int(os.getenv('p_rot_per_axis')) #1,  # todo experiment with this
+            ,do_scale=True, scale=(0.7, 1.4),
+            border_mode_data="constant", border_cval_data=0, order_data=order_resampling_data,
+            border_mode_seg="constant", border_cval_seg=border_val_seg, order_seg=order_resampling_seg,
+            random_crop=False,  # random cropping is part of our dataloaders
+            p_el_per_sample=float(os.getenv('p_el_per_sample'))
+            ,p_scale_per_sample=float(os.getenv('p_scale_per_sample'))
+            ,p_rot_per_sample=float(os.getenv('alpha_low')),
+            independent_scale_for_each_axis=False  # todo experiment with this
+        ))
+
         # tr_transforms.append(SpatialTransform(
         #     patch_size_spatial, patch_center_dist_from_border=None,
-        #     do_elastic_deform=True, alpha=(float(os.getenv('alpha_low')), float(os.getenv('alpha_high')))
-        #         , sigma=(float(os.getenv('alpha_low')), float(os.getenv('alpha_high'))),
+        #     do_elastic_deform=False, alpha=(0, 0), sigma=(0, 0),
         #     do_rotation=True, angle_x=rotation_for_DA['x'], angle_y=rotation_for_DA['y'], angle_z=rotation_for_DA['z'],
-        #     p_rot_per_axis=int(os.getenv('p_rot_per_axis')) #1,  # todo experiment with this
+        #     p_rot_per_axis=1,  # todo experiment with this
         #     do_scale=True, scale=(0.7, 1.4),
         #     border_mode_data="constant", border_cval_data=0, order_data=order_resampling_data,
         #     border_mode_seg="constant", border_cval_seg=border_val_seg, order_seg=order_resampling_seg,
@@ -461,36 +479,37 @@ class Main_trainer_pl(nnUNetTrainer):
         #     independent_scale_for_each_axis=False  # todo experiment with this
         # ))
 
-        tr_transforms.append(SpatialTransform(
-            patch_size_spatial, patch_center_dist_from_border=None,
-            do_elastic_deform=False, alpha=(0, 0), sigma=(0, 0),
-            do_rotation=True, angle_x=rotation_for_DA['x'], angle_y=rotation_for_DA['y'], angle_z=rotation_for_DA['z'],
-            p_rot_per_axis=1,  # todo experiment with this
-            do_scale=True, scale=(0.7, 1.4),
-            border_mode_data="constant", border_cval_data=0, order_data=order_resampling_data,
-            border_mode_seg="constant", border_cval_seg=border_val_seg, order_seg=order_resampling_seg,
-            random_crop=False,  # random cropping is part of our dataloaders
-            p_el_per_sample=0, p_scale_per_sample=0.2, p_rot_per_sample=0.2,
-            independent_scale_for_each_axis=False  # todo experiment with this
-        ))
-
         if do_dummy_2d_data_aug:
             tr_transforms.append(Convert2DTo3DTransform())
 
-        tr_transforms.append(RicianNoiseTransform(p_per_sample=0.1))
+        tr_transforms.append(RicianNoiseTransform(p_per_sample=float(os.getenv('RicianNoiseTransform'))))
         # tr_transforms.append(My_PseudoLesion_adder())
         if(self.is_priming_segm):
             tr_transforms.append(My_priming_setter())
-        tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=0.2,
+        tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=float(os.getenv('GaussianBlurTransform')),
                                                    p_per_channel=0.5))
         # tr_transforms.append(BrightnessMultiplicativeTransform(multiplier_range=(0.75, 1.25), p_per_sample=0.15))
-        tr_transforms.append(ContrastAugmentationTransform(p_per_sample=0.15))
+        tr_transforms.append(ContrastAugmentationTransform(p_per_sample=float(os.getenv('ContrastAugmentationTransform'))))
         tr_transforms.append(SimulateLowResolutionTransform(zoom_range=(0.5, 1), per_channel=True,
                                                             p_per_channel=0.5,
-                                                            order_downsample=0, order_upsample=3, p_per_sample=0.25,
+                                                            order_downsample=0, order_upsample=3, p_per_sample=float(os.getenv('SimulateLowResolutionTransform')),
                                                             ignore_axes=ignore_axes))
-        tr_transforms.append(GammaTransform((0.7, 1.5), True, True, retain_stats=True, p_per_sample=0.1))
-        tr_transforms.append(GammaTransform((0.7, 1.5), False, True, retain_stats=True, p_per_sample=0.3))
+        tr_transforms.append(GammaTransform((0.7, 1.5), True, True, retain_stats=True, p_per_sample=float(os.getenv('GammaTransform_a'))))
+        tr_transforms.append(GammaTransform((0.7, 1.5), False, True, retain_stats=True, p_per_sample=float(os.getenv('GammaTransform_b'))))
+        # tr_transforms.append(RicianNoiseTransform(p_per_sample=0.1))
+        # # tr_transforms.append(My_PseudoLesion_adder())
+        # if(self.is_priming_segm):
+        #     tr_transforms.append(My_priming_setter())
+        # tr_transforms.append(GaussianBlurTransform((0.5, 1.), different_sigma_per_channel=True, p_per_sample=0.2,
+        #                                            p_per_channel=0.5))
+        # # tr_transforms.append(BrightnessMultiplicativeTransform(multiplier_range=(0.75, 1.25), p_per_sample=0.15))
+        # tr_transforms.append(ContrastAugmentationTransform(p_per_sample=0.15))
+        # tr_transforms.append(SimulateLowResolutionTransform(zoom_range=(0.5, 1), per_channel=True,
+        #                                                     p_per_channel=0.5,
+        #                                                     order_downsample=0, order_upsample=3, p_per_sample=0.25,
+        #                                                     ignore_axes=ignore_axes))
+        # tr_transforms.append(GammaTransform((0.7, 1.5), True, True, retain_stats=True, p_per_sample=0.1))
+        # tr_transforms.append(GammaTransform((0.7, 1.5), False, True, retain_stats=True, p_per_sample=0.3))
 
         if mirror_axes is not None and len(mirror_axes) > 0:
             tr_transforms.append(MirrorTransform(mirror_axes))
