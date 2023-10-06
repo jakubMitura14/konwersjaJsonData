@@ -90,7 +90,7 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=7
+        self.log_every_n=4
         self.num_batch_to_eval=20
         self.batch_size=1
         self.is_deep_supervision=True
@@ -117,8 +117,9 @@ class Main_trainer_pl(nnUNetTrainer):
                         
 
         if(self.is_med_next and self.is_lesion_segm):   
-            self.learning_rate=0.00831
+            self.learning_rate=0.00831 
 
+        self.learning_rate=float(os.getenv('learning_rate'))
 
         self.hparams_dict={"attn_num_mem_kv":os.getenv('attn_num_mem_kv')
                            ,"use_scalenorm":os.getenv('use_scalenorm')
@@ -141,7 +142,24 @@ class Main_trainer_pl(nnUNetTrainer):
                            ,"encoders_depth":os.getenv('encoders_depth')
                            ,"num_memory_tokens":os.getenv('num_memory_tokens')
                            ,"shift_mem_down":os.getenv('shift_mem_down')
-                           ,"num_memory_tokens":os.getenv('num_memory_tokens')                            
+                           ,"num_memory_tokens":os.getenv('num_memory_tokens')
+
+                           ,"alpha_low":os.getenv('alpha_low')                            
+                           ,"alpha_high":os.getenv('alpha_high')                            
+                           ,"sigma_low":os.getenv('sigma_low')                            
+                           ,"sigma_high":os.getenv('sigma_high')                            
+                           ,"RicianNoiseTransform":os.getenv('RicianNoiseTransform')                            
+                           ,"GaussianBlurTransform":os.getenv('GaussianBlurTransform')                            
+                           ,"ContrastAugmentationTransform":os.getenv('ContrastAugmentationTransform')                            
+                           ,"SimulateLowResolutionTransform":os.getenv('SimulateLowResolutionTransform')                            
+                           ,"GammaTransform_a":os.getenv('GammaTransform_a')                            
+                           ,"GammaTransform_b":os.getenv('GammaTransform_b')                            
+                           ,"p_el_per_sample":os.getenv('p_el_per_sample')                            
+
+                           ,"p_scale_per_sample":os.getenv('p_scale_per_sample')                            
+                           ,"p_rot_per_sample":os.getenv('p_rot_per_sample')                            
+                           ,"learning_rate":os.getenv('learning_rate')                            
+
                              }
         
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
@@ -330,17 +348,18 @@ class Main_trainer_pl(nnUNetTrainer):
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
-            patience=15,
+            patience=5,
             mode=mode,
             #divergence_threshold=(-0.1)
         )
+        
         # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
         self.trainer = pl.Trainer(
             #accelerator="cpu", #TODO(remove)
-            max_epochs=300,
+            max_epochs=800,
             #gpus=1,
             # precision='16-mixed', 
-            callbacks=[checkpoint_callback,stochasticAveraging], # stochasticAveraging ,stochasticAveraging ,  FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+            callbacks=[checkpoint_callback,stochasticAveraging,early_stopping], # stochasticAveraging ,stochasticAveraging ,  FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
             logger=comet_logger,
             accelerator='auto',
             devices='auto',       

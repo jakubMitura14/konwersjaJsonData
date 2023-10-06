@@ -16,11 +16,14 @@ import numpy as np
 #     spec.loader.exec_module(res)
 #     return res
 
-csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
-curr_csv = pd.DataFrame([{"ress":0.0}])
+# csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
+# curr_csv = pd.DataFrame([{"ress":0.0}])
 
-print(f"rrrrrrrrr {curr_csv}")
-curr_csv.to_csv(csv_dir) 
+# print(f"rrrrrrrrr {curr_csv}")
+# curr_csv.to_csv(csv_dir) 
+
+with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
+    np.save(f, np.array([0]))
 
 # seg_lesions_custom=loadLib("seg_lesions_custom","/workspaces/konwersjaJsonData/nnunet/seg_lesions_custom.py")
 
@@ -100,6 +103,8 @@ def set_env_variables_for_general_transforms(trial):
     os.environ['p_el_per_sample'] = str(trial.suggest_float("p_el_per_sample", 0.0,0.9))
     os.environ['p_scale_per_sample'] = str(trial.suggest_float("p_scale_per_sample", 0.0,0.9))
     os.environ['p_rot_per_sample'] = str(trial.suggest_float("p_rot_per_sample", 0.0,0.9))
+    baseLr=0.00831
+    os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/1000,baseLr*10))
 
 
 def set_norm_and_bias_field(trial):
@@ -116,7 +121,7 @@ os.environ['best_metric'] ='0.0'
 
 
 # experiment_name="general_augment"
-experiment_name="classic_augmentations"#bias_norm
+experiment_name="classic_augmentations2"#bias_norm
 
 
 def objective(trial: optuna.trial.Trial) -> float:
@@ -137,9 +142,14 @@ def objective(trial: optuna.trial.Trial) -> float:
 
     p.wait()
 
-    curr_csv = pd.read_csv(csv_dir)
-    print(f"bbbbbb {curr_csv}")    
-    return np.max(curr_csv["ress"].to_numpy())
+    numpy_dir="/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy"
+    a=np.load(numpy_dir)
+    sorted=np.sort(a)
+    n=3
+    res=  sorted[-n :] 
+    print(f"rrr res {res} sorted {sorted}")   
+
+    return np.mean(res)
 # storage="mysql://root@34.90.134.17/testt"
 study = optuna.create_study(
         study_name=experiment_name

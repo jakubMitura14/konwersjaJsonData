@@ -154,7 +154,7 @@ RUN mkdir ${HOME}/hdf5  \
     && mkdir ${HOME}/Slicer/bin/websockify 
 
 
-COPY websockify ./Slicer/bin/
+# COPY websockify ./Slicer/bin/
 RUN chmod +x ${HOME}/Slicer/bin/websockify
 
 
@@ -433,3 +433,7 @@ ARG VCS_URL
 # python3 -m pip  install -e .
 
 # cp /home/sliceruser/nnunetMainFolder/nnUNet_raw/Dataset294_Prostate/labelsTr/9002700.nii.gz /workspaces/konwersjaJsonData/explore/for_explore/9002700.nii.gz
+
+# docker build /home/jakubmitura/konwersjaJsonData/.devcontainer  -t aug_classic
+
+# docker run --init --gpus all --ipc host --privileged --net host -p 8888:8888 -p49053:49053 -v "/home/jakubmitura/nnunet":/home/sliceruser/nnunetMainFolder -v "/home/jakubmitura/konwersjaJsonData":/workspaces/konwersjaJsonData  aug_classic:latest

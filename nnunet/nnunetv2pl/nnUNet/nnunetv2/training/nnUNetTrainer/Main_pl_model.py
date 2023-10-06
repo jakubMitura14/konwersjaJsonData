@@ -329,15 +329,25 @@ class Pl_main_model(pl.LightningModule):
         if(self.is_lesion_segm):
             self.my_lesion_log(res,group_name)
             # print(f"getttt best metric")
-            csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
+            numpy_dir="/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy"
             # prev_best=float(os.getenv('best_metric'))
             curr=res[3]
+            a=np.load(numpy_dir)
+            a=np.append(a,curr)
+            print(f"aaaaaaa a {a}  curr {curr}")
+            np.save(numpy_dir, a)
+            
+
+            # with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'w+') as f:
+            #     a = np.load(f)
+            #     a.append(a,curr)
+            #     np.save(f, a)
             # if(curr>prev_best):
             #     # os.environ['best_metric'] = f"{curr}"
-            curr_csv = pd.read_csv(csv_dir)
-            curr_csv = curr_csv.append({"ress":curr}, ignore_index=True)    
-            # os.environ['best_metric'] ='11.0'    
-            curr_csv.to_csv(csv_dir) 
+            # curr_csv = pd.read_csv(csv_dir)
+            # curr_csv = curr_csv.append({"ress":curr}, ignore_index=True)    
+            # # os.environ['best_metric'] ='11.0'    
+            # curr_csv.to_csv(csv_dir) 
 
 
 
