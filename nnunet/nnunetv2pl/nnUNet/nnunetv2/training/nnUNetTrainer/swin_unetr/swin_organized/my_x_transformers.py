@@ -14,7 +14,7 @@ from typing import List, Callable, Optional
 from einops import rearrange, repeat, reduce
 from einops.layers.torch import Rearrange
 
-from x_transformers.attend import Attend, Intermediates, CascadingHeads
+from x_transformers.attend import Attend, Intermediates
 from x_transformers.autoregressive_wrapper import AutoregressiveWrapper
 from x_transformers.x_transformers import *
 

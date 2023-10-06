@@ -18,7 +18,7 @@ import lightning.pytorch as pl
 import torch
 from pl_bolts.datamodules import CIFAR10DataModule
 from torch import nn
-from torchmetrics import Accuracy
+# from torchmetrics import Accuracy
 from xformers.factory import xFormerEncoderBlock, xFormerEncoderConfig
 
 from xformers.factory import xFormer, xFormerConfig

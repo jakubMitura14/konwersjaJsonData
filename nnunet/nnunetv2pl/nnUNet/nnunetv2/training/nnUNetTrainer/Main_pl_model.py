@@ -328,11 +328,16 @@ class Pl_main_model(pl.LightningModule):
                 self.log(main_to_monitor, 100.0,sync_dist=True)
         if(self.is_lesion_segm):
             self.my_lesion_log(res,group_name)
-            #setting metric for hyperparameter tuning
-            prev_best=float(os.getenv('best_metric'))
+            # print(f"getttt best metric")
+            csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
+            # prev_best=float(os.getenv('best_metric'))
             curr=res[3]
-            if(curr>prev_best):
-                os.environ['best_metric'] = f"{curr}"
+            # if(curr>prev_best):
+            #     # os.environ['best_metric'] = f"{curr}"
+            curr_csv = pd.read_csv(csv_dir)
+            curr_csv = curr_csv.append({"ress":curr}, ignore_index=True)    
+            # os.environ['best_metric'] ='11.0'    
+            curr_csv.to_csv(csv_dir) 
 
 
 

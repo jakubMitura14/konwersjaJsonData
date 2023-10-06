@@ -118,7 +118,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
     nautilus \
     jupyter-core \
-    unzip
+    unzip \
+    default-libmysqlclient-dev
+
 #   apt-get autoremove --purge -y && \
 #   apt-get autoclean -y && \
 #   rm -rf /var/cache/apt/* /var/lib/apt/lists/*
@@ -142,10 +144,85 @@ RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python3.10 get-pip.py && \
     rm get-pip.py
 
-# RUN python3.9 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-RUN python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+#--enable-fortran
+RUN mkdir ${HOME}/hdf5  \
+    && mkdir ${HOME}/hdf5/dest  \
+    && mkdir ${HOME}/hdf5/inst \
+    && mkdir ${HOME}/Slicer \
+    && mkdir ${HOME}/Slicer/bin \
+    && mkdir ${HOME}/Slicer/bin/websockify 
 
 
+COPY websockify ./Slicer/bin/
+RUN chmod +x ${HOME}/Slicer/bin/websockify
+
+
+RUN wget -q -O - https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.0/src/hdf5-1.12.0.tar.gz | tar -C /tmp -xzf - && \
+    cd /tmp/hdf5-1.12.0 && \
+    ./configure --prefix=${HOME}/hdf5/inst --enable-parallel --enable-shared && \
+    make DESTDIR=${HOME}/hdf5/dest && \
+    make -j 4 && \
+    make install && \
+    rm -rf /tmp/hdf5-1.12.0
+
+
+
+RUN mkdir ${HOME}/scripts \
+    && mkdir ${HOME}/externalRepos \
+    && mkdir ${HOME}/forLesionAnalysis \
+    && mkdir ${HOME}/Swin3d \
+    && mkdir ${HOME}/connected_comp \
+    && mkdir ${HOME}/NBIA
+
+# RUN mkdir ${HOME}/connected_comp
+
+## for downloads from cancer imaging archive
+RUN apt-get install -y ruby-dev  \
+    && apt install -y libtool libffi-dev ruby ruby-dev make  \
+    && apt install -y libzmq3-dev libczmq-dev  \
+    && gem install ffi-rzmq rake  \
+    && gem install specific_install  \
+    && gem specific_install https://github.com/SciRuby/iruby  \
+    && iruby register  \
+    && gem install net-protocol -v 0.1.2  \
+    && gem install net-smtp -v 0.3.0  \
+    && gem install aspera-cli 
+RUN ascli conf ascp install
+
+
+# Install OpenJDK-8
+RUN apt-get update && \
+    apt-get install -y openjdk-8-jdk && \
+    apt-get install -y ant && \
+    apt-get clean;
+
+# Fix certificate issues
+RUN apt-get update && \
+    apt-get install ca-certificates-java && \
+    apt-get clean && \
+    update-ca-certificates -f;
+
+# Setup JAVA_HOME -- useful for docker commandline
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
+RUN export JAVA_HOME
+
+RUN wget https://jaist.dl.sourceforge.net/project/boost/boost/1.68.0/boost_1_68_0.tar.gz && \
+    tar xzvf boost_1_68_0.tar.gz && \
+    cp -r ./boost_1_68_0/boost /usr/include && \
+    rm -rf ./boost_1_68_0 && \
+    rm -rf ./boost_1_68_0.tar.gz 
+
+
+
+RUN mkdir /usr/share/desktop-directories/ \
+    && wget -P ~/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb \
+    && sudo apt-get -y install xdg-utils \
+    && dpkg-deb -x ~/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb ${HOME}/NBIA
+
+
+RUN python3 -m pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118 
+# RUN python3 -m pip install pytorch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2--index-url https://download.pytorch.org/whl/cu121
 
 
 RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
@@ -237,19 +314,30 @@ RUN python3 -m pip  --no-cache-dir install install --no-cache-dir \
     six \
     evalutils==0.3.0 \
     https://github.com/DIAGNijmegen/picai_prep/archive/refs/tags/v1.3.2.zip \
-    pytorch-ignite==0.4.12
+    pytorch-ignite==0.4.12 \
+    xformers==0.0.21 triton fairscale==0.4.13 hiddenlayer==0.3 x-transformers==1.19.1 intensity-normalization==2.2.4  \
+    lightning==2.1.0rc0 \
+    spconv-cu102 mysqlclient lapgm[gpu]
+
+RUN python3 -m pip uninstall -y h5py
+
+
+RUN CC=mpicc HDF5_MPI="ON" HDF5_VERSION=1.12.0 HDF5_DIR=${HOME}/hdf5/inst python3 -m pip install --no-binary=h5py h5py \
+    && export GITHUB_USER=jakubMitura14
+RUN git config --global user.name "Jakub Mitura"
+RUN git config --global user.email "jakub.mitura14@gmail.com"
+RUN git config -l
 
 
 
 
-
-RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin \
-    && mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600 \
-    && wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb \
-    && dpkg -i cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb \
-    && cp /var/cuda-repo-ubuntu2204-11-8-local/cuda-*-keyring.gpg /usr/share/keyrings/  \
-    && apt-get update  \
-    && apt-get -y install cuda
+# RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin \
+#     && mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600 \
+#     && wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb \
+#     && dpkg -i cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb \
+#     && cp /var/cuda-repo-ubuntu2204-11-8-local/cuda-*-keyring.gpg /usr/share/keyrings/  \
+#     && apt-get update  \
+#     && apt-get -y install cuda
 
 
 # RUN wget -q -O - http://www.mpich.org/static/downloads/3.3.2/mpich-3.3.2.tar.gz | tar -C /tmp -xzf - && \
@@ -262,92 +350,21 @@ RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86
 
 
 
-#--enable-fortran
-RUN mkdir ${HOME}/hdf5  \
-    && mkdir ${HOME}/hdf5/dest  \
-    && mkdir ${HOME}/hdf5/inst \
-    && mkdir ${HOME}/Slicer \
-    && mkdir ${HOME}/Slicer/bin \
-    && mkdir ${HOME}/Slicer/bin/websockify 
-
-
-COPY websockify ./Slicer/bin/
-RUN chmod +x ${HOME}/Slicer/bin/websockify
-
-RUN python3 -m pip uninstall -y h5py
-
-RUN wget -q -O - https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.0/src/hdf5-1.12.0.tar.gz | tar -C /tmp -xzf - && \
-    cd /tmp/hdf5-1.12.0 && \
-    ./configure --prefix=${HOME}/hdf5/inst --enable-parallel --enable-shared && \
-    make DESTDIR=${HOME}/hdf5/dest && \
-    make -j 4 && \
-    make install && \
-    rm -rf /tmp/hdf5-1.12.0
-
-RUN CC=mpicc HDF5_MPI="ON" HDF5_VERSION=1.12.0 HDF5_DIR=${HOME}/hdf5/inst python3 -m pip install --no-binary=h5py h5py \
-    && export GITHUB_USER=jakubMitura14
-RUN git config --global user.name "Jakub Mitura"
-RUN git config --global user.email "jakub.mitura14@gmail.com"
-RUN git config -l
-
-
-RUN mkdir ${HOME}/scripts \
-    && mkdir ${HOME}/externalRepos \
-    && mkdir ${HOME}/forLesionAnalysis \
-    && mkdir ${HOME}/Swin3d \
-    && mkdir ${HOME}/connected_comp \
-    && mkdir ${HOME}/NBIA
-
-# RUN mkdir ${HOME}/connected_comp
-
-## for downloads from cancer imaging archive
-RUN apt-get install -y ruby-dev  \
-    && apt install -y libtool libffi-dev ruby ruby-dev make  \
-    && apt install -y libzmq3-dev libczmq-dev  \
-    && gem install ffi-rzmq rake  \
-    && gem install specific_install  \
-    && gem specific_install https://github.com/SciRuby/iruby  \
-    && iruby register  \
-    && gem install net-protocol -v 0.1.2  \
-    && gem install net-smtp -v 0.3.0  \
-    && gem install aspera-cli 
-RUN ascli conf ascp install
-
-
-# Install OpenJDK-8
-RUN apt-get update && \
-    apt-get install -y openjdk-8-jdk && \
-    apt-get install -y ant && \
-    apt-get clean;
-
-# Fix certificate issues
-RUN apt-get update && \
-    apt-get install ca-certificates-java && \
-    apt-get clean && \
-    update-ca-certificates -f;
-
-# Setup JAVA_HOME -- useful for docker commandline
-ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
-RUN export JAVA_HOME
-
-RUN mkdir /usr/share/desktop-directories/ \
-    && wget -P ~/NBIA-Data-Retriever https://cbiit-download.nci.nih.gov/nbia/releases/ForTCIA/NBIADataRetriever_4.4.1/nbia-data-retriever-4.4.1.deb \
-    && sudo apt-get -y install xdg-utils \
-    && dpkg-deb -x ~/NBIA-Data-Retriever/nbia-data-retriever-4.4.1.deb ${HOME}/NBIA
 
 # /home/sliceruser/NBIA/opt/nbia-data-retriever/nbia-data-retriever --cli /workspaces/konwersjaJsonData/nnunet/pretraining/manifests/UPENN-GBM_DownloadManifest20221129.tcia -d /home/sliceruser/preprocessed/raw -l /home/sliceruser/NBIA/passwd.txt -v –f
 
-RUN python3 -m pip install xformers==0.0.21 triton fairscale==0.4.13 hiddenlayer==0.3 x-transformers==1.19.1 intensity-normalization==2.2.4
-RUN mkdir ${HOME}/bolts \
-    && cd ${HOME}/bolts \
-    && git clone https://github.com/Lightning-Universe/lightning-bolts.git ${HOME}/bolts \
-    && python3 -m pip  install -e .
+# RUN python3 -m pip install xformers==0.0.21 triton fairscale==0.4.13 hiddenlayer==0.3 x-transformers==1.19.1 intensity-normalization==2.2.4 lightning==2.1.0rc0
+# # RUN mkdir ${HOME}/bolts \
+# #     && cd ${HOME}/bolts \
+# #     && git clone https://github.com/Lightning-Universe/lightning-bolts.git ${HOME}/bolts \
+# #     && python3 -m pip  install -e .
+# RUN python3 -m pip install install lightning==2.1.0rc0
 
+# RUN mkdir ${HOME}/lighting \
+#     && cd ${HOME}/lighting \
+#     && git clone https://github.com/Lightning-AI/lightning.git ${HOME}/lighting \
+#     && python3 -m pip  install -e .
 
-RUN mkdir ${HOME}/lighting \
-    && cd ${HOME}/lighting \
-    && git clone https://github.com/Lightning-AI/lightning.git ${HOME}/lighting \
-    && python3 -m pip  install -e .
 
 
 RUN mkdir ${HOME}/x_transformer \
@@ -358,14 +375,11 @@ RUN mkdir ${HOME}/x_transformer \
 
 
 # Install Boost geometry
-RUN wget https://jaist.dl.sourceforge.net/project/boost/boost/1.68.0/boost_1_68_0.tar.gz && \
-    tar xzvf boost_1_68_0.tar.gz && \
-    cp -r ./boost_1_68_0/boost /usr/include && \
-    rm -rf ./boost_1_68_0 && \
-    rm -rf ./boost_1_68_0.tar.gz 
+
 
 RUN pip uninstall -y SharedArray && \
     pip install SharedArray 
+
 
 
 
@@ -389,8 +403,8 @@ RUN mkdir ${HOME}/apex \
 # Set TMP for nvidia build environment
 ENV TMP="/tmp"
 
-RUN apt-get install -y default-libmysqlclient-dev
-RUN pip install spconv-cu102 mysqlclient lapgm[gpu]
+# RUN pip install spconv-cu102 mysqlclient lapgm[gpu]
+
 
 ENV nnUNet_raw="/home/sliceruser/nnunetMainFolder/nnUNet_raw"
 ENV nnUNet_preprocessed="/home/sliceruser/nnunetMainFolder/nnUNet_preprocessed"
