@@ -81,7 +81,7 @@ sourceFrame = pd.read_csv(resCSVDir)
 cols=sourceFrame.columns
 
 # modalities that we want to include in the model
-modalities_of_intrest=['t2w','adc','hbv']
+modalities_of_intrest=['t2w','adc','hbv','dce3']
 prostate_col= 'pg_noSeg' # name of the column with segmentaton of whole prostate gland
 # new_col_name= 'inferred_pg'
 new_col_name= 'pg_noSeg'
@@ -94,9 +94,10 @@ channel_names={
     "0": "adc",
     "1": "hbv",
     "2": "t2w",
-    "3": "pz_noSeg",
-    "4":'tz_noSeg',
-    "5":new_col_name
+    "3": "dce3",
+    "4": "pz_noSeg",
+    "5":'tz_noSeg',
+    "6":new_col_name
     
     }
 # label_names= {  
@@ -127,9 +128,9 @@ def my_concat(grouped):
     res=np.sum(res,axis=0)
     return res
 
-def get_modalities_to_norm(norm_str, t2w_image,adc_image,hbv_image):
+def get_modalities_to_norm(norm_str, t2w_image,adc_image,hbv_image,dce3_image):
     if(norm_str=="t2w_adc_hbv"):
-        return [t2w_image, adc_image, hbv_image]
+        return [t2w_image, adc_image, hbv_image,dce3_image]
     if(norm_str=="t2w_adc"):
         return [t2w_image, adc_image]
     if(norm_str=="t2w_hbv"):
@@ -146,10 +147,10 @@ def get_im_from_array(arr,channel,orig_im):
     return image
 
 
-def return_corrected(norm_str,arrrr,t2w_image,adc_image,hbv_image,arrrr_debiased):
+def return_corrected(norm_str,arrrr,t2w_image,adc_image,hbv_image,dce3_image,arrrr_debiased):
     
     if(norm_str=="t2w_adc_hbv"):
-        return [get_im_from_array(arrrr,0,t2w_image), get_im_from_array(arrrr,1,adc_image), get_im_from_array(arrrr,2,hbv_image)]
+        return [get_im_from_array(arrrr,0,t2w_image), get_im_from_array(arrrr,1,adc_image), get_im_from_array(arrrr,2,hbv_image), get_im_from_array(arrrr,3,dce3_image)]
     if(norm_str=="t2w_adc"):
         return [get_im_from_array(arrrr,0,t2w_image), get_im_from_array(arrrr,1,adc_image),get_im_from_array(arrrr_debiased,2,hbv_image)]
     if(norm_str=="t2w_hbv"):
@@ -167,12 +168,12 @@ def get_paramss(arrrr):
             
 ### bias field correction and normalization
 #on the basis of https://github.com/lucianoAvinas/lapgm/blob/main/examples/image_correction.ipynb
-def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
+def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image,dce3_image):
     # Approximate location of farthest peak for true data.
     # In practice this can be set to any fixed value of choice.
     TRGT = 1.0
     #first bias field correction
-    modalities_to_normalize=  [t2w_image,adc_image,hbv_image]
+    modalities_to_normalize=  [t2w_image,adc_image,hbv_image,dce3_image]
     modalities_to_normalize = list(map(sitk.GetArrayFromImage ,modalities_to_normalize))
     arrrr = lapgm.to_sequence_array(modalities_to_normalize)
     params = get_paramss(arrrr)
@@ -200,7 +201,7 @@ def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
     #     params = get_paramss(arrrr)#debias_obj.estimate_parameters(arrrr, print_tols=False)
     arrrr = lapgm.normalize(arrrr, params, target_intensity=TRGT)
     arrrr=np.nan_to_num(arrrr, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
-    return return_corrected(to_norm,arrrr,t2w_image,adc_image,hbv_image,arrrr_debiased)
+    return return_corrected(to_norm,arrrr,t2w_image,adc_image,hbv_image,dce3_image,arrrr_debiased)
 
 
 def z_score_normalize(image_orig):
@@ -215,10 +216,11 @@ def z_score_normalize(image_orig):
     image.SetDirection(image_orig.GetDirection()) 
     return image
     
-def get_modalities_to_norm_classic(norm_str, t2w_image,adc_image,hbv_image):
+def get_modalities_to_norm_classic(norm_str, t2w_image,adc_image,hbv_image,dce3_image):
+    
     
     if(norm_str=="t2w_adc_hbv"):
-        return [z_score_normalize(t2w_image), z_score_normalize(adc_image), z_score_normalize(hbv_image)]
+        return [z_score_normalize(t2w_image), z_score_normalize(adc_image), z_score_normalize(hbv_image), z_score_normalize(dce3_image)]
     if(norm_str=="t2w_adc"):
         return [z_score_normalize(t2w_image), z_score_normalize(adc_image), hbv_image]
     if(norm_str=="t2w_hbv"):
@@ -226,32 +228,35 @@ def get_modalities_to_norm_classic(norm_str, t2w_image,adc_image,hbv_image):
     if(norm_str=="t2w"):
         return [z_score_normalize(t2w_image), adc_image, hbv_image]
 
-def bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image):
+def bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image,dce3_image):
     print(f"sssssiiitttkkkk ")
     norm_str=os.getenv('to_include_normalize')
     corrector = sitk.N4BiasFieldCorrectionImageFilter()
     t2w_image= corrector.Execute(t2w_image)
     adc_image= corrector.Execute(adc_image)
     hbv_image= corrector.Execute(hbv_image)
-    return get_modalities_to_norm_classic(norm_str, t2w_image,adc_image,hbv_image)
+    hbv_image= corrector.Execute(dce3_image)
+    return get_modalities_to_norm_classic(norm_str, t2w_image,adc_image,hbv_image,dce3_image)
 
 
 
 
-def bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image):
+def bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image,dce3_image):
     try:
-        return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image)
+        return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image,dce3_image)
     except:
-        return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image) 
+        return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image,dce3_image) 
 
-def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
+def bias_field_and_normalize(t2w_image,adc_image,hbv_image,dce3_image):
     t2w_image=sitk.Cast(t2w_image, sitk.sitkFloat32)
     adc_image=sitk.Cast(adc_image, sitk.sitkFloat32)
     hbv_image=sitk.Cast(hbv_image, sitk.sitkFloat32)
+    dce3_image=sitk.Cast(dce3_image, sitk.sitkFloat32)
+
     try:
-        return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
+        return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image,dce3_image)
     except:
-        return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
+        return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image,dce3_image) 
     
 
 def reg_a_to_b_by_metadata_single_d(fixed_image_path,moving_image_path,interpolator):
@@ -331,9 +336,12 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
         return " "
     if(sources_dict['tz_noSeg'][0]==" "):
         return " "    
+
+        
     # print(f"ssss sources_dict {sources_dict.keys()}")
     adc_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['adc'][0], sitk.sitkBSpline)                                 
     hbv_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['hbv'][0], sitk.sitkBSpline) 
+    dce3_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['dce3'][0], sitk.sitkBSpline) 
 
     pz_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['pz_noSeg'][0], sitk.sitkNearestNeighbor)                                 
     tz_image =reg_a_to_b_by_metadata_single_d(sources_dict[main_modality][0],sources_dict['tz_noSeg'][0], sitk.sitkNearestNeighbor)                                 
@@ -470,6 +478,7 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     adc_image=my_crop(adc_image,min_z,min_y,min_x,max_z,max_x,max_y)
     hbv_image=my_crop(hbv_image,min_z,min_y,min_x,max_z,max_x,max_y)
     t2w_image=my_crop(t2w_image,min_z,min_y,min_x,max_z,max_x,max_y)    
+    dce3_image=my_crop(dce3_image,min_z,min_y,min_x,max_z,max_x,max_y)    
     pz_image=my_crop(pz_image,min_z,min_y,min_x,max_z,max_x,max_y)
     tz_image=my_crop(tz_image,min_z,min_y,min_x,max_z,max_x,max_y)
     
@@ -506,6 +515,12 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     writer.Execute(t2w_image)
 
     writer = sitk.ImageFileWriter()
+    writer.SetFileName(out_pathsDict['dce3'])
+    writer.Execute(dce3_image)
+
+
+
+    writer = sitk.ImageFileWriter()
     writer.SetFileName(out_pathsDict["pz_noSeg"])
     writer.Execute(pz_image)
 
@@ -513,12 +528,12 @@ def add_files_custom(group,main_modality,modalities_of_intrest,non_mri_inputs,la
     writer.SetFileName(out_pathsDict['tz_noSeg'])
     writer.Execute(tz_image)
 
-    return group[0],[out_pathsDict['t2w'], out_pathsDict['adc'], out_pathsDict['hbv']]
+    return group[0],[out_pathsDict['t2w'], out_pathsDict['adc'], out_pathsDict['hbv'], out_pathsDict['dce3']]
 
 
 def to_map_bias_corr_and_norm(tupl):
     id,pathss=tupl
-    t2w_image,adc_image,hbv_image=bias_field_and_normalize(sitk.ReadImage(pathss[0]),sitk.ReadImage(pathss[1]),sitk.ReadImage(pathss[2]))
+    t2w_image,adc_image,hbv_image,dce3_image=bias_field_and_normalize(sitk.ReadImage(pathss[0]),sitk.ReadImage(pathss[1]),sitk.ReadImage(pathss[2]),sitk.ReadImage(pathss[3]))
     writer = sitk.ImageFileWriter()
     writer.SetFileName(pathss[0])
     writer.Execute(t2w_image)
@@ -531,7 +546,9 @@ def to_map_bias_corr_and_norm(tupl):
     writer.SetFileName(pathss[2])
     writer.Execute(hbv_image)
 
-
+    writer = sitk.ImageFileWriter()
+    writer.SetFileName(pathss[3])
+    writer.Execute(dce3_image)
 def main_func():
     #metadata directory
     resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
@@ -644,7 +661,8 @@ def main_func():
         "2": "noNorm",
         "3": "noNorm",
         "4": "noNorm",
-        "5": "noNorm"
+        "5": "noNorm",
+        "6": "noNorm"
 
         }
     #https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/explanation_plans_files.md
