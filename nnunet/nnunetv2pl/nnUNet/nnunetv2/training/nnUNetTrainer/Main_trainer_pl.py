@@ -289,6 +289,7 @@ class Main_trainer_pl(nnUNetTrainer):
             )
 
 
+
         if self._do_i_compile():
             self.print_to_log_file('Compiling network...')
             self.network = torch.compile(self.network)

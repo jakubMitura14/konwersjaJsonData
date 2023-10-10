@@ -75,6 +75,7 @@ from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from .custom_eval import *
 import ignite
 import deepspeed
+from .my_transform import My_gpu_pseudo_lesion_adder
 
 class Pl_main_model(pl.LightningModule):
     def __init__(self,network
@@ -139,7 +140,7 @@ class Pl_main_model(pl.LightningModule):
         self.hparams_dict["learning_rate"]= self.learning_rate
         # self.logger.log_hyperparams(self.hparams, self.hparams_dict)
         self.logger.log_hyperparams(self.hparams_dict)
-
+        self.pseudo_lesion_adder=My_gpu_pseudo_lesion_adder(6,500,0,0,0,0,1,1,1,1,False)
 
     def train_dataloader(self):
         return self.dataloader_train                    
@@ -216,6 +217,7 @@ class Pl_main_model(pl.LightningModule):
         data = self.pad_data_if_needed(batch['data'])
         target = self.pad_target_if_needed(batch['target'])
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
+        data=self.pseudo_lesion_adder(data)
         network=self.network
         if(self.is_swin or self.is_swin_monai):
             output = network(data,clinical)

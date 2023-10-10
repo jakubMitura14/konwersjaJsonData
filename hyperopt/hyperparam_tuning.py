@@ -166,3 +166,4 @@ study = optuna.create_study(
 #         #mysql://root@localhost/example
 study.optimize(objective, n_trials=400)
 
+# my_proj_name='hyperparam_classic_aug' tag='hyperparam_classic_aug' my_proj_desc='debug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl

@@ -686,7 +686,7 @@ def main_func():
     #     #   'preprocessor_name': 'DefaultPreprocessor', 'batch_size': 2, 'patch_size': [96, 96, 96] # for swin
     #                                                 , 'median_image_size_in_voxels': [32., 84., 95.]
     # , 'spacing': [0.78125, 0.78125   , 0.78125   ] #for swin
-    # # , 'spacing': [3.30000019, 0.78125   , 0.78125   ]
+    , 'spacing': [3.30000019, 0.78125   , 0.78125   ]
 
     # , 'normalization_schemes': ['NoNormalization', 'NoNormalization', 'ZScoreNormalization', 'NoNormalization', 'NoNormalization']
     # , 'use_mask_for_norm': [False, False, False, False, False]
