@@ -25,7 +25,7 @@ def loadLib(name,path):
 with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
     np.save(f, np.array([0]))
 
-seg_lesions_custom=loadLib("seg_lesions_custom","/workspaces/konwersjaJsonData/nnunet/seg_lesions_custom.py")
+# seg_lesions_custom=loadLib("seg_lesions_custom","/workspaces/konwersjaJsonData/nnunet/seg_lesions_custom.py")
 
 def set_env_variables_for_swin():
     ###os.environ['attn_num_mem_kv'] = '0'
