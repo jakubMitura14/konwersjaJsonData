@@ -186,8 +186,8 @@ experiment_name="custom_aug_loss"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
-    os.environ['n_lesions'] = 6#str(trial.suggest_int("n_lesions", 2,9))
-    os.environ['k_lesions'] = 200#str(trial.suggest_int("k_lesions", 0,1000))
+    os.environ['n_lesions'] = str(6)#str(trial.suggest_int("n_lesions", 2,9))
+    os.environ['k_lesions'] = str(200)#str(trial.suggest_int("k_lesions", 0,1000))
     os.environ['mean_0'] = str(trial.suggest_float("mean_0", 0.001,0.999))
     os.environ['mean_1'] = str(trial.suggest_float("mean_1", 0.001,0.999))
     os.environ['mean_2'] = str(trial.suggest_float("mean_2", 0.001,0.999))
