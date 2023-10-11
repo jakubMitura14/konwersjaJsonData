@@ -181,8 +181,8 @@ def set_norm_and_bias_field(trial):
 
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
-experiment_name="test"#bias_norm
-# experiment_name="custom_aug_loss"#bias_norm
+# experiment_name="test"#bias_norm
+experiment_name="custom_aug_loss"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
@@ -213,11 +213,11 @@ def objective(trial: optuna.trial.Trial) -> float:
         expId=trial.number
 
     set_norm_and_bias_field(trial)
-    seg_lesions_custom.main_func()
+    # seg_lesions_custom.main_func()
     set_env_variables_for_general_transforms(trial)
     setup_pseudo_lesion_adder_and_loss(trial)
 
-    cmd=f"my_proj_name='debug' tag='with dce3' my_proj_desc='hyperparam_classic_aug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
+    cmd=f"custom_aug_loss' tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
 
     # p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
     p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
