@@ -109,57 +109,56 @@ def set_env_variables_for_general_transforms(trial):
 
 
     ###os.environ['attn_num_mem_kv'] = '0'
-    os.environ['alpha_low'] = str(380.41562295291976)
-    os.environ['alpha_high'] = str(1107.1337556893625)
+    os.environ['alpha_low'] = str(421.60033013863716)
+    os.environ['alpha_high'] = str(421.60033013863716+1451.4488917182302)
 
-    os.environ['sigma_low'] = str(7.076331867987459)
-    os.environ['sigma_high'] = str(1107.1337556893625)
+    os.environ['sigma_low'] = str(11.541639008878207)
+    os.environ['sigma_high'] = str(11.541639008878207+ 9.669272682121036)
 
     # os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
 
-    os.environ['RicianNoiseTransform'] = str(0.3883433207426347)
-    os.environ['GaussianBlurTransform'] = str(0.422845710459375)
+    os.environ['RicianNoiseTransform'] = str(0.40230497711508434)
+    os.environ['GaussianBlurTransform'] = str(0.30684212800169935)
 
-    os.environ['ContrastAugmentationTransform'] = str(0.6148384402922544)
-    os.environ['SimulateLowResolutionTransform'] = str(0.5520197239631202)
-    os.environ['GammaTransform_a'] = str(0.2729169000653497)
-    os.environ['GammaTransform_b'] = str(0.23766759695740897)
-    os.environ['p_el_per_sample'] = str(0.35387487268200385)
-    os.environ['p_scale_per_sample'] = str(0.4951951825404026)
+    os.environ['ContrastAugmentationTransform'] = str(0.6110392464376544)
+    os.environ['SimulateLowResolutionTransform'] = str(0.51587313094672182)
+    os.environ['GammaTransform_a'] = str(0.09474295989278318)
+    os.environ['GammaTransform_b'] = str(0.3249770010008122)
+    os.environ['p_el_per_sample'] = str(0.3338220211800589)
+    os.environ['p_scale_per_sample'] = str(0.6832566131656115)
     os.environ['p_rot_per_sample'] = str(0.5495580611394884)
     baseLr=0.00831
-    os.environ['learning_rate'] = str(0.046921963652098116)
+    os.environ['learning_rate'] = str(0.03142343750219331)
 
 
 
-# alpha_low 380.41562295291976
+# alpha_low 421.60033013863716
 
-# alpha_high 1107.1337556893625
+# alpha_high 1451.4488917182302
 
-# sigma_low 7.076331867987459
+# sigma_low 11.541639008878207
 
-# sigma_high 10.498384184374663
+# sigma_high 9.669272682121036
 
-# RicianNoiseTransform 0.3883433207426347
+# RicianNoiseTransform 0.40230497711508434
 
-# GaussianBlurTransform 0.422845710459375
+# GaussianBlurTransform 0.30684212800169935
 
-# ContrastAugmentationTransform 0.6148384402922544
+# ContrastAugmentationTransform 0.6110392464376544
 
-# SimulateLowResolutionTransform 0.5520197239631202
+# SimulateLowResolutionTransform 0.5158731309467218
 
-# GammaTransform_a 0.2729169000653497
+# GammaTransform_a 0.09474295989278318
 
-# GammaTransform_b 0.23766759695740897
+# GammaTransform_b 0.3249770010008122
 
-# p_el_per_sample 0.35387487268200385
+# p_el_per_sample 0.3338220211800589
 
-# p_scale_per_sample 0.4951951825404026
+# p_scale_per_sample 0.3757931967159725
 
-# p_rot_per_sample 0.5495580611394884
+# p_rot_per_sample 0.6832566131656115
 
-# learning_rate 0.046921963652098116
-
+# learning_rate 0.03142343750219331
 
 def set_norm_and_bias_field(trial):
     # os.environ['to_include_normalize'] = trial.suggest_categorical("to_include_normalize", ["t2w_adc_hbv", "t2w_adc","t2w_hbv","t2w"])
@@ -182,7 +181,28 @@ def set_norm_and_bias_field(trial):
 
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
-experiment_name="test"#bias_norm
+# experiment_name="test"#bias_norm
+experiment_name="custom_aug_loss"#bias_norm
+
+
+def setup_pseudo_lesion_adder_and_loss(trial):
+    os.environ['n_lesions'] = 6#str(trial.suggest_int("n_lesions", 2,9))
+    os.environ['k_lesions'] = 200#str(trial.suggest_int("k_lesions", 0,1000))
+    os.environ['mean_0'] = str(trial.suggest_float("mean_0", 0.001,0.999))
+    os.environ['mean_1'] = str(trial.suggest_float("mean_1", 0.001,0.999))
+    os.environ['mean_2'] = str(trial.suggest_float("mean_2", 0.001,0.999))
+    os.environ['mean_3'] = str(trial.suggest_float("mean_3", 0.001,0.999))
+    os.environ['std_0'] = str(trial.suggest_float("std_0", 0.001,0.999))
+    os.environ['std_1'] = str(trial.suggest_float("std_1", 0.001,0.999))
+    os.environ['std_2'] = str(trial.suggest_float("std_2", 0.001,0.999))
+    os.environ['std_3'] = str(trial.suggest_float("std_3", 0.001,0.999))
+    os.environ['mult_old_a'] = str(trial.suggest_float("mult_old_a", 0.0,1.0))
+    os.environ['mult_old_b'] = str(trial.suggest_float("mult_old_b", 0.0,1.0))
+    os.environ['is_anatomic'] = "1"#trial.suggest_categorical("is_anatomic", ["0", "1"])
+    #for custom loss function
+    os.environ['w0'] = str(trial.suggest_float("w0", 0.001,0.999))
+    os.environ['w1'] = str(trial.suggest_float("w1", 0.001,0.999))
+    os.environ['w2'] = str(trial.suggest_float("w2", 0.001,0.999))
 
 
 def objective(trial: optuna.trial.Trial) -> float:
@@ -193,8 +213,9 @@ def objective(trial: optuna.trial.Trial) -> float:
         expId=trial.number
 
     set_norm_and_bias_field(trial)
-    seg_lesions_custom.main_func()
+    # seg_lesions_custom.main_func()
     set_env_variables_for_general_transforms(trial)
+    setup_pseudo_lesion_adder_and_loss(trial)
 
     cmd=f"my_proj_name='debug' tag='with dce3' my_proj_desc='hyperparam_classic_aug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
 
@@ -227,4 +248,7 @@ study = optuna.create_study(
 #         #mysql://root@localhost/example
 study.optimize(objective, n_trials=400)
 
-# optuna-dashboard mysql://root@34.90.134.17/classic_augmentations2# my_proj_name='hyperparam_classic_aug' tag='hyperparam_classic_aug' my_proj_desc='debug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl
+
+# optuna-dashboard mysql://root@34.90.134.17/classic_augmentations2
+# optuna-dashboard mysql://root@34.90.134.17/classic_augmentations2
+# # my_proj_name='hyperparam_classic_aug' tag='hyperparam_classic_aug' my_proj_desc='debug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl

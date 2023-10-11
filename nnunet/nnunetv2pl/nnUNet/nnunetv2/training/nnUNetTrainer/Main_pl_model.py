@@ -140,7 +140,34 @@ class Pl_main_model(pl.LightningModule):
         self.hparams_dict["learning_rate"]= self.learning_rate
         # self.logger.log_hyperparams(self.hparams, self.hparams_dict)
         self.logger.log_hyperparams(self.hparams_dict)
-        self.pseudo_lesion_adder=My_gpu_pseudo_lesion_adder(6,500,0,0,0,0,1,1,1,1,False)
+        self.pseudo_lesion_adder=My_gpu_pseudo_lesion_adder(n=int(os.getenv('n_lesions'))
+                                                            ,k=int(os.getenv('k_lesions'))
+                                                            ,mean_0=float(os.getenv('mean_0'))
+                                                            ,mean_1=float(os.getenv('mean_1'))
+                                                            ,mean_2=float(os.getenv('mean_2'))
+                                                            ,mean_3=float(os.getenv('mean_3'))
+                                                            ,std_0=float(os.getenv('std_0'))
+                                                            ,std_1=float(os.getenv('std_1'))
+                                                            ,std_2=float(os.getenv('std_2'))
+                                                            ,std_3=float(os.getenv('std_3'))
+                                                            ,is_anatomic=(int(os.getenv('is_anatomic'))==1)
+                                                            ,mult_old_a=float(os.getenv('mult_old_a'))
+                                                            ,mult_old_b=float(os.getenv('mult_old_b'))
+                                                            )
+        
+                # self.pseudo_lesion_adder=My_gpu_pseudo_lesion_adder(n=6
+                #                                             ,k=500
+                #                                             ,mean_0=0
+                #                                             ,mean_1=0
+                #                                             ,mean_2=0
+                #                                             ,mean_3=0
+                #                                             ,std_0=1
+                #                                             ,std_1=1
+                #                                             ,std_2=1
+                #                                             ,std_3=1
+                #                                             ,is_anatomic=False)
+        
+        float(os.getenv('alpha_low'))
 
     def train_dataloader(self):
         return self.dataloader_train                    
@@ -217,7 +244,7 @@ class Pl_main_model(pl.LightningModule):
         data = self.pad_data_if_needed(batch['data'])
         target = self.pad_target_if_needed(batch['target'])
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
-        data=self.pseudo_lesion_adder(data)
+        data=self.pseudo_lesion_adder(data,target[0])
         network=self.network
         if(self.is_swin or self.is_swin_monai):
             output = network(data,clinical)
