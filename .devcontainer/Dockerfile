@@ -378,7 +378,7 @@ RUN mkdir ${HOME}/x_transformer \
 
 
 RUN pip uninstall -y SharedArray && \
-    pip install SharedArray 
+    pip install SharedArray optuna-dashboard
 
 
 

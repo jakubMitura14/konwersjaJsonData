@@ -9,12 +9,12 @@ import sys
 import pandas as pd
 import numpy as np
 
-# def loadLib(name,path):
-#     spec = importlib.util.spec_from_file_location(name, path)
-#     res = importlib.util.module_from_spec(spec)
-#     sys.modules[name] = res
-#     spec.loader.exec_module(res)
-#     return res
+def loadLib(name,path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    res = importlib.util.module_from_spec(spec)
+    sys.modules[name] = res
+    spec.loader.exec_module(res)
+    return res
 
 # csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
 # curr_csv = pd.DataFrame([{"ress":0.0}])
@@ -82,46 +82,131 @@ def set_env_variables_for_general_transforms(trial):
     """
     set the hyperparameters for transforms in lesion segmentation
     """
-    ###os.environ['attn_num_mem_kv'] = '0'
-    alpha_low=trial.suggest_float("alpha_low", 0.0, 1000.0)
-    os.environ['alpha_low'] = str(alpha_low)
-    os.environ['alpha_high'] = str(alpha_low+trial.suggest_float("alpha_high", 0.0, 2000.0))
 
-    sigma_low=trial.suggest_float("sigma_low", 0.0, 19.0)
-    os.environ['sigma_low'] = str(sigma_low)
-    os.environ['sigma_high'] = str(sigma_low+trial.suggest_float("sigma_high", 0.0, 20.0))
+    # alpha_low=trial.suggest_float("alpha_low", 0.0, 1000.0)
+    # os.environ['alpha_low'] = str(alpha_low)
+    # os.environ['alpha_high'] = str(alpha_low+trial.suggest_float("alpha_high", 0.0, 2000.0))
+
+    # sigma_low=trial.suggest_float("sigma_low", 0.0, 19.0)
+    # os.environ['sigma_low'] = str(sigma_low)
+    # os.environ['sigma_high'] = str(sigma_low+trial.suggest_float("sigma_high", 0.0, 20.0))
+
+    # # os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
+
+    # os.environ['RicianNoiseTransform'] = str(trial.suggest_float("RicianNoiseTransform", 0.0,0.9))
+    # os.environ['GaussianBlurTransform'] = str(trial.suggest_float("GaussianBlurTransform", 0.0,0.9))
+
+    # os.environ['ContrastAugmentationTransform'] = str(trial.suggest_float("ContrastAugmentationTransform", 0.0,0.9))
+    # os.environ['SimulateLowResolutionTransform'] = str(trial.suggest_float("SimulateLowResolutionTransform", 0.0,0.9))
+    # os.environ['GammaTransform_a'] = str(trial.suggest_float("GammaTransform_a", 0.0,0.9))
+    # os.environ['GammaTransform_b'] = str(trial.suggest_float("GammaTransform_b", 0.0,0.9))
+    # os.environ['p_el_per_sample'] = str(trial.suggest_float("p_el_per_sample", 0.0,0.9))
+    # os.environ['p_scale_per_sample'] = str(trial.suggest_float("p_scale_per_sample", 0.0,0.9))
+    # os.environ['p_rot_per_sample'] = str(trial.suggest_float("p_rot_per_sample", 0.0,0.9))
+    # baseLr=0.00831
+    # os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/1000,baseLr*10))
+
+
+
+    ###os.environ['attn_num_mem_kv'] = '0'
+    os.environ['alpha_low'] = str(421.60033013863716)
+    os.environ['alpha_high'] = str(421.60033013863716+1451.4488917182302)
+
+    os.environ['sigma_low'] = str(11.541639008878207)
+    os.environ['sigma_high'] = str(11.541639008878207+ 9.669272682121036)
 
     # os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
 
-    os.environ['RicianNoiseTransform'] = str(trial.suggest_float("RicianNoiseTransform", 0.0,0.9))
-    os.environ['GaussianBlurTransform'] = str(trial.suggest_float("GaussianBlurTransform", 0.0,0.9))
+    os.environ['RicianNoiseTransform'] = str(0.40230497711508434)
+    os.environ['GaussianBlurTransform'] = str(0.30684212800169935)
 
-    os.environ['ContrastAugmentationTransform'] = str(trial.suggest_float("ContrastAugmentationTransform", 0.0,0.9))
-    os.environ['SimulateLowResolutionTransform'] = str(trial.suggest_float("SimulateLowResolutionTransform", 0.0,0.9))
-    os.environ['GammaTransform_a'] = str(trial.suggest_float("GammaTransform_a", 0.0,0.9))
-    os.environ['GammaTransform_b'] = str(trial.suggest_float("GammaTransform_b", 0.0,0.9))
-    os.environ['p_el_per_sample'] = str(trial.suggest_float("p_el_per_sample", 0.0,0.9))
-    os.environ['p_scale_per_sample'] = str(trial.suggest_float("p_scale_per_sample", 0.0,0.9))
-    os.environ['p_rot_per_sample'] = str(trial.suggest_float("p_rot_per_sample", 0.0,0.9))
+    os.environ['ContrastAugmentationTransform'] = str(0.6110392464376544)
+    os.environ['SimulateLowResolutionTransform'] = str(0.51587313094672182)
+    os.environ['GammaTransform_a'] = str(0.09474295989278318)
+    os.environ['GammaTransform_b'] = str(0.3249770010008122)
+    os.environ['p_el_per_sample'] = str(0.3338220211800589)
+    os.environ['p_scale_per_sample'] = str(0.6832566131656115)
+    os.environ['p_rot_per_sample'] = str(0.5495580611394884)
     baseLr=0.00831
-    os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/1000,baseLr*10))
+    os.environ['learning_rate'] = str(0.03142343750219331)
 
+
+
+# alpha_low 421.60033013863716
+
+# alpha_high 1451.4488917182302
+
+# sigma_low 11.541639008878207
+
+# sigma_high 9.669272682121036
+
+# RicianNoiseTransform 0.40230497711508434
+
+# GaussianBlurTransform 0.30684212800169935
+
+# ContrastAugmentationTransform 0.6110392464376544
+
+# SimulateLowResolutionTransform 0.5158731309467218
+
+# GammaTransform_a 0.09474295989278318
+
+# GammaTransform_b 0.3249770010008122
+
+# p_el_per_sample 0.3338220211800589
+
+# p_scale_per_sample 0.3757931967159725
+
+# p_rot_per_sample 0.6832566131656115
+
+# learning_rate 0.03142343750219331
 
 def set_norm_and_bias_field(trial):
-    os.environ['to_include_normalize'] = trial.suggest_categorical("to_include_normalize", ["t2w_adc_hbv", "t2w_adc","t2w_hbv","t2w"])
+    # os.environ['to_include_normalize'] = trial.suggest_categorical("to_include_normalize", ["t2w_adc_hbv", "t2w_adc","t2w_hbv","t2w"])
     
-    tau=f"{trial.suggest_float('tau',5e-7,5e-2)}"
-    print(f"tttttttttt {tau}")
-    os.environ['tau'] = tau
-    os.environ['n_classes'] = f"{trial.suggest_int( 'n_classes', 1,20)}"
-    os.environ['log_initialize'] = trial.suggest_categorical("log_initialize", ["0", "1"])
+    # tau=f"{trial.suggest_float('tau',5e-7,5e-2)}"
+    # print(f"tttttttttt {tau}")
+    # os.environ['tau'] = tau
+    # os.environ['n_classes'] = f"{trial.suggest_int( 'n_classes', 1,20)}"
+    # os.environ['log_initialize'] = trial.suggest_categorical("log_initialize", ["0", "1"])
+    
+    os.environ['to_include_normalize'] = "t2w_adc_hbv"
 
-set_env_variables_for_swin()
-os.environ['best_metric'] ='0.0'
+
+
+    os.environ['tau'] = str(0.0426040566281932)
+    os.environ['n_classes'] = str(12)
+    os.environ['log_initialize'] = "0"
+    os.environ['best_metric'] ='0.0'
 
 
 # experiment_name="general_augment"
-experiment_name="classic_augmentations2"#bias_norm
+# experiment_name="classic_augmentations2"#bias_norm
+# experiment_name="test"#bias_norm
+experiment_name="custom_aug_loss_c"#bias_norm
+
+
+def setup_pseudo_lesion_adder_and_loss(trial):
+    # os.environ['n_lesions'] = str(6)#str(trial.suggest_int("n_lesions", 2,9))
+    # os.environ['k_lesions'] = str(200)#str(trial.suggest_int("k_lesions", 0,1000))
+    
+    os.environ['n_lesions'] = str(trial.suggest_int("n_lesions", 3,9))
+    os.environ['k_lesions'] = str(trial.suggest_int("k_lesions", 1,1000))
+    
+    os.environ['mean_0'] = str(trial.suggest_float("mean_0", 0.001,0.999))
+    os.environ['mean_1'] = str(trial.suggest_float("mean_1", 0.001,0.999))
+    os.environ['mean_2'] = str(trial.suggest_float("mean_2", 0.001,0.999))
+    os.environ['mean_3'] = str(trial.suggest_float("mean_3", 0.001,0.999))
+    os.environ['std_0'] = str(trial.suggest_float("std_0", 0.001,0.999))
+    os.environ['std_1'] = str(trial.suggest_float("std_1", 0.001,0.999))
+    os.environ['std_2'] = str(trial.suggest_float("std_2", 0.001,0.999))
+    os.environ['std_3'] = str(trial.suggest_float("std_3", 0.001,0.999))
+    os.environ['mult_old_a'] = str(trial.suggest_float("mult_old_a", 0.0,1.0))
+    os.environ['mult_old_b'] = str(trial.suggest_float("mult_old_b", 0.0,1.0))
+    os.environ['is_anatomic'] = "1"#trial.suggest_categorical("is_anatomic", ["0", "1"])
+    #for custom loss function
+    os.environ['w0'] = str(trial.suggest_float("w0", 0.001,0.999))
+    os.environ['w1'] = str(trial.suggest_float("w1", 0.001,0.999))
+    os.environ['w2'] = str(trial.suggest_float("w2", 0.001,0.999))
 
 
 def objective(trial: optuna.trial.Trial) -> float:
@@ -131,11 +216,13 @@ def objective(trial: optuna.trial.Trial) -> float:
     if(expId is None):
         expId=trial.number
 
-    # set_norm_and_bias_field(trial)
+    set_norm_and_bias_field(trial)
     # seg_lesions_custom.main_func()
     set_env_variables_for_general_transforms(trial)
+    setup_pseudo_lesion_adder_and_loss(trial)
 
-    cmd=f"my_proj_name='hyperparam_classic_aug' tag='hyperparam_classic_aug' my_proj_desc='hyperparam_classic_aug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
+    # cmd=f"custom_aug_loss tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
+    cmd=f" my_proj_name='custom_aug_loss' tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
 
     # p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
     p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
@@ -166,4 +253,7 @@ study = optuna.create_study(
 #         #mysql://root@localhost/example
 study.optimize(objective, n_trials=400)
 
-# my_proj_name='hyperparam_classic_aug' tag='hyperparam_classic_aug' my_proj_desc='debug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl
+
+# optuna-dashboard mysql://root@34.90.134.17/classic_augmentations2
+# optuna-dashboard mysql://root@34.90.134.17/classic_augmentations2
+# # my_proj_name='hyperparam_classic_aug' tag='hyperparam_classic_aug' my_proj_desc='debug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl

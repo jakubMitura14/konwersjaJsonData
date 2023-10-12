@@ -2,6 +2,7 @@ from torch import nn, Tensor
 import torch
 import torchvision
 import numpy as np
+import os
 
 
 class FocalLossV2_orig(nn.Module):
@@ -258,6 +259,12 @@ class Picai_FL_and_CE_loss(nn.Module):
         # self.ce = RobustCrossEntropyLoss(**ce_kwargs)
         self.alpha = alpha
 
+        self.w0=float(os.getenv('w0'))
+        self.w1=float(os.getenv('w1'))
+        self.w2=float(os.getenv('w2'))
+        self.w_max= np.max(np.array([self.w0,self.w1,self.w2]))
+
+
     def forward(self, net_output, target):
         # print(f"nnnnnn net_output {net_output.shape} target {target.shape} ") #nnnnnn net_output torch.Size([19, 3, 28, 48, 56]) target torch.Size([19, 1, 28, 48, 56]) 
         # net_output=net_output[:,0:2,:,:,:]#torch.stack([net_output[:,0,:,:,:],net_output[:,2,:,:,:] ] , dim=1) 
@@ -266,7 +273,7 @@ class Picai_FL_and_CE_loss(nn.Module):
 
         # net_output=net_output*target_mask
         # target=(target==2).int()
-        weight=torch.tensor([15,8,10])/15
+        weight=torch.tensor([self.w0,self.w1,self.w2])
         # ce_loss = self.ce(net_output, target)
         fl_loss = self.fl(net_output, target,weight)
         return fl_loss

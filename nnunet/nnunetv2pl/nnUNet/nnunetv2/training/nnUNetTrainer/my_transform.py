@@ -133,7 +133,7 @@ class My_PseudoLesion_adder(LocalTransform):
 
 class My_gpu_pseudo_lesion_adder(nn.Module):
 
-    def __init__(self, n,k,mean_0,mean_1,mean_2,mean_3,std_0,std_1,std_2,std_3,is_anatomic):
+    def __init__(self, n,k,mean_0,mean_1,mean_2,mean_3,std_0,std_1,std_2,std_3,is_anatomic,mult_old_a,mult_old_b):
         super(My_gpu_pseudo_lesion_adder, self).__init__()
         self.n = n
         self.k = k
@@ -146,6 +146,8 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         self.std_2=std_2
         self.std_3=std_3
         self.is_anatomic=is_anatomic
+        self.mult_old_a=mult_old_a
+        self.mult_old_b=mult_old_b
 
         self.blur=T.GaussianBlur(kernel_size=(3,3,3), sigma=(0.01,0.02 ))
 
@@ -206,8 +208,8 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         #9) we index image (both channels) with res bool and set it to 0
         data_a=data[:,0,:,:,:]
         data_b=data[:,1,:,:,:]
-        data_a[res_bool]=0
-        data_b[res_bool]=0
+        data_a[res_bool]=data_a[res_bool]*self.mult_old_a
+        data_b[res_bool]=data_b[res_bool]*self.mult_old_b
         # dat_curr=np.stack([data_a,data_b])
 
         #10) we create new float array of the size like image
@@ -270,7 +272,7 @@ class My_priming_setter(LocalTransform):
      
 class My_gpu_pseudo_lesion_adder(nn.Module):
 
-    def __init__(self, n,k,mean_0,mean_1,mean_2,mean_3,std_0,std_1,std_2,std_3,is_anatomic):
+    def __init__(self, n,k,mean_0,mean_1,mean_2,mean_3,std_0,std_1,std_2,std_3,is_anatomic,mult_old_a,mult_old_b):
         super(My_gpu_pseudo_lesion_adder, self).__init__()
         self.n = n
         self.k = k
@@ -282,6 +284,8 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         self.std_1=std_1
         self.std_2=std_2
         self.std_3=std_3
+        self.mult_old_a=mult_old_a
+        self.mult_old_b=mult_old_b
         self.is_anatomic=is_anatomic
 
         self.blur=monai.transforms.GaussianSmooth()#T.GaussianBlur(kernel_size=(3,3,3), sigma=(0.01,0.02 ))
@@ -308,6 +312,7 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         arr=(arr-minn)
         maxx= torch.max(arr)
         arr=arr/maxx
+        arr=torch.nan_to_num(arr)
         return arr
 
     def forward(self, data, target_curr):
@@ -358,13 +363,13 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         res_bool_b= torch.tensor(res_bool_b).cuda()
         #8) we get resulting boolean array calling it res_bool
         res_bool=res_bool_b
-        print(f"bbbbb {res_bool.sum()}  res_bool shape {res_bool.shape}  img_shape {img_shape}")
-
         #9) we index image (both channels) with res bool and set it to 0
         data_a=data[0,:,:,:]
         data_b=data[1,:,:,:]
-        data_a[res_bool]=0
-        data_b[res_bool]=0
+        data_a[res_bool]=data_a[res_bool]*self.mult_old_a
+        data_b[res_bool]=data_b[res_bool]*self.mult_old_b
+
+
         # dat_curr=np.stack([data_a,data_b])
 
         #10) we create new float array of the size like image
@@ -373,8 +378,8 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         rng = np.random.default_rng()    
         rng.shuffle(gauss_vals,axis=0)
         gauss_vals= torch.tensor(gauss_vals).cuda()
-        noise_adc=torch.normal(gauss_vals[0,0,0], gauss_vals[0,0,1], size=img_shape)
-        noise_hbv=torch.normal(gauss_vals[0,1,0], gauss_vals[0,1,1], size=img_shape)
+        noise_adc=torch.normal(gauss_vals[0,0,0], gauss_vals[0,0,1], size=img_shape).cuda()
+        noise_hbv=torch.normal(gauss_vals[0,1,0], gauss_vals[0,1,1], size=img_shape).cuda()
         #12) we set evrything outside of res_bool to false    
         noise_adc[torch.logical_not(res_bool)]=0.0
         noise_hbv[torch.logical_not(res_bool)]=0.0
@@ -382,14 +387,13 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         noise_adc= self.standardd(noise_adc)
         noise_hbv= self.standardd(noise_hbv)
 
-        noise= torch.stack([noise_adc,noise_hbv])
-        data_a= self.standardd(data_a)
-        data_b= self.standardd(data_b)
+        # noise= torch.stack([noise_adc,noise_hbv])
+        data_a= self.standardd(self.standardd(data_a)+noise_adc)
+        data_b= self.standardd(self.standardd(data_b)+noise_hbv)
                 
-
         #13)we add image (with zeroad indexes) to array we got in previous step
         res=torch.stack([data_a,data_b])
-        res=res+noise
+        # res=res+noise
         #we need to add remaining images - anatomy
         data_c=data[2:,:,:,:]
         # data_c=np.expand_dims(data_c,axis=0)

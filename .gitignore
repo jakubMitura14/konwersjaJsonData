@@ -35,3 +35,5 @@ nnunet/nnunetv2pl/nnUNet/nnunetv2.egg-info/SOURCES.txt
 .devcontainer/devcontainer.json
 sparse_dat/
 .devcontainer/devcontainer.json
+hyperopt/curr_npy.npy
+hyperopt/curr_npy.npy
