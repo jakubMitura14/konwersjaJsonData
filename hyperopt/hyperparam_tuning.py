@@ -222,9 +222,9 @@ def objective(trial: optuna.trial.Trial) -> float:
         expId=trial.number
 
     set_norm_and_bias_field(trial)
-    seg_lesions_custom.main_func()
-    # set_env_variables_for_general_transforms(trial)
-    # setup_pseudo_lesion_adder_and_loss(trial)
+    # seg_lesions_custom.main_func()
+    set_env_variables_for_general_transforms(trial)
+    setup_pseudo_lesion_adder_and_loss(trial)
 
     # cmd=f"custom_aug_loss tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
     cmd=f" my_proj_name='custom_aug_loss' tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
