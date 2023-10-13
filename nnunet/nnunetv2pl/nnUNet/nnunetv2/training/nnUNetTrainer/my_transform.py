@@ -321,6 +321,7 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         either low or high on both adc and hbv (they should be high hbv low adc)
         function is not batched
         """
+        is_cuda=True
 
         img_shape= (data.shape[2],data.shape[3],data.shape[4])
         data= data[0,:,:,:,:]
@@ -347,7 +348,9 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         res_bool= np.zeros(img_shape).astype(bool)
         #4) in a neww array set chosen points to True
         res_bool[target_big[:,0],target_big[:,1],target_big[:,2]]=True
-        res_bool= torch.tensor(res_bool).cuda()
+        res_bool= torch.tensor(res_bool)
+        if(is_cuda):
+            res_bool=res_bool.cuda()
         #5) perform binary dilatation n-1 times and save
         res_bool_a= self.my_dilatate(res_bool,n-1)
         #6) perform last dilatation - and find indicies that were added in last dilatation
@@ -360,14 +363,16 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
         len= diff.shape[0]
         diff=diff[0:len,:]
         res_bool_b[diff[:,0],diff[:,1],diff[:,2]]=False
-        res_bool_b= torch.tensor(res_bool_b).cuda()
+        res_bool_b= torch.tensor(res_bool_b)
+        if(is_cuda):
+            res_bool_b=res_bool_b.cuda()
+
         #8) we get resulting boolean array calling it res_bool
         res_bool=res_bool_b
         #9) we index image (both channels) with res bool and set it to 0
         data_a=data[0,:,:,:]
         data_b=data[1,:,:,:]
-        data_a[res_bool]=data_a[res_bool]*self.mult_old_a
-        data_b[res_bool]=data_b[res_bool]*self.mult_old_b
+
 
 
         # dat_curr=np.stack([data_a,data_b])
@@ -377,19 +382,29 @@ class My_gpu_pseudo_lesion_adder(nn.Module):
             # for both channels
         rng = np.random.default_rng()    
         rng.shuffle(gauss_vals,axis=0)
-        gauss_vals= torch.tensor(gauss_vals).cuda()
-        noise_adc=torch.normal(gauss_vals[0,0,0], gauss_vals[0,0,1], size=img_shape).cuda()
-        noise_hbv=torch.normal(gauss_vals[0,1,0], gauss_vals[0,1,1], size=img_shape).cuda()
-        #12) we set evrything outside of res_bool to false    
-        noise_adc[torch.logical_not(res_bool)]=0.0
-        noise_hbv[torch.logical_not(res_bool)]=0.0
+        gauss_vals= torch.tensor(gauss_vals)
+        if(is_cuda):
+            gauss_vals=gauss_vals.cuda()
 
-        noise_adc= self.standardd(noise_adc)
-        noise_hbv= self.standardd(noise_hbv)
+        noise_adc=torch.normal(gauss_vals[0,0,0], gauss_vals[0,0,1], size=img_shape)
+        noise_hbv=torch.normal(gauss_vals[0,1,0], gauss_vals[0,1,1], size=img_shape)
+        if(is_cuda):
+            noise_adc=noise_adc.cuda()
+            noise_hbv=noise_hbv.cuda()
+
+        #12) we set evrything outside of res_bool to false    
+        noise_adc[torch.logical_not(res_bool)]=1.0
+        noise_hbv[torch.logical_not(res_bool)]=1.0
+
+        data_a[res_bool]=data_a[res_bool]*noise_adc[res_bool]
+        data_b[res_bool]=data_b[res_bool]*noise_hbv[res_bool]
+
+        # noise_adc= self.standardd(noise_adc)
+        # noise_hbv= self.standardd(noise_hbv)
 
         # noise= torch.stack([noise_adc,noise_hbv])
-        data_a= self.standardd(self.standardd(data_a)+noise_adc)
-        data_b= self.standardd(self.standardd(data_b)+noise_hbv)
+        # data_a= self.standardd(self.standardd(data_a)+noise_adc)
+        # data_b= self.standardd(self.standardd(data_b)+noise_hbv)
                 
         #13)we add image (with zeroad indexes) to array we got in previous step
         res=torch.stack([data_a,data_b])
