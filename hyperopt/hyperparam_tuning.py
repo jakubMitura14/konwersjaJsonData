@@ -25,7 +25,7 @@ def loadLib(name,path):
 with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
     np.save(f, np.array([0]))
 
-seg_lesions_custom=loadLib("seg_lesions_custom","/workspaces/konwersjaJsonData/nnunet/seg_lesions_custom.py")
+# seg_lesions_custom=loadLib("seg_lesions_custom","/workspaces/konwersjaJsonData/nnunet/seg_lesions_custom.py")
 
 def set_env_variables_for_swin():
     ###os.environ['attn_num_mem_kv'] = '0'
@@ -210,53 +210,53 @@ def setup_pseudo_lesion_adder_and_loss(trial):
 
 
 
-trial=[]
-set_norm_and_bias_field(trial)
-seg_lesions_custom.main_func()
+# trial=[]
+# set_norm_and_bias_field(trial)
+# seg_lesions_custom.main_func()
 
-# def objective(trial: optuna.trial.Trial) -> float:
+def objective(trial: optuna.trial.Trial) -> float:
 
-#     #checking if there is some failed trial if so we will restart it
-#     expId = RetryFailedTrialCallback.retried_trial_number(trial)
-#     if(expId is None):
-#         expId=trial.number
+    #checking if there is some failed trial if so we will restart it
+    expId = RetryFailedTrialCallback.retried_trial_number(trial)
+    if(expId is None):
+        expId=trial.number
 
-#     set_norm_and_bias_field(trial)
-#     seg_lesions_custom.main_func()
-#     # set_env_variables_for_general_transforms(trial)
-#     # setup_pseudo_lesion_adder_and_loss(trial)
+    set_norm_and_bias_field(trial)
+    seg_lesions_custom.main_func()
+    # set_env_variables_for_general_transforms(trial)
+    # setup_pseudo_lesion_adder_and_loss(trial)
 
-#     # cmd=f"custom_aug_loss tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
-#     cmd=f" my_proj_name='custom_aug_loss' tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
+    # cmd=f"custom_aug_loss tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
+    cmd=f" my_proj_name='custom_aug_loss' tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
 
-#     # p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
-#     p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
+    # p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
+    p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
 
-#     p.wait()
+    p.wait()
 
-#     numpy_dir="/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy"
-#     a=np.load(numpy_dir)
-#     sorted=np.sort(a)
-#     n=3
-#     res=  sorted[-n :] 
-#     print(f"rrr res {res} sorted {sorted}")   
+    numpy_dir="/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy"
+    a=np.load(numpy_dir)
+    sorted=np.sort(a)
+    n=3
+    res=  sorted[-n :] 
+    print(f"rrr res {res} sorted {sorted}")   
 
-#     return np.mean(res)
-# # storage="mysql://root@34.90.134.17/testt"
-# study = optuna.create_study(
-#         study_name=experiment_name
-#         ,sampler=optuna.samplers.CmaEsSampler()    
-#         # ,sampler=optuna.samplers.NSGAIISampler()    
-#         ,pruner=optuna.pruners.HyperbandPruner()
-#         # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
-#         ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
-#         ,load_if_exists=True
-#         ,direction="maximize"
-#         )
+    return np.mean(res)
+# storage="mysql://root@34.90.134.17/testt"
+study = optuna.create_study(
+        study_name=experiment_name
+        ,sampler=optuna.samplers.CmaEsSampler()    
+        # ,sampler=optuna.samplers.NSGAIISampler()    
+        ,pruner=optuna.pruners.HyperbandPruner()
+        # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
+        ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
+        ,load_if_exists=True
+        ,direction="maximize"
+        )
 
   
-# #         #mysql://root@localhost/example
-# study.optimize(objective, n_trials=400)
+#         #mysql://root@localhost/example
+study.optimize(objective, n_trials=400)
 
 
 # optuna-dashboard mysql://root@34.90.134.17/classic_augmentations2
