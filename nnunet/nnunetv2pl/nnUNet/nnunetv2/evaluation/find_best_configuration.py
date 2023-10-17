@@ -22,6 +22,11 @@ default_trained_models = tuple([
     {'plans': 'nnUNetPlans', 'configuration': '3d_cascade_fullres', 'trainer': 'nnUNetTrainer'},
 ])
 
+"""
+basically itrating over all combinations and choosing the best one
+"""
+
+
 
 def filter_available_models(model_dict: Union[List[dict], Tuple[dict, ...]], dataset_name_or_id: Union[str, int]):
     valid = []

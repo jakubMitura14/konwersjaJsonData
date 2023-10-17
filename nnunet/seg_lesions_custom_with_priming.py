@@ -513,7 +513,7 @@ p.wait()
 
 # plans_path= join(preprocesss_folder,taskName,'nnUNetPlans.json')
 plans_path= f"/home/sliceruser/nnunetMainFolder/nnUNet_preprocessed/Dataset{dataset_id}_Prostate/nnUNetPlans.json"
-f = open(plans_path)
+
 plans = json.load(f)
 plans['configurations']['3d_lowres'] = {
     "data_identifier": "nnUNetPlans_3d_lowres",  # do not be a dumbo and forget this. I was a dumbo. And I paid dearly with ~10 min debugging time

@@ -14,6 +14,13 @@ from nnunetv2.utilities.label_handling.label_handling import LabelManager
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager
 
 
+
+"""
+basically we need to take all of the outputs of all models - take the average of them and then as far as i get itt one hot ...
+
+"""
+
+
 def average_probabilities(list_of_files: List[str]) -> np.ndarray:
     assert len(list_of_files), 'At least one file must be given in list_of_files'
     avg = None
