@@ -142,14 +142,14 @@ class Pl_main_model(pl.LightningModule):
         self.logger.log_hyperparams(self.hparams_dict)
         self.pseudo_lesion_adder=My_gpu_pseudo_lesion_adder(n=int(os.getenv('n_lesions'))
                                                             ,k=int(os.getenv('k_lesions'))
-                                                            ,mean_0=float(os.getenv('mean_0'))
-                                                            ,mean_1=float(os.getenv('mean_1'))
-                                                            ,mean_2=float(os.getenv('mean_2'))
-                                                            ,mean_3=float(os.getenv('mean_3'))
-                                                            ,std_0=float(os.getenv('std_0'))
-                                                            ,std_1=float(os.getenv('std_1'))
-                                                            ,std_2=float(os.getenv('std_2'))
-                                                            ,std_3=float(os.getenv('std_3'))
+                                                            ,mean_0=0.1
+                                                            ,mean_1=0.1
+                                                            ,mean_2=0.1
+                                                            ,mean_3=0.1
+                                                            ,std_0=0.1
+                                                            ,std_1=0.1
+                                                            ,std_2=0.1
+                                                            ,std_3=0.1
                                                             ,is_anatomic=(int(os.getenv('is_anatomic'))==1)
                                                             ,mult_old_a=float(os.getenv('mult_old_a'))
                                                             ,mult_old_b=float(os.getenv('mult_old_b'))
