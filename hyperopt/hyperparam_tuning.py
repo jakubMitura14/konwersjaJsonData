@@ -193,7 +193,7 @@ def setup_pseudo_lesion_adder_and_loss(trial):
     os.environ['k_lesions'] = str(trial.suggest_int("k_lesions", 1,1000))
     
     os.environ['output_0_w'] =str(trial.suggest_float("output_0_w", 0.001,0.999))
-    os.environ['output_1_w'] = str(trial.suggest_float("output_1_w", 0.001,0.999))
+    # os.environ['output_1_w'] = str(trial.suggest_float("output_1_w", 0.001,0.999))
     os.environ['mean_2'] = str(0.45)#str(trial.suggest_float("mean_2", 0.001,0.999))
     os.environ['mean_3'] = str(3.1)#str(trial.suggest_float("mean_3", 0.001,0.999))
     os.environ['std_0'] = str(0.15)#str(trial.suggest_float("std_0", 0.001,0.999))

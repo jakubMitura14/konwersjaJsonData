@@ -420,7 +420,7 @@ def get_pred_one_hot(output,is_regions):
 
 def save_to_hdf5(f,inner_id,group_name,batch_id,target,output,data):
     output_0_w=float(os.getenv('output_0_w'))
-    output_1_w=float(os.getenv('output_1_w'))
+    output_1_w=1-output_0_w
     sum_w=output_0_w+output_1_w
 
     
