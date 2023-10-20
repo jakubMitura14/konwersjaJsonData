@@ -261,8 +261,13 @@ class Picai_FL_and_CE_loss(nn.Module):
 
         self.w0=float(os.getenv('w0'))
         self.w1=float(os.getenv('w1'))
-        self.w2=float(os.getenv('w2'))
-        self.w_max= np.max(np.array([self.w0,self.w1,self.w2]))
+        self.w2=2-self.w0-self.w1
+
+        self.w0=self.w0/2
+        self.w1=self.w1/2
+        self.w2=self.w2/2
+
+        self.w_max= np.max(np.array([self.w0,self.w1]))
 
 
     def forward(self, net_output, target):

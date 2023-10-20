@@ -21,6 +21,7 @@ def loadLib(name,path):
 
 # print(f"rrrrrrrrr {curr_csv}")
 # curr_csv.to_csv(csv_dir) 
+os. remove('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy') 
 
 with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
     np.save(f, np.array([0]))
@@ -103,8 +104,8 @@ def set_env_variables_for_general_transforms(trial):
     # os.environ['p_el_per_sample'] = str(trial.suggest_float("p_el_per_sample", 0.0,0.9))
     # os.environ['p_scale_per_sample'] = str(trial.suggest_float("p_scale_per_sample", 0.0,0.9))
     # os.environ['p_rot_per_sample'] = str(trial.suggest_float("p_rot_per_sample", 0.0,0.9))
-    # baseLr=0.00831
-    # os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/1000,baseLr*10))
+    baseLr=0.00831
+    os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/1000,baseLr*10))
 
 
 
@@ -127,8 +128,8 @@ def set_env_variables_for_general_transforms(trial):
     os.environ['p_el_per_sample'] = str(0.3338220211800589)
     os.environ['p_scale_per_sample'] = str(0.6832566131656115)
     os.environ['p_rot_per_sample'] = str(0.5495580611394884)
-    baseLr=0.00831
-    os.environ['learning_rate'] = str(0.03142343750219331)
+    # baseLr=0.00831
+    # os.environ['learning_rate'] = str(0.03142343750219331)
 
 
 
@@ -182,15 +183,15 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="custom_aug_loss_d"#bias_norm
+experiment_name="custom_aug_loss_e"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
     # os.environ['n_lesions'] = str(6)#str(trial.suggest_int("n_lesions", 2,9))
     # os.environ['k_lesions'] = str(200)#str(trial.suggest_int("k_lesions", 0,1000))
     
-    os.environ['n_lesions'] = str(trial.suggest_int("n_lesions", 3,9))
-    os.environ['k_lesions'] = str(trial.suggest_int("k_lesions", 1,1000))
+    os.environ['n_lesions'] = str(7)#str(trial.suggest_int("n_lesions", 3,9))
+    os.environ['k_lesions'] = str(30)#str(trial.suggest_int("k_lesions", 1,1000))
     
     os.environ['output_0_w'] =str(trial.suggest_float("output_0_w", 0.001,0.999))
     # os.environ['output_1_w'] = str(trial.suggest_float("output_1_w", 0.001,0.999))
@@ -204,9 +205,9 @@ def setup_pseudo_lesion_adder_and_loss(trial):
     os.environ['mult_old_b'] = str(1.0)#str(trial.suggest_float("mult_old_b", 0.0,1.0))
     os.environ['is_anatomic'] = "1"#trial.suggest_categorical("is_anatomic", ["0", "1"])
     #for custom loss function
-    os.environ['w0'] = str(trial.suggest_float("w0", 0.001,0.999))
-    os.environ['w1'] = str(trial.suggest_float("w1", 0.001,0.999))
-    os.environ['w2'] = str(trial.suggest_float("w2", 0.001,0.999))
+    os.environ['w0'] = str(trial.suggest_float("w0", 0.0,1.0))
+    os.environ['w1'] = str(trial.suggest_float("w1", 0.0,1.0))
+    # os.environ['w2'] = str(trial.suggest_float("w2", 0.001,0.999))
 
 
 
@@ -236,12 +237,10 @@ def objective(trial: optuna.trial.Trial) -> float:
 
     numpy_dir="/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy"
     a=np.load(numpy_dir)
-    sorted=np.sort(a)
-    n=3
-    res=  sorted[-n :] 
-    print(f"rrr res {res} sorted {sorted}")   
+    res=  np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
+    print(f"rrr res {res} aa {a}")   
 
-    return np.mean(res)
+    return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
 # storage="mysql://root@34.90.134.17/testt"
 study = optuna.create_study(
         study_name=experiment_name
@@ -254,7 +253,6 @@ study = optuna.create_study(
         ,direction="maximize"
         )
 
-  
 #         #mysql://root@localhost/example
 study.optimize(objective, n_trials=400)
 
