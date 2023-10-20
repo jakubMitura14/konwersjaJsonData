@@ -31,6 +31,8 @@ def convert_predicted_logits_to_segmentation_with_correct_shape(predicted_logits
                                             properties_dict['shape_after_cropping_and_before_resampling'],
                                             current_spacing,
                                             properties_dict['spacing'])
+    
+
     # return value of resampling_fn_probabilities can be ndarray or Tensor but that doesnt matter because
     # apply_inference_nonlin will covnert to torch
     predicted_probabilities = label_manager.apply_inference_nonlin(predicted_logits)
@@ -46,6 +48,8 @@ def convert_predicted_logits_to_segmentation_with_correct_shape(predicted_logits
                                               dtype=np.uint8 if len(label_manager.foreground_labels) < 255 else np.uint16)
     slicer = bounding_box_to_slice(properties_dict['bbox_used_for_cropping'])
     segmentation_reverted_cropping[slicer] = segmentation
+
+
     del segmentation
 
     # revert transpose

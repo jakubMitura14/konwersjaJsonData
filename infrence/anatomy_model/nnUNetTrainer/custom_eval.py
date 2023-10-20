@@ -410,8 +410,7 @@ def get_pred_one_hot(output,is_regions):
     if(is_regions):
         predicted_segmentation_onehot = (torch.sigmoid(output) > 0.5).long()
         return predicted_segmentation_onehot
-    else:
-        
+    else:        
         output_seg = output.argmax(1)[:, None]
         predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
         predicted_segmentation_onehot.scatter_(1, output_seg, 1)

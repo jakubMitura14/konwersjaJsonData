@@ -131,6 +131,7 @@ class Pl_main_model(pl.LightningModule):
         self.hparams_dict=hparams_dict
 
 
+
     def setup(self, stage=None):
         self.logger.experiment.log_text(os.getenv('my_proj_desc'))
         self.logger.experiment.add_tag(os.getenv('tag'))

@@ -35,7 +35,8 @@ from evalutils.validators import (UniqueImagesValidator,
 from picai_prep.data_utils import atomic_image_write
 from picai_prep.preprocessing import (PreprocessingSettings, Sample,
                                       resample_to_reference_scan)
-
+from nnunetv2.utilities.label_handling.label_handling import LabelManager
+import monai
 import SimpleITK as sitk
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 try:
@@ -47,11 +48,46 @@ import tempfile
 
 from pathlib import Path
 from .anatomy_model.nnUNetTrainer.Main_trainer_pl import *
+import torchio as tio
+from acvl_utils.cropping_and_padding.bounding_boxes import bounding_box_to_slice
 
+from monai.inferers import sliding_window_inference
+from monai.losses import DiceLoss
+from monai.metrics import DiceMetric
+from monai.networks import eval_mode
+from monai.networks.nets import UNet
+from monai.transforms import (
+    Activations,
+    EnsureChannelFirstd,
+    AsDiscrete,
+    Compose,
+    CropForegroundd,
+    DivisiblePadd,
+    KeepLargestConnectedComponent,
+    Lambdad,
+    LoadImaged,
+    MapTransform,
+    RandAffined,
+    ScaleIntensityd,
+    Rand3DElasticd,
+    AdjustContrastd,
+    BatchInverseTransform,
+)
+from monai.transforms.utils import allow_missing_keys_mode
+from monai.utils import first, set_determinism
+from monai.data import (
+    CacheDataset,
+    DataLoader,
+    Dataset,
+    pad_list_data_collate,
+    TestTimeAugmentation,
+)
+
+set_determinism(seed=0)
 
 lapgm.use_gpu(True)# on cpu 16 9 iters
 debias_obj = lapgm.LapGM(downscale_factor=1)
-debias_obj.set_hyperparameters(tau=0.0426040566281932, n_classes=12, log_initialize=False)
+debias_obj.set_hyperparameters(tau=0.0426040566281932, n_classes=12, log_initialize=True)
 
 
 class AnatomyPreprocessor(object):
@@ -290,113 +326,6 @@ class AnatomyPreprocessor(object):
 
 
 
-def input_verification_crop_or_pad(
-    image: "Union[sitk.Image, npt.NDArray[Any]]",
-    size: Optional[Iterable[int]] = (20, 256, 256),
-    physical_size: Optional[Iterable[float]] = None,
-) -> Tuple[Iterable[int], Iterable[int]]:
-    """
-    Calculate target size for cropping and/or padding input image
-
-    Parameters:
-    - image: image to be resized (sitk.Image or numpy.ndarray)
-    - size: target size in voxels (z, y, x)
-    - physical_size: target size in mm (z, y, x)
-
-    Either size or physical_size must be provided.
-
-    Returns:
-    - shape of original image (in convention of SimpleITK (x, y, z) or numpy (z, y, x))
-    - size of target image (in convention of SimpleITK (x, y, z) or numpy (z, y, x))
-    """
-    # input conversion and verification
-    if physical_size is not None:
-        # convert physical size to voxel size (only supported for SimpleITK)
-        if not isinstance(image, sitk.Image):
-            raise ValueError("Crop/padding by physical size is only supported for SimpleITK images.")
-        spacing_zyx = list(image.GetSpacing())[::-1]
-        size_zyx = [length/spacing for length, spacing in zip(physical_size, spacing_zyx)]
-        size_zyx = [int(np.round(x)) for x in size_zyx]
-
-        if size is None:
-            # use physical size
-            size = size_zyx
-        else:
-            # verify size
-            if size != size_zyx:
-                raise ValueError(f"Size and physical size do not match. Size: {size}, physical size: "
-                                 f"{physical_size}, spacing: {spacing_zyx}")
-
-    if isinstance(image, sitk.Image):
-        # determine shape and convert convention of (z, y, x) to (x, y, z) for SimpleITK
-        shape = image.GetSize()
-        size = list(size)[::-1]
-    else:
-        # determine shape for numpy array
-        assert isinstance(image, (np.ndarray, np.generic))
-        shape = image.shape
-        size = list(size)
-    rank = len(size)
-    assert rank <= len(shape) <= rank + 1, \
-        f"Example size doesn't fit image size. Got shape={shape}, output size={size}"
-
-    return shape, size
-
-
-def crop_or_pad(
-    image: "Union[sitk.Image, npt.NDArray[Any]]",
-    size: Optional[Iterable[int]] =None,# (20, 256, 256),
-    physical_size: Optional[Iterable[float]] = None,
-    crop_only: bool = True,
-) -> "Union[sitk.Image, npt.NDArray[Any]]":
-    """
-    copied from picai_prep
-
-    Resize image by cropping and/or padding
-
-    Parameters:
-    - image: image to be resized (sitk.Image or numpy.ndarray)
-    - size: target size in voxels (z, y, x)
-    - physical_size: target size in mm (z, y, x)
-
-    Either size or physical_size must be provided.
-
-    Returns:
-    - resized image (same type as input)
-    """
-    # input conversion and verification
-    shape, size = input_verification_crop_or_pad(image, size, physical_size)
-
-    # set identity operations for cropping and padding
-    rank = len(size)
-    padding = [[0, 0] for _ in range(rank)]
-    slicer = [slice(None) for _ in range(rank)]
-
-    # for each dimension, determine process (cropping or padding)
-    for i in range(rank):
-        if shape[i] < size[i]:
-            if crop_only:
-                continue
-
-            # set padding settings
-            padding[i][0] = (size[i] - shape[i]) // 2
-            padding[i][1] = size[i] - shape[i] - padding[i][0]
-        else:
-            # create slicer object to crop image
-            idx_start = int(np.floor((shape[i] - size[i]) / 2.))
-            idx_end = idx_start + size[i]
-            slicer[i] = slice(idx_start, idx_end)
-
-    # crop and/or pad image
-    if isinstance(image, sitk.Image):
-        pad_filter = sitk.ConstantPadImageFilter()
-        pad_filter.SetPadLowerBound([pad[0] for pad in padding])
-        pad_filter.SetPadUpperBound([pad[1] for pad in padding])
-        return pad_filter.Execute(image[tuple(slicer)])
-    else:
-        return np.pad(image[tuple(slicer)], padding)
-
-
 
 
 def orientt(path):
@@ -453,15 +382,21 @@ def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
     #first bias field correction
     modalities_to_normalize=  [t2w_image,adc_image,hbv_image]
     modalities_to_normalize = list(map(sitk.GetArrayFromImage ,modalities_to_normalize))
+    modalities_to_normalize = list(map(lambda arr : np.nan_to_num(arr, copy=True, nan=0.0, posinf=0.0, neginf=0.0).astype(float)  ,modalities_to_normalize))
+    print(f" aaaaa 1: {np.mean(modalities_to_normalize[0].flatten())}  {modalities_to_normalize[0].shape} 2: {np.mean(modalities_to_normalize[1].flatten())}  {modalities_to_normalize[1].shape} 3: {np.mean(modalities_to_normalize[2].flatten())}  {modalities_to_normalize[2].shape} ")
+
     arrrr = lapgm.to_sequence_array(modalities_to_normalize)
-    params = get_paramss(arrrr)
-    # Run debias procedure and take parameter output
-    arrrr= lapgm.debias(arrrr, params)
-    arrrr_debiased=arrrr.copy()
+    # arrrr=np.nan_to_num(arrrr, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
     nan_summ=np.sum(np.isnan(arrrr))
     if(nan_summ>0):
         print(f"eeeeeeeeeeeeeerrorrr naaans")
         raise Exception('nanns')   
+
+    params = get_paramss(arrrr)
+    # Run debias procedure and take parameter output
+    arrrr= lapgm.debias(arrrr, params)
+    arrrr_debiased=arrrr.copy()
+
     to_norm="t2w_adc_hbv"  
     arrrr=np.nan_to_num(arrrr, copy=True, nan=0.0, posinf=0.0, neginf=0.0)    
     #we need new parameters only if we are normalizing less than bias field correcting
@@ -495,6 +430,7 @@ def get_modalities_to_norm_classic(norm_str, t2w_image,adc_image,hbv_image):
         return [z_score_normalize(t2w_image), adc_image, hbv_image]
 
 def bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image):
+    print("bias field correction by sitk")
     norm_str="t2w_adc_hbv"
     corrector = sitk.N4BiasFieldCorrectionImageFilter()
     t2w_image= corrector.Execute(t2w_image)
@@ -510,13 +446,25 @@ def bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image):
 
 
 def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
-    try:
-        return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
-    except:
-        return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
+    return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image)
+    # try: TODO remove above and unhash
+    #     return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
+    # except:
+    #     return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
+
+def get_pred_one_hot(output,is_regions):
+    if(is_regions):
+        predicted_segmentation_onehot = (output > 0.5).long()
+        return predicted_segmentation_onehot
+    else:
+        
+        output_seg = output.argmax(1)[:, None]
+        predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
+        predicted_segmentation_onehot.scatter_(1, output_seg, 1)
+        return predicted_segmentation_onehot
 
 
-def example_test_case_preprocessing():
+def test_case_preprocessing():
     # (paths to files may need adaptations)
     plans_file = '/workspaces/konwersjaJsonData/infrence/plans/anatomy_plans.json'
     dataset_json_file = '/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/dataset.json'
@@ -524,9 +472,10 @@ def example_test_case_preprocessing():
 
 
     #'t2w','adc','hbv'
-    main_dat='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data/001'
+    main_dat='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data/014'
 
-    input_images_paths = [f"{main_dat}/1_t2w.mha",f"{main_dat}/1_adc.mha",f"{main_dat}/1_hbv.mha" , ]  # if you only have one channel, you still need a list: ['case000_0000.nii.gz']
+    input_images_paths = [f"{main_dat}/14_t2w.mha",f"{main_dat}/14_adc.mha",f"{main_dat}/14_hbv.mha" , ]  # if you only have one channel, you still need a list: ['case000_0000.nii.gz']
+    
     #load orient
     input_images= list(map(orientt,input_images_paths))
     #resampling to t2w
@@ -535,7 +484,9 @@ def example_test_case_preprocessing():
 
     #cropping
     physical_size=[138.0, 128.0, 124.0]
-    input_images=list(map(lambda im: crop_or_pad(image=im, physical_size=physical_size),input_images))
+    # size=(48, 193, 165)
+    # input_images=list(map(lambda im: crop_or_pad(image=im, size=size),input_images))
+    input_images=list(map(lambda im: my_center_crop(image=im, physical_size=physical_size),input_images))
 
     #bias field correction
     input_images=bias_field_and_normalize(input_images[0],input_images[1],input_images[2])
@@ -543,7 +494,7 @@ def example_test_case_preprocessing():
 
     #save back into files into temporary directory
     # temp_dir = tempfile.mkdtemp() 
-    temp_dir = "/workspaces/konwersjaJsonData/explore/temp"
+    temp_dir = "/workspaces/konwersjaJsonData/data/curr"
     input_images_paths=list(map( lambda tupl: save_into_temp(tupl,temp_dir),list(zip(input_images,input_images_paths))))
 
     pp = AnatomyPreprocessor()
@@ -561,12 +512,216 @@ def example_test_case_preprocessing():
     # shutil.rmtree(temp_dir, ignore_errors=True)
    
     # voila. Now plug data into your prediction function of choice. We of course recommend nnU-Net's default (TODO)
-    return data
+    return data,properties,input_images_paths
+
+
+
+
+
+def save_label(output,chann,name,path_of_example):
+    label_image=get_im_from_array(output,chann,sitk.ReadImage(path_of_example))
+    writer = sitk.ImageFileWriter()   
+    newPath=f"/workspaces/konwersjaJsonData/data/curr/{name}.nii.gz"
+    writer.SetFileName(newPath)
+    writer.Execute(label_image)
+ 
+def min_0(el):
+    if(el<0):
+        return 0
+    return el
+
+def max_second(size_zyx,curr_size,i):
+    if(size_zyx[i]>(curr_size[i]-1)):
+        return curr_size[i]
+    return size_zyx[i]
+
+
+def my_center_crop(image,physical_size):
+    spacing_zyx = list(image.GetSpacing())[::-1]
+    size_zyx = [length/spacing for length, spacing in zip(physical_size, spacing_zyx)]
+    size_zyx = [int(np.round(x)) for x in size_zyx] 
+    curr_size = list(image.GetSize())[::-1]
+
+    size_zyx= list(map(lambda i:max_second(size_zyx,curr_size,i) ,list(range(3))))
+
+    beg=[int((curr_size[0]-size_zyx[0])//2),int((curr_size[1]-size_zyx[1])//2),int((curr_size[2]-size_zyx[2])//2)]
+    beg = list(map(min_0,beg))
+    # print(f"aaaaaaa curr_size {curr_size}  size_zyx {size_zyx} beg {beg}  physical_size {physical_size}")
+
+    extract = sitk.ExtractImageFilter()
+    extract.SetSize([size_zyx[2],size_zyx[1],size_zyx[0]])
+    extract.SetIndex([beg[2],beg[1],beg[0]])
+    extracted_image = extract.Execute(image)
+    return extracted_image
+
+
+
+def un_crop(segmentation_reverted_cropping,arr,channel,slicer,plans_manager):
+    segmentation_reverted_cropping[slicer] = arr[channel,:,:,:]    
+    segmentation_reverted_cropping = segmentation_reverted_cropping.transpose(plans_manager.transpose_backward)
+    return segmentation_reverted_cropping
+
+def my_convert_predicted_logits_to_segmentation_with_correct_shape(predicted_logits: Union[torch.Tensor, np.ndarray],
+                                                                plans_manager: PlansManager,
+                                                                configuration_manager: ConfigurationManager,
+                                                                label_manager: LabelManager,
+                                                                properties_dict: dict,
+                                                                return_probabilities: bool = False,
+                                                                num_threads_torch: int = 1):
+    # predicted_logits=predicted_logits.cpu().numpy()
+    # resample to original shape
+    current_spacing = configuration_manager.spacing if \
+        len(configuration_manager.spacing) == \
+        len(properties_dict['shape_after_cropping_and_before_resampling']) else \
+        [properties_dict['spacing'][0], *configuration_manager.spacing]
+    predicted_logits = configuration_manager.resampling_fn_probabilities(predicted_logits,
+                                            properties_dict['shape_after_cropping_and_before_resampling'],
+                                            current_spacing,
+                                            properties_dict['spacing'])
+    
+    # put segmentation in bbox (revert cropping)
+    segmentation_reverted_cropping = np.zeros([predicted_logits.shape[0]]+list(properties_dict['shape_before_cropping']),
+                                              dtype=float)
+    slicer = bounding_box_to_slice(properties_dict['bbox_used_for_cropping'])
+
+    # print(f"asdasdasdddddddddddd {slicer}")
+
+    segmentation_reverted_cropping[:,slicer[0],slicer[1],slicer[2]] = predicted_logits   
+    # print(f"11 rrrrrrrrrr 0: {np.sum(predicted_logits[0,:,:,:])}  1: {np.sum(predicted_logits[1,:,:,:])}  2: {np.sum(predicted_logits[2,:,:,:])}  3: {np.sum(predicted_logits[3,:,:,:])} ")
+    # print(f"to tttt {plans_manager.transpose_backward }")
+    tr=plans_manager.transpose_backward
+    segmentation_reverted_cropping = segmentation_reverted_cropping.transpose(tuple([0,tr[0]+1,tr[1]+1,tr[2]+1] ))
+    return segmentation_reverted_cropping
+    # res= list(map(lambda chan :un_crop(segmentation_reverted_cropping,predicted_logits,chan,slicer,plans_manager), list(range(predicted_logits.shape[0] ))))
+    # res= np.stack(res)
+    # return res
+
+    # predicted_probabilities = label_manager.apply_inference_nonlin(predicted_logits)
+        
+
+
+
+
+def get_largest_connected_component(binary_image):
+    if(np.sum(binary_image.flatten())==0):
+        return binary_image
+    binary_image=sitk.GetImageFromArray(binary_image.astype(np.uint8))
+    #taken from https://discourse.itk.org/t/simpleitk-extract-largest-connected-component-from-binary-image/4958
+    # 1. Convert binary image into a connected component image, each component has an integer label.
+    # 2. Relabel components so that they are sorted according to size (there is an
+    #    optional minimumObjectSize parameter to get rid of small components).
+    # 3. Get largest connected componet, label==1 in sorted component image.
+    component_image = sitk.ConnectedComponent(binary_image)
+    sorted_component_image = sitk.RelabelComponent(component_image, sortByObjectSize=True)
+    largest_component_binary_image = sorted_component_image == 1
+    return sitk.GetArrayFromImage(largest_component_binary_image)
+
+
+def execute_infrence(data,clinical,network,is_swin_monai):
+    if(is_swin_monai):
+        # monai.inferers.SlidingWindowInfererAdapt((64, 192, 160))(torch.tensor(data).float().cuda(), network,clinical=clinical  )[0]  
+        return monai.inferers.sliding_window_inference( (torch.tensor(data).float().cuda()), (64, 192, 160), 1, network,clinical=clinical)[0]  
+    return monai.inferers.sliding_window_inference(torch.tensor(data).float().cuda(), (48, 192, 160), 1, network)[0]  
+    # return monai.inferers.SlidingWindowInfererAdapt((48, 192, 160))(torch.tensor(data).float().cuda(), network  )[0]  
+
+
+
+def test_time_augmentation(data,clinical,network,is_swin_monai):
+    keys = ["image"]
+    sizee=(48, 192, 160)
+    if(is_swin_monai):
+        sizee=(64, 192, 160)
+
+    val_transforms = Compose(
+        [
+            RandAffined(
+                keys,
+                prob=1.0,
+                spatial_size=sizee,
+                rotate_range=(np.pi / 10, np.pi / 10, np.pi / 10),
+                shear_range=(0.5,0.5),
+                # rotate_range=(np.pi / 3, np.pi / 3, np.pi / 3),
+                translate_range=(0.1, 0.1, 0.1),
+                scale_range=((0.99, 1), (0.99, 1), (0.99, 1)),
+                padding_mode="zeros",
+                mode=("bilinear"),
+            ),
+            # CropForegroundd(keys, source_key="image"),
+            # DivisiblePadd(keys, 16),
+            ScaleIntensityd("image"),
+            AdjustContrastd("image",2),
+            Rand3DElasticd("image",sigma_range=(5,7), magnitude_range=(50,150),prob=1.0) 
+            # CropForegroundd(keys, source_key="image")
+
+        ]
+    )
+
+
+    tt_aug = TestTimeAugmentation(
+        val_transforms, batch_size=1, num_workers=0, inferrer_fn=lambda data: torch.sigmoid(execute_infrence(data,clinical,network,is_swin_monai)), device="cuda"
+        # val_transforms, batch_size=1, num_workers=0, inferrer_fn=lambda data: execute_infrence(data,clinical,network,is_swin_monai), device="cuda"
+    )
+    mode_tta, mean_tta, std_tta, vvc_tta = tt_aug({"image" : data}, num_examples=15)
+
+    # transform = tio.RandomAffine(image_interpolation='bspline')
+    # transformed = transform()
+    # output=execute_infrence(transform(data),clinical,network,is_swin_monai)
+
+    # segmentation = model(transformed)
+    # transformed_native_space = segmentation.apply_inverse_transform(image_interpolation='linear')
+    # segmentations.append(transformed_native_space)
+    return mode_tta, mean_tta, std_tta, vvc_tta
+
+
+
+
+
+def execute_model_from_path(plans,configuration,fold,dataset_json,is_swin_monai,is_classic_nnunet,checkpoint_path,clinical,properties,output):
+    trainer= Main_trainer_pl(plans=plans,configuration=configuration
+                    ,fold=fold ,dataset_json=dataset_json)
+    trainer.on_train_start(is_swin_monai=is_swin_monai,is_classic_nnunet=is_classic_nnunet,checkpoint_path=checkpoint_path)
+    pl_model=trainer.pl_model
+    network=pl_model.network.cuda()
+    network.eval()
+    
+
+
+    # output = network(torch.tensor(data).float().cuda())[0] 
+    output = einops.rearrange(output,'b c z y x -> (b c) z y x')
+    #reverse cropping etc to get back to the place just after manual preprocessing and before nnunet preprocessing
+    label_manager = trainer.plans_manager.get_label_manager(dataset_json)
+    mode_tta, mean_tta, std_tta, vvc_tta=test_time_augmentation(output,clinical,network,is_swin_monai)
+    output=mean_tta
+    print(f" mode_tta {type(mode_tta)} {type(mean_tta)} vvc_tta {type(std_tta)}  ")
+
+    def convert_inner(arr):
+        arr=arr.detach().cpu().numpy()
+        #TODO use uncertanity quantification like in https://www.sciencedirect.com/science/article/pii/S0925231219301961
+        arr=my_convert_predicted_logits_to_segmentation_with_correct_shape(arr,
+                                                                            plans_manager= trainer.plans_manager,
+                                                                            configuration_manager= trainer.configuration_manager,
+                                                                            label_manager=label_manager,
+                                                                            properties_dict=properties,
+                                                                            return_probabilities = True,
+                                                                            num_threads_torch = 1)
+        return arr
+
+    print(f"mmmmode_tta   { mode_tta.shape} mean_tta {mean_tta.shape} std_tta {std_tta.shape}")
+    return (convert_inner(mode_tta), convert_inner(mean_tta), convert_inner(std_tta)) #, convert_inner(vvc_tta)
 
 
 if __name__ == '__main__':
-    # data=example_test_case_preprocessing()
-    # print(f"ddddd {data.shape}")
+
+
+    data,properties,input_images_paths=test_case_preprocessing()
+    size=(3,48, 192, 160)
+    # data= crop_or_pad(image=data, size=size)
+
+
+    data=einops.rearrange(data,'c z y x->1 c z y x')
+
+    # data= np.zeros((1,3, 48, 192, 160))
+
     plans_file = '/workspaces/konwersjaJsonData/infrence/plans/anatomy_plans.json'
     dataset_json_file = '/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/dataset.json'
     configuration = '3d_lowres'
@@ -574,21 +729,70 @@ if __name__ == '__main__':
     
     plans = load_json(plans_file)
     dataset_json = load_json(dataset_json_file)
-    Main_trainer_pl(plans=plans,configuration=configuration
-                    ,fold=fold ,dataset_json=dataset_json)
-
- 
-        # self.network = self.network.to(self.device)
 
 
-#python3 -m infrence.prprocess
+    checkpoint_paths=[(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=275-step=5796.ckpt")
+                      ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_1/epoch=509-step=10710.ckpt")
+                    #   ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_2/epoch=467-step=9828.ckpt")
+                    #   ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_2/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_3/epoch=413-step=8694.ckpt")
+                    #   ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_2/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_3/epoch=413-step=8694.ckpt")
+                    #   ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_3/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_4/epoch=449-step=9450.ckpt" )                     
+                      
+                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=359-step=7561.ckpt" )     
+                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_1/epoch=539-step=11341.ckpt" )     
+                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_2/epoch=395-step=8317.ckpt" )     
+                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_3/epoch=323-step=6805.ckpt" )     
+                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_4/epoch=341-step=7183.ckpt" )     
+                                      
+                                                      ]
+    
+    is_swin_monai=False
+    is_classic_nnunet=True
+    #is_classic_nnunet,checkpoint_path
+    clinical= torch.tensor([-1.0,-1.0,-1.0])#TODO load real data
+
+    output=list(map(lambda tupl : execute_model_from_path(plans,configuration,fold,dataset_json,(not tupl[0]),tupl[0],tupl[1],clinical,properties,data),checkpoint_paths  ))
+    
+    mode_tta=list(map(lambda tupl:tupl[0],output))
+
+    mode_tta= np.mean(np.stack(mode_tta,axis=0),axis=0)
+    mean_tta= np.mean(np.stack(list(map(lambda tupl:tupl[1],output)),axis=0),axis=0)
+    std_tta= np.mean(np.stack(list(map(lambda tupl:tupl[2],output)),axis=0),axis=0)
+    # vvc_tta= np.mean(np.stack(list(map(lambda tupl:tupl[3],output))),axis=0)
+    print(f"hhhhhhhhhh mean_tta {np.min(mean_tta.flatten())} {np.mean(mean_tta.flatten())} {np.max(mean_tta.flatten())}  ")
+    print(f"hhhhhhhhhh mode_tta {np.min(mode_tta.flatten())} {np.mean(mode_tta.flatten())} {np.max(mode_tta.flatten())}  ")
+    print(f"hhhhhhhhhh std_tta {np.min(std_tta.flatten())} {np.mean(std_tta.flatten())} {np.max(std_tta.flatten())}  ")
+
+    mean_tta=(mean_tta>0.5).astype(np.uint8)
+
+    # output=np.mean(np.stack(output),axis=0)
+    path_of_example=input_images_paths[0]  #"/workspaces/konwersjaJsonData/data/curr/1_t2w.nii.gz"
+    save_label(mode_tta,3,"mode_tta",path_of_example)
+    save_label(mean_tta,0,"mean_pz",path_of_example)
+    save_label(mean_tta,1,"mean_tz",path_of_example)
+    save_label(mean_tta,2,"mean_sv",path_of_example)
+    save_label(mean_tta,3,"mean_sum",path_of_example)
+
+    save_label(std_tta,3,"std_tta",path_of_example)
+    # save_label(vvc_tta,3,"vvc_tta",path_of_example)
 
 
-#python3 -m infrence.anatomy_model.nnUNetTrainer.Main_trainer_pl
 
-    # pp = DefaultPreprocessor()
-    # pp.run(2, '2d', 'nnUNetPlans', 8)
+    
 
-    ###########################################################################################################
-    # how to process a test cases? This is an example:
-    # example_test_case_preprocessing()
+    # predicted_segmentation_onehot=torch.tensor(output)
+    # curr=predicted_segmentation_onehot.detach().cpu().numpy()
+
+    # curr=list(map( lambda i: get_largest_connected_component(curr[i,:,:,:]),list(range(curr.shape[0]))))
+    # curr= np.stack(curr)
+
+
+    # path_of_example=input_images_paths[0]  #"/workspaces/konwersjaJsonData/data/curr/1_t2w.nii.gz"
+    # save_label(curr,0,"target_pz",path_of_example)
+    # save_label(curr,1,"target_tz",path_of_example)
+    # save_label(curr,2,"target_sv",path_of_example)
+    # save_label(curr,3,"target_sum",path_of_example)
+
+
+
+# python3 -m infrence.prprocess

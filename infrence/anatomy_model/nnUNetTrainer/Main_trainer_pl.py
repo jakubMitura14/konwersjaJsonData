@@ -84,9 +84,10 @@ class FineTuneLearningRateFinder(LearningRateFinder):
         if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
             self.lr_find(trainer, pl_module)
 
+
 class Main_trainer_pl(nnUNetTrainer):
 
-    def on_train_start(self):
+    def on_train_start(self,is_swin_monai,is_classic_nnunet,checkpoint_path):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
@@ -94,12 +95,12 @@ class Main_trainer_pl(nnUNetTrainer):
         self.num_batch_to_eval=20
         self.batch_size=1
         self.is_deep_supervision=True
-        self.is_classic_nnunet=True
+        self.is_classic_nnunet=is_classic_nnunet
         self.is_swin=False
-        self.is_swin_monai=False
+        self.is_swin_monai=is_swin_monai
         self.is_med_next=False
 
-        self.is_lesion_segm=True
+        self.is_lesion_segm=False
         self.is_anatomy_segm= not self.is_lesion_segm
         self.is_priming_segm= False
 
@@ -118,9 +119,10 @@ class Main_trainer_pl(nnUNetTrainer):
 
         if(self.is_med_next and self.is_lesion_segm):   
             self.learning_rate=0.00831 
-
-        self.learning_rate=float(os.getenv('learning_rate'))
-
+        try:
+            self.learning_rate=float(os.getenv('learning_rate'))
+        except:
+            self.learning_rate=0.0001
         self.hparams_dict={"attn_num_mem_kv":os.getenv('attn_num_mem_kv')
                            ,"use_scalenorm":os.getenv('use_scalenorm')
                            ,"sandwich_norm":os.getenv('sandwich_norm')
@@ -194,8 +196,10 @@ class Main_trainer_pl(nnUNetTrainer):
         os.makedirs(for_explore,exist_ok=True)
 
         self.default_root_dir=ligtning_logs_folder
-        
-        nnUNetTrainer.on_train_start(self)
+        # try:
+        #     nnUNetTrainer.on_train_start(self)
+        # except:
+        #     print(f"nnUNetTrainer init error")
 
         if(self.is_lesion_segm):
             self.loss =self._build_loss_lesions()
@@ -287,6 +291,7 @@ class Main_trainer_pl(nnUNetTrainer):
             ,use_checkpoint=True
             # ,is_deformable=True
             )
+            
 
 
 
@@ -304,7 +309,9 @@ class Main_trainer_pl(nnUNetTrainer):
             self.network = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.network)
             self.network = DDP(self.network, device_ids=[self.local_rank])
 
-        self.pl_model= Pl_main_model(network=self.network
+
+
+        self.pl_model= Pl_main_model.load_from_checkpoint(network=self.network
                                 ,dataloader_train=self.dataloader_train
                                 ,dataloader_val=self.dataloader_val
                                 ,loss=self.loss
@@ -326,6 +333,7 @@ class Main_trainer_pl(nnUNetTrainer):
                                ,is_anatomy_segm=self.is_anatomy_segm
                                ,is_lesion_segm=self.is_lesion_segm
                                ,hparams_dict=self.hparams_dict
+                               ,checkpoint_path=checkpoint_path
                                 )
 
 

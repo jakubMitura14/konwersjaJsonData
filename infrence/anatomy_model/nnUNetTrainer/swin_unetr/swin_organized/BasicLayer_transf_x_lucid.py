@@ -119,23 +119,20 @@ def get_transf_from_hyper(dim,num_heads,window_size_corr,calced_input_size  ):
         kwargss_encoder={'ff_glu':True
                          }
 
-        depth=int(os.getenv('encoders_depth'))
-        kwargss_encoder["depth"]=depth
-
-        # if(os.getenv('attn_num_mem_kv')=='1'):
-        #     kwargss_encoder["attn_num_mem_kv"] = 16
+        if(os.getenv('attn_num_mem_kv')=='1'):
+            kwargss_encoder["attn_num_mem_kv"] = 16
         if(os.getenv('use_scalenorm')=='1'):
             kwargss_encoder["use_scalenorm"] = True
-            # kwargss_encoder["sandwich_norm"] = False
+            kwargss_encoder["sandwich_norm"] = False
         if(os.getenv('sandwich_norm')=='1'):
-            # kwargss_encoder["use_scalenorm"] = False
+            kwargss_encoder["use_scalenorm"] = False
             kwargss_encoder["sandwich_norm"] = True
         if(os.getenv('ff_swish')=='1'):
-            # kwargss_encoder["ff_relu_squared"] = False
+            kwargss_encoder["ff_relu_squared"] = False
             kwargss_encoder["ff_swish"] = True
         if(os.getenv('ff_relu_squared')=='1'):
             kwargss_encoder["ff_relu_squared"] = True
-            # kwargss_encoder["ff_swish"] = False
+            kwargss_encoder["ff_swish"] = False
         if(os.getenv('attn_sparse_topk')=='1'):
             kwargss_encoder["attn_sparse_topk"] = 12
         if(os.getenv('attn_talking_heads')=='1'):
@@ -145,12 +142,12 @@ def get_transf_from_hyper(dim,num_heads,window_size_corr,calced_input_size  ):
         if(os.getenv('attn_gate_values')=='1'):
             kwargss_encoder["attn_gate_values"] = True
         if(os.getenv('sandwich_coef')=='1'):
-            kwargss_encoder["sandwich_coef"] = depth-1
+            kwargss_encoder["sandwich_coef"] = 6
         if(os.getenv('macaron')=='1'):
             kwargss_encoder["macaron"] = True
-        # if(os.getenv('residual_attn')=='1'):
-        #     kwargss_encoder["residual_attn"] = True
-        #     kwargss_encoder["pre_norm"] = False
+        if(os.getenv('residual_attn')=='1'):
+            kwargss_encoder["residual_attn"] = True
+            kwargss_encoder["pre_norm"] = False
         if(os.getenv('gate_residual')=='1'):
             kwargss_encoder["gate_residual"] = True
         if(os.getenv('shift_tokens')=='1'):
@@ -158,7 +155,6 @@ def get_transf_from_hyper(dim,num_heads,window_size_corr,calced_input_size  ):
         if(os.getenv('resi_dual')=='1'):
             kwargss_encoder["resi_dual"] = True
             kwargss_encoder["resi_dual_scale"] = 0.1
-            kwargss_encoder["sandwich_norm"] = False
         if(os.getenv('attn_head_scale')=='1'):
             kwargss_encoder["attn_head_scale"] = True
         if(os.getenv('ff_post_act_ln')=='1'):
@@ -171,7 +167,8 @@ def get_transf_from_hyper(dim,num_heads,window_size_corr,calced_input_size  ):
         if(os.getenv('attn_qk_norm_dim_scale')=='1'):
             kwargss_encoder["attn_qk_norm_dim_scale"] = True
 
-
+        depth=int(os.getenv('encoders_depth'))
+        kwargss_encoder["depth"]=depth
         #performance
         # ff_no_bias = True
         # attn_one_kv_head = True
@@ -179,6 +176,7 @@ def get_transf_from_hyper(dim,num_heads,window_size_corr,calced_input_size  ):
 
         attn_layers = Encoder_my(
             dim = dim,
+            depth = 1,
             heads = num_heads,
             is_Relative_position_embedding_3d=True,
             window_size=window_size_corr,
@@ -193,38 +191,34 @@ def get_transf_from_hyper(dim,num_heads,window_size_corr,calced_input_size  ):
         # l2norm_embed = True | post_emb_norm = True
         # shift_mem_down = 1,
 
-        # if(os.getenv('num_memory_tokens')=='1'):
-        #     attn = My_transformer_wrapper(
-        #         dim_in = dim,
-        #         dim_out = dim,
-        #         max_seq_len = 10024,
-        #         attn_layers=attn_layers,
-        #         num_memory_tokens=20
-        #         )
-        # if(os.getenv('shift_mem_down')=='1'):
-        #     attn = My_transformer_wrapper(
-        #         dim_in = dim,
-        #         dim_out = dim,
-        #         max_seq_len = 10024,
-        #         shift_mem_down=1,
-        #         attn_layers=attn_layers
-        #         )
-        # elif(os.getenv('num_memory_tokens')=='1' and os.getenv('shift_mem_down')=='1'):
-        #     attn = My_transformer_wrapper(
-        #         dim_in = dim,
-        #         dim_out = dim,
-        #         max_seq_len = 10024,
-        #         attn_layers=attn_layers,
-        #         num_memory_tokens=20,
-        #         shift_mem_down=1
-        #         )
-        # else:
-        attn = My_transformer_wrapper(
-            dim_in = dim,
-            dim_out = dim,
-            max_seq_len = 10024,
-            attn_layers=attn_layers,
-            )                
+        if(os.getenv('num_memory_tokens')=='1'):
+            attn = My_transformer_wrapper(
+                dim_in = dim,
+                dim_out = dim,
+                max_seq_len = 10024,
+                attn_layers=attn_layers,
+                num_memory_tokens=20
+                )
+
+        if(os.getenv('shift_mem_down')=='1'):
+            attn = My_transformer_wrapper(
+                dim_in = dim,
+                dim_out = dim,
+                max_seq_len = 10024,
+                attn_layers=attn_layers,
+                shift_mem_down=1
+                )
+
+        if(os.getenv('num_memory_tokens')=='1' and os.getenv('shift_mem_down')=='1'):
+            attn = My_transformer_wrapper(
+                dim_in = dim,
+                dim_out = dim,
+                max_seq_len = 10024,
+                attn_layers=attn_layers,
+                num_memory_tokens=20,
+                shift_mem_down=1
+                )
+            
 
         return attn
 
@@ -323,23 +317,22 @@ class SwinTransformerBlock_lucid(nn.Module):
         window_size_corr, shift_size = get_window_size((d, h, w), self.window_size, self.shift_size)
         self.dhw=(d, h, w)
         self.window_size_corr=window_size_corr
-        # self.attn = My_transformer_wrapper(
-        #     dim_in = dim,
-        #     dim_out = dim,
-        #     max_seq_len = 10024,
-        #     attn_layers = Encoder_my(
-        #         dim = dim,
-        #         depth = 2,
-        #         heads = num_heads,
-        #         is_Relative_position_embedding_3d=True,
-        #         window_size=window_size_corr,
-        #         calced_input_size=calced_input_size,
-        #         return_hiddens=False,
-        #          attn_flash = True,
-        #         ff_glu = True
-        #     )
-        # )
-        self.attn=get_transf_from_hyper(dim,num_heads,window_size_corr,calced_input_size  )
+        self.attn = My_transformer_wrapper(
+            dim_in = dim,
+            dim_out = dim,
+            max_seq_len = 10024,
+            attn_layers = Encoder_my(
+                dim = dim,
+                depth = 2,
+                heads = num_heads,
+                is_Relative_position_embedding_3d=True,
+                window_size=window_size_corr,
+                calced_input_size=calced_input_size,
+                return_hiddens=False,
+                 attn_flash = True,
+                ff_glu = True
+            )
+        )
 
 
         # self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
