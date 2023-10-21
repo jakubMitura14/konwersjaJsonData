@@ -126,7 +126,7 @@ def _identity(x):
 
 lapgm.use_gpu(True)# on cpu 16 9 iters
 debias_obj = lapgm.LapGM(downscale_factor=1)
-debias_obj.set_hyperparameters(tau=0.0426040566281932, n_classes=12, log_initialize=True)
+debias_obj.set_hyperparameters(tau=0.0426040566281932, n_classes=12, log_initialize=False)
 
 
 class AnatomyPreprocessor(object):
@@ -412,6 +412,12 @@ def get_paramss(arrrr):
         return debias_obj.estimate_parameters(arrrr, print_tols=True)
         
             
+def remove_small(arr):
+    sm=0.00000000000001
+    ind=(arr<sm)
+    arr[ind]=sm
+    return arr     
+       
 ### bias field correction and normalization
 #on the basis of https://github.com/lucianoAvinas/lapgm/blob/main/examples/image_correction.ipynb
 def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
@@ -421,9 +427,12 @@ def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
     #first bias field correction
     modalities_to_normalize=  [t2w_image,adc_image,hbv_image]
     modalities_to_normalize = list(map(sitk.GetArrayFromImage ,modalities_to_normalize))
-    modalities_to_normalize = list(map(lambda arr : np.nan_to_num(arr, copy=True, nan=0.0, posinf=0.0, neginf=0.0).astype(float)  ,modalities_to_normalize))
-    print(f" aaaaa 1: {np.mean(modalities_to_normalize[0].flatten())}  {modalities_to_normalize[0].shape} 2: {np.mean(modalities_to_normalize[1].flatten())}  {modalities_to_normalize[1].shape} 3: {np.mean(modalities_to_normalize[2].flatten())}  {modalities_to_normalize[2].shape} ")
+    modalities_to_normalize = list(map(lambda arr : np.nan_to_num(arr, copy=True, nan=0.0, posinf=0.0, neginf=0.0).astype(float) ,modalities_to_normalize))
+    print(f"minnnnnn in bias corr {np.min(np.stack(modalities_to_normalize))}")
+    modalities_to_normalize = list(map(remove_small,modalities_to_normalize))
 
+    # print(f"aaaaaaaaaaaaaaaaaaaaa {np.sum((np.stack(modalities_to_normalize)==0).flatten())} {np.min(np.stack(modalities_to_normalize).flatten())} ")
+    #80830
     arrrr = lapgm.to_sequence_array(modalities_to_normalize)
     # arrrr=np.nan_to_num(arrrr, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
     nan_summ=np.sum(np.isnan(arrrr))
@@ -485,10 +494,11 @@ def bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image):
 
 
 def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
-    try:
-        return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
-    except:
-        return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
+    return  bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
+    # try:
+    #     return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
+    # except:
+    #     return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
 
 def get_pred_one_hot(output,is_regions):
     if(is_regions):
@@ -920,9 +930,10 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     row= list(filter(lambda roww : roww['patient_id']== pat_num,our_prost_rows))
     if(len(row)==0):            
         # print(f"eeeeeeeeee id {self.get_id_from_file_name(entry['data_file'])} file {entry['data_file']}  lll {len(row)}")
-        clinical= [{'dre_result':-1.0,'patient_age':-1.0, 'psa_result' :-1.0 }]
-    clinical = list(map(lambda row : np.array([my_to_float(row['dre_result']),my_to_float(row['patient_age']),my_to_float(row['psa_result'])]), rows))
+        row= [{'dre_result':-1.0,'patient_age':-1.0, 'psa_result' :-1.0 }]
+    clinical = list(map(lambda row : np.array([my_to_float(row['dre_result']),my_to_float(row['patient_age']),my_to_float(row['psa_result'])]), row))
     clinical= np.stack(clinical)
+
     clinical=np.nan_to_num(clinical, copy=True, nan=-1.0, posinf=-1.0, neginf=-1.0)
     clinical=torch.tensor(clinical)
 
@@ -934,7 +945,7 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     input_paths=list(map(get_el_1,input_paths))
     anatomic_cols_paths=list(map( lambda col_name: list(map(lambda inner_dict: inner_dict[1][col_name], group_dict)),anatomic_cols))
     anatomic_cols_paths=list(map(lambda inner_list :list(filter(lambda el: len(el)>4,inner_list )) ,anatomic_cols_paths))
-    if(len(anatomic_cols_paths[-1])==0):
+    if(len(anatomic_cols_paths[-1])==0 or len(anatomic_cols_paths[0])==0 or len(anatomic_cols_paths[1])==0 ):
         return " "
     anatomic_cols_paths= list(map(get_el_1,anatomic_cols_paths))
 
@@ -984,9 +995,9 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     pz=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[0],path_of_example),get_bool_arr_from_path(anatomic_cols_paths[1],path_of_example))
     full_pros=get_bool_arr_from_path(anatomic_cols_paths[4],path_of_example)
     #tz is rest of prostate not pz
-    tz=np.logical_and(np.logical_not(pz),full_pros)
-    #sv jointly
-    sv=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[2],path_of_example),get_bool_arr_from_path(anatomic_cols_paths[3],path_of_example))
+    # tz=np.logical_and(np.logical_not(pz),full_pros)
+    # #sv jointly
+    # sv=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[2],path_of_example),get_bool_arr_from_path(anatomic_cols_paths[3],path_of_example))
 
     # pz,full_pros,pz,sv    
     pz_metr=dict(get_Metrics(mean_tta[0,:,:,:],pz)[0])
@@ -1062,7 +1073,7 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     # print(grouped_rows[0])
 
 
-    res=list(map( lambda groupp :full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,is_swin_monai,checkpoint_paths), grouped_rows))
+    res=list(map( lambda groupp :full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,is_swin_monai,checkpoint_paths,df), grouped_rows))
     res=list(filter(lambda el: el!=" ",res))
 
     avgHausdorff_=np.mean(list(map(lambda dd: dd["avgHausdorff_"], res)))
