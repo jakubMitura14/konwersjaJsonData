@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 # copied defoult preprocessor
+import comet_ml
 import multiprocessing
 import optuna
 import shutil
@@ -484,11 +485,10 @@ def bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image):
 
 
 def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
-    return bias_field_and_normalize_help(t2w_image,adc_image,hbv_image)
-    # try: TODO remove above and unhash
-    #     return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
-    # except:
-    #     return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
+    try:
+        return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
+    except:
+        return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
 
 def get_pred_one_hot(output,is_regions):
     if(is_regions):
@@ -618,6 +618,15 @@ def groupByMaster(rowws):
     # grouped_by_master=[(key,list(group)) for key, group in grouped_by_master]
     return dict(grouped_by_master).items()
 
+def my_to_float(strr):
+    """
+    if possible cast string to float
+    """
+    if(type(strr) is float):
+        return strr
+    strr= strr.replace(",",".")
+    return float(strr)
+    
 
 class My_TestTimeAugmentation:
     """
@@ -745,15 +754,7 @@ class My_TestTimeAugmentation:
                 curr=torch.sigmoid(execute_infrence(b[self.image_key],clinical,network,is_swin_monai)).detach().cpu().numpy()*arch_weight
                 summ=summ+arch_weight
                 b[self._pred_key]=torch.tensor(curr)
-                    # execute_model_from_path(self.plans
-                    #                                        ,self.configuration
-                    #                                        ,self.fold,dataset_json
-                    #                                        ,not is_classic_nnunet
-                    #                                        ,is_classic_nnunet
-                    #                                        ,checkpoint_path
-                    #                                        ,clinical
-                    #                                        ,properties
-                    #                                        ,b[self.image_key])#[0,:,:,:,:,:]
+
                 outs.extend([self.inverter(PadListDataCollate.inverse(i))[self._pred_key] for i in decollate_batch(b)])
 
         output: NdarrayOrTensor = stack(outs, 0)
@@ -775,39 +776,6 @@ class My_TestTimeAugmentation:
                                                                             return_probabilities = True,
                                                                             num_threads_torch = 1),[_mode,mean,std]))
         return arrs[0], arrs[1], arrs[2], vvc
-
-
-
-# def execute_model_from_path(plans,configuration,fold,dataset_json,is_swin_monai,is_classic_nnunet,checkpoint_path,clinical,properties,output):
-#     trainer= Main_trainer_pl(plans=plans,configuration=configuration
-#                     ,fold=fold ,dataset_json=dataset_json)
-#     trainer.on_train_start(is_swin_monai=is_swin_monai,is_classic_nnunet=is_classic_nnunet,checkpoint_path=checkpoint_path)
-#     pl_model=trainer.pl_model
-#     network=pl_model.network.cuda()
-#     network.eval()
-    
-#     # output = network(torch.tensor(data).float().cuda())[0] 
-#     # output = einops.rearrange(output,'b c z y x -> (b c) z y x')
-#     #reverse cropping etc to get back to the place just after manual preprocessing and before nnunet preprocessing
-#     label_manager = trainer.plans_manager.get_label_manager(dataset_json)
-#     # mode_tta, mean_tta, std_tta, vvc_tta=test_time_augmentation(output,clinical,network,is_swin_monai)
-#     output=torch.sigmoid(execute_infrence(output,clinical,network,is_swin_monai))[0,:,:,:,:]
-
-
-#     def convert_inner(arr):
-#         arr=arr.detach().cpu().numpy()
-#         #TODO use uncertanity quantification like in https://www.sciencedirect.com/science/article/pii/S0925231219301961
-#         arr=my_convert_predicted_logits_to_segmentation_with_correct_shape(arr,
-#                                                                             plans_manager= trainer.plans_manager,
-#                                                                             configuration_manager= trainer.configuration_manager,
-#                                                                             label_manager=label_manager,
-#                                                                             properties_dict=properties,
-#                                                                             return_probabilities = True,
-#                                                                             num_threads_torch = 1)
-#         return arr
-
-#     return torch.tensor(convert_inner(output))
-
 
 
 
@@ -882,7 +850,7 @@ def case_preprocessing(plans_file,dataset_json_file,configuration, input_images_
     input_images=list(map(lambda im: my_center_crop(image=im, physical_size=physical_size),input_images))
 
     #bias field correction
-    # input_images=bias_field_and_normalize(input_images[0],input_images[1],input_images[2]) TODO unhash
+    input_images=bias_field_and_normalize(input_images[0],input_images[1],input_images[2])
 
 
     #save back into files into temporary directory
@@ -943,9 +911,21 @@ def get_Metrics(one_hot,target):
     return list(quality.items()),quality[f"dice_{name}"]
 
 
-def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,clinical,is_swin_monai,checkpoint_paths):
+def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,is_swin_monai,checkpoint_paths,df):
 
     pat_num,group_dict=groupp
+
+    our_prost_rows= df.iterrows()
+    our_prost_rows= list(map(lambda tupl:tupl[1],our_prost_rows))
+    row= list(filter(lambda roww : roww['patient_id']== pat_num,our_prost_rows))
+    if(len(row)==0):            
+        # print(f"eeeeeeeeee id {self.get_id_from_file_name(entry['data_file'])} file {entry['data_file']}  lll {len(row)}")
+        clinical= [{'dre_result':-1.0,'patient_age':-1.0, 'psa_result' :-1.0 }]
+    clinical = list(map(lambda row : np.array([my_to_float(row['dre_result']),my_to_float(row['patient_age']),my_to_float(row['psa_result'])]), rows))
+    clinical= np.stack(clinical)
+    clinical=np.nan_to_num(clinical, copy=True, nan=-1.0, posinf=-1.0, neginf=-1.0)
+    clinical=torch.tensor(clinical)
+
     anatomic_cols=['cz_noSeg','pz_noSeg','sv_l_noSeg','sv_r_noSeg','pg_noSeg']
     input_names=["t2w","adc","hbv"]
     # print(group_dict)
@@ -1023,28 +1003,28 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     # save_label(mean_tta,2,"mean_sv",path_of_example)
     # save_label(mean_tta,3,"mean_sum",path_of_example)
     # save_label(std_tta,3,"std_tta",path_of_example)    
-    return pz_metr["avgHausdorff_"]
+    return pz_metr#pz_metr["avgHausdorff_"]
 
-def objective(resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration) -> float:
+def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
     hparam_dict={}
-    hparam_dict["rotate_a"]=np.pi / 10 #np.pi / 10
-    hparam_dict["rotate_b"]=np.pi / 10
-    hparam_dict["rotate_c"]=np.pi / 10
-    hparam_dict["shear_a"]=0.005#0.5
-    hparam_dict["shear_b"]=0.005
-    hparam_dict["shear_c"]=0.005
+    hparam_dict["rotate_a"]=np.pi / trial.suggest_float("rotate_a", 0.5,2.0) #np.pi / 10
+    hparam_dict["rotate_b"]=np.pi / trial.suggest_float("rotate_b", 0.5,2.0)
+    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_c", 0.5,2.0)
+    hparam_dict["shear_a"]=trial.suggest_float("shear_a", 0.0,10.0)
+    hparam_dict["shear_b"]=trial.suggest_float("shear_b", 0.0,10.0)
+    hparam_dict["shear_c"]=trial.suggest_float("shear_c", 0.0,10.0)
     # hparam_dict["scale_range_low"]=0.99
     # hparam_dict["scale_range_high"]=1.0
-    hparam_dict["AdjustContrastd"]=2.0#2
+    hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
 
-    hparam_dict["sigma_low"]=5.0#5
-    hparam_dict["sigma_diff"]=2.0#2
-    hparam_dict["magnitude_range_low"]=50.0#50
-    hparam_dict["magnitude_range_diff"]=100.0#100
-    hparam_dict["prob_elastic"]=0.000001#1.0
-    hparam_dict["num_examples"]=2#15
-    hparam_dict["treshold"]=0.2
-    hparam_dict["swin_weight"]=1.0
+    hparam_dict["sigma_low"]=trial.suggest_float("sigma_low", 0.0,10.0)#5
+    hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
+    hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
+    hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
+    hparam_dict["prob_elastic"]=trial.suggest_float("AdjustContrastd", 0.0,200.0)#1.0
+    hparam_dict["num_examples"]=trial.suggest_int("num_examples", 8,16)
+    hparam_dict["treshold"]=trial.suggest_float("AdjustContrastd", 0.0,0.9)
+    hparam_dict["swin_weight"]=trial.suggest_float("AdjustContrastd", 0.0,1.0)
 
 
     checkpoint_paths=[(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=275-step=5796.ckpt",1.0)
@@ -1064,23 +1044,35 @@ def objective(resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configurati
     
     is_swin_monai=False
     is_classic_nnunet=True
+
+
+
     #is_classic_nnunet,checkpoint_path
-    clinical= torch.tensor([-1.0,-1.0,-1.0])#TODO load real data
+
    
     test_ids=pd.read_csv(test_ids_CSVDir)['ids'].to_numpy().flatten()
     sourceFrame = pd.read_csv(resCSVDir) 
     grouped_rows=list(groupByMaster(list(sourceFrame.iterrows())))
 
     grouped_rows=list(filter(lambda groupp:groupp[0] not in test_ids,grouped_rows ))
-    grouped_rows=grouped_rows[0:2]
+    grouped_rows=grouped_rows[0:50]
 
 
     # print(grouped_rows[0])
 
 
-    res=list(map( lambda groupp :full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,clinical,is_swin_monai,checkpoint_paths), grouped_rows))
+    res=list(map( lambda groupp :full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,is_swin_monai,checkpoint_paths), grouped_rows))
     res=list(filter(lambda el: el!=" ",res))
-    return np.mean(res)
+
+    avgHausdorff_=np.mean(list(map(lambda dd: dd["avgHausdorff_"], res)))
+    dice_=np.mean(list(map(lambda dd: dd["dice_"], res)))
+    volume_similarity_=np.mean(list(map(lambda dd: dd["volume_similarity_"], res)))
+
+    comet_logger.log_hyperparams(hparam_dict)
+    comet_logger.log_metrics({"avgHausdorff_":avgHausdorff_,"dice_":dice_,"volume_similarity_":volume_similarity_  })
+    
+
+    return avgHausdorff_
 
 
 if __name__ == '__main__':
@@ -1092,7 +1084,38 @@ if __name__ == '__main__':
     plans_file = '/workspaces/konwersjaJsonData/infrence/plans/anatomy_plans.json'
     dataset_json_file = '/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/dataset.json'
     configuration = '3d_lowres'
-    objective(resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration)
+    comet_logger = CometLogger(
+        api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
+        #workspace="OPI", # Optional
+        project_name="anatomy_infrence", # Optional
+        #experiment_name="baseline" # Optional
+    )    
+
+    df=pd.read_csv("/workspaces/konwersjaJsonData/CRF.csv")
+    df=df[['patient_id','dre_result','patient_age','psa_result']].replace("Dodatni (+)", "1.0")
+    df=df[['patient_id','dre_result','patient_age','psa_result']].replace("Ujemny (-)", "0.0")
+    df['dre_result']=pd.to_numeric(df['dre_result'])
+    df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
+
+    experiment_name="anatomy_infrence"
+    study = optuna.create_study(
+            study_name=experiment_name
+            ,sampler=optuna.samplers.CmaEsSampler()    
+            # ,sampler=optuna.samplers.NSGAIISampler()    
+            ,pruner=optuna.pruners.HyperbandPruner()
+            # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
+            ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
+            ,load_if_exists=True
+            ,direction="minimize"
+            )
+
+    
+    #         #mysql://root@localhost/example
+    objective_p=partial(objective,resCSVDir=resCSVDir,test_ids_CSVDir=test_ids_CSVDir,plans_file=plans_file,dataset_json_file=dataset_json_file,configuration=configuration
+                        ,comet_logger=comet_logger,df=df)
+
+    study.optimize(objective_p, n_trials=900)
+
     #'t2w','adc','hbv'
     # main_dat='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data/014'
     # input_images_paths = [f"{main_dat}/14_t2w.mha",f"{main_dat}/14_adc.mha",f"{main_dat}/14_hbv.mha" , ]  # if you only have one channel, you still need a list: ['case000_0000.nii.gz']
