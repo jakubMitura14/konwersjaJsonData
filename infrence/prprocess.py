@@ -413,7 +413,7 @@ def get_paramss(arrrr):
         
             
 def remove_small(arr):
-    sm=0.00000000000001
+    sm=0.0001
     ind=(arr<sm)
     arr[ind]=sm
     return arr     
@@ -746,6 +746,8 @@ class My_TestTimeAugmentation:
         outs: list = []
         summ=0
         for checkpoint_path_tupl in self.checkpoint_paths:
+            torch.cuda.empty_cache()
+
             is_classic_nnunet,checkpoint_path, arch_weight =checkpoint_path_tupl
             is_swin_monai=not is_classic_nnunet
             trainer= Main_trainer_pl(plans=self.plans,configuration=self.configuration
@@ -755,7 +757,7 @@ class My_TestTimeAugmentation:
             network=pl_model.network.cuda()
             network.eval()
             label_manager = trainer.plans_manager.get_label_manager(self.dataset_json)
-            
+            torch.cuda.empty_cache()
             for b in tqdm(dl) if has_tqdm and self.progress else dl:
             # do model forward pass
 
@@ -827,7 +829,7 @@ def test_time_augmentation(data
             ScaleIntensityd("image"),
             AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
             Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
-                           , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_diff"])
+                           , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
                            ,prob=hparam_dict["prob_elastic"]) 
 
         ]
@@ -844,6 +846,7 @@ def test_time_augmentation(data
 
 
 
+import cupy
 
 def case_preprocessing(plans_file,dataset_json_file,configuration, input_images_paths,temp_dir):
 
@@ -858,10 +861,10 @@ def case_preprocessing(plans_file,dataset_json_file,configuration, input_images_
     # size=(48, 193, 165)
     # input_images=list(map(lambda im: crop_or_pad(image=im, size=size),input_images))
     input_images=list(map(lambda im: my_center_crop(image=im, physical_size=physical_size),input_images))
-
+    torch.cuda.empty_cache()
     #bias field correction
     input_images=bias_field_and_normalize(input_images[0],input_images[1],input_images[2])
-
+    cupy._default_memory_pool.free_all_blocks()
 
     #save back into files into temporary directory
 
@@ -1033,10 +1036,10 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
     hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
     hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
-    hparam_dict["prob_elastic"]=trial.suggest_float("AdjustContrastd", 0.0,200.0)#1.0
+    hparam_dict["prob_elastic"]=trial.suggest_float("prob_elastic", 0.0,200.0)#1.0
     hparam_dict["num_examples"]=trial.suggest_int("num_examples", 8,16)
-    hparam_dict["treshold"]=trial.suggest_float("AdjustContrastd", 0.0,0.9)
-    hparam_dict["swin_weight"]=trial.suggest_float("AdjustContrastd", 0.0,1.0)
+    hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.9)
+    hparam_dict["swin_weight"]=trial.suggest_float("swin_weight", 0.0,1.0)
 
 
     checkpoint_paths=[(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=275-step=5796.ckpt",1.0)

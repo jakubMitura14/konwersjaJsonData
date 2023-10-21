@@ -221,7 +221,7 @@ class Main_trainer_pl(nnUNetTrainer):
             self.network = self.build_network_architecture(self.plans_manager, self.dataset_json,
                                                             self.configuration_manager,
                                                             self.num_input_channels,
-                                                            enable_deep_supervision=True).to(self.device)
+                                                            enable_deep_supervision=True)#.to(self.device)
             if self.is_ddp:
                 self.network.module.decoder.deep_supervision = True
             else:
