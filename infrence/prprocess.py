@@ -1070,7 +1070,7 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     grouped_rows=list(groupByMaster(list(sourceFrame.iterrows())))
 
     grouped_rows=list(filter(lambda groupp:groupp[0] not in test_ids,grouped_rows ))
-    grouped_rows=grouped_rows[0:50]
+    grouped_rows=grouped_rows[0:5]#TODO increase
 
 
     # print(grouped_rows[0])
