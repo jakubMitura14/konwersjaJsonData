@@ -105,7 +105,7 @@ def set_env_variables_for_general_transforms(trial):
     # os.environ['p_scale_per_sample'] = str(trial.suggest_float("p_scale_per_sample", 0.0,0.9))
     # os.environ['p_rot_per_sample'] = str(trial.suggest_float("p_rot_per_sample", 0.0,0.9))
     baseLr=0.00831
-    os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/1000,baseLr*10))
+    os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/50,baseLr*2))
 
 
 
@@ -193,8 +193,8 @@ def setup_pseudo_lesion_adder_and_loss(trial):
     os.environ['n_lesions'] = str(7)#str(trial.suggest_int("n_lesions", 3,9))
     os.environ['k_lesions'] = str(30)#str(trial.suggest_int("k_lesions", 1,1000))
     
-    os.environ['output_0_w'] =str(trial.suggest_float("output_0_w", 0.001,0.999))
-    # os.environ['output_1_w'] = str(trial.suggest_float("output_1_w", 0.001,0.999))
+    os.environ['output_0_w'] =str(trial.suggest_float("output_0_w", 0.0,1.0))
+    os.environ['output_1_w'] = str(trial.suggest_float("output_1_w", 0.0,1.0))
     os.environ['mean_2'] = str(0.45)#str(trial.suggest_float("mean_2", 0.001,0.999))
     os.environ['mean_3'] = str(3.1)#str(trial.suggest_float("mean_3", 0.001,0.999))
     os.environ['std_0'] = str(0.15)#str(trial.suggest_float("std_0", 0.001,0.999))
