@@ -945,7 +945,7 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
     
 
-    temp_dir = "/workspaces/konwersjaJsonData/data/curr" #TODO change
+    temp_dir =tempfile.mkdtemp()# "/workspaces/konwersjaJsonData/data/curr" 
     data,properties,input_images_paths=case_preprocessing(plans_file,dataset_json_file,configuration, input_paths,temp_dir)
     # size=(3,48, 192, 160)
     # data= crop_or_pad(image=data, size=size)
@@ -965,7 +965,6 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
                         ,hparam_dict)
 
     #clearing temporary directory
-    # shutil.rmtree(temp_dir, ignore_errors=True)#TODO unhash
     
     print(f"hhhhhhhhhh mean_tta {np.min(mean_tta.flatten())} {np.mean(mean_tta.flatten())} {np.max(mean_tta.flatten())}  ")
     print(f"hhhhhhhhhh mode_tta {np.min(mode_tta.flatten())} {np.mean(mode_tta.flatten())} {np.max(mode_tta.flatten())}  ")
@@ -992,6 +991,8 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     # pz,full_pros,pz,sv    
     pz_metr=dict(get_Metrics(mean_tta[0,:,:,:],pz)[0])
     print(pz_metr)
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
     # tz_metr=get_Metrics(mean_tta[1,:,:,:],tz)[0]
     # sv_metr=get_Metrics(mean_tta[2,:,:,:],sv)[0]
     # full_metr=get_Metrics(mean_tta[3,:,:,:],full_pros)[0]
@@ -1128,5 +1129,5 @@ if __name__ == '__main__':
 
 
 
-
+# cd /workspaces/konwersjaJsonData
 # python3 -m infrence.prprocess
