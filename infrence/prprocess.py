@@ -13,6 +13,7 @@
 #    limitations under the License.
 # copied defoult preprocessor
 import multiprocessing
+import optuna
 import shutil
 from time import sleep
 from typing import Union, Tuple
@@ -80,10 +81,47 @@ from monai.data import (
     DataLoader,
     Dataset,
     pad_list_data_collate,
-    TestTimeAugmentation,
+    TestTimeAugmentation
 )
 
+import warnings
+from collections.abc import Callable
+from copy import deepcopy
+from typing import TYPE_CHECKING, Any
+
+import numpy as np
+import torch
+
+from monai.config.type_definitions import NdarrayOrTensor
+from monai.data.dataloader import DataLoader
+from monai.data.dataset import Dataset
+from monai.data.utils import decollate_batch, pad_list_data_collate
+from monai.transforms.compose import Compose
+from monai.transforms.croppad.batch import PadListDataCollate
+from monai.transforms.inverse import InvertibleTransform
+from monai.transforms.post.dictionary import Invertd
+from monai.transforms.transform import Randomizable
+from monai.transforms.utils_pytorch_numpy_unification import mode, stack
+from monai.utils import CommonKeys, PostFix, optional_import
 set_determinism(seed=0)
+
+
+
+if TYPE_CHECKING:
+    from tqdm import tqdm
+
+    has_tqdm = True
+else:
+    tqdm, has_tqdm = optional_import("tqdm", name="tqdm")
+
+__all__ = ["TestTimeAugmentation"]
+
+DEFAULT_POST_FIX = PostFix.meta()
+
+
+def _identity(x):
+    return x
+
 
 lapgm.use_gpu(True)# on cpu 16 9 iters
 debias_obj = lapgm.LapGM(downscale_factor=1)
@@ -464,55 +502,6 @@ def get_pred_one_hot(output,is_regions):
         return predicted_segmentation_onehot
 
 
-def test_case_preprocessing():
-    # (paths to files may need adaptations)
-    plans_file = '/workspaces/konwersjaJsonData/infrence/plans/anatomy_plans.json'
-    dataset_json_file = '/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/dataset.json'
-    configuration = '3d_lowres'
-
-
-    #'t2w','adc','hbv'
-    main_dat='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data/014'
-
-    input_images_paths = [f"{main_dat}/14_t2w.mha",f"{main_dat}/14_adc.mha",f"{main_dat}/14_hbv.mha" , ]  # if you only have one channel, you still need a list: ['case000_0000.nii.gz']
-    
-    #load orient
-    input_images= list(map(orientt,input_images_paths))
-    #resampling to t2w
-    input_images[1]=sitk.Resample(input_images[1], input_images[0], sitk.Transform(3, sitk.sitkIdentity), sitk.sitkBSpline, 0)
-    input_images[2]=sitk.Resample(input_images[2], input_images[0], sitk.Transform(3, sitk.sitkIdentity), sitk.sitkBSpline, 0)
-
-    #cropping
-    physical_size=[138.0, 128.0, 124.0]
-    # size=(48, 193, 165)
-    # input_images=list(map(lambda im: crop_or_pad(image=im, size=size),input_images))
-    input_images=list(map(lambda im: my_center_crop(image=im, physical_size=physical_size),input_images))
-
-    #bias field correction
-    input_images=bias_field_and_normalize(input_images[0],input_images[1],input_images[2])
-
-
-    #save back into files into temporary directory
-    # temp_dir = tempfile.mkdtemp() 
-    temp_dir = "/workspaces/konwersjaJsonData/data/curr"
-    input_images_paths=list(map( lambda tupl: save_into_temp(tupl,temp_dir),list(zip(input_images,input_images_paths))))
-
-    pp = AnatomyPreprocessor()
-
-    # _ because this position would be the segmentation if seg_file was not None (training case)
-    # even if you have the segmentation, don't put the file there! You should always evaluate in the original
-    # resolution. What comes out of the preprocessor might have been resampled to some other image resolution (as
-    # specified by plans)
-    plans_manager = PlansManager(plans_file)
-    data, _, properties = pp.run_case(input_images_paths, seg_file=None, plans_manager=plans_manager,
-                                      configuration_manager=plans_manager.get_configuration(configuration),
-                                      dataset_json=dataset_json_file)
-
-    #clearing temporary directory
-    # shutil.rmtree(temp_dir, ignore_errors=True)
-   
-    # voila. Now plug data into your prediction function of choice. We of course recommend nnU-Net's default (TODO)
-    return data,properties,input_images_paths
 
 
 
@@ -624,13 +613,221 @@ def execute_infrence(data,clinical,network,is_swin_monai):
     return monai.inferers.sliding_window_inference(torch.tensor(data).float().cuda(), (48, 192, 160), 1, network)[0]  
     # return monai.inferers.SlidingWindowInfererAdapt((48, 192, 160))(torch.tensor(data).float().cuda(), network  )[0]  
 
+def groupByMaster(rowws):
+    grouped_by_master= groupby(lambda row : row[1]['masterolds'],rowws)
+    # grouped_by_master=[(key,list(group)) for key, group in grouped_by_master]
+    return dict(grouped_by_master).items()
 
 
-def test_time_augmentation(data,clinical,network,is_swin_monai):
+class My_TestTimeAugmentation:
+    """
+    adapted to ensemble from https://github.com/Project-MONAI/MONAI/blob/77b175986a063b82f0147eb311579003b4ed3569/monai/data/test_time_augmentation.py#L50
+    """
+
+    def __init__(
+        self,
+        transform: InvertibleTransform,
+        batch_size: int,
+        plans
+        ,configuration
+        ,fold,dataset_json
+        ,is_swin_monai
+        ,is_classic_nnunet
+        ,checkpoint_paths,
+        num_workers: int = 0,
+        # inferrer_fn: Callable = _identity,
+        device: str | torch.device = "cpu",
+        image_key=CommonKeys.IMAGE,
+        orig_key=CommonKeys.LABEL,
+        nearest_interp: bool = True,
+        orig_meta_keys: str | None = None,
+        meta_key_postfix=DEFAULT_POST_FIX,
+        to_tensor: bool = True,
+        output_device: str | torch.device = "cpu",
+        post_func: Callable = _identity,
+        return_full_data: bool = False,
+        progress: bool = True,
+    ) -> None:
+        self.transform = transform
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        # self.inferrer_fn = inferrer_fn
+        self.device = device
+        self.image_key = image_key
+        self.return_full_data = return_full_data
+        self.progress = progress
+        self._pred_key = CommonKeys.PRED
+        self.inverter = Invertd(
+            keys=self._pred_key,
+            transform=transform,
+            orig_keys=orig_key,
+            orig_meta_keys=orig_meta_keys,
+            meta_key_postfix=meta_key_postfix,
+            nearest_interp=nearest_interp,
+            to_tensor=to_tensor,
+            device=output_device,
+            post_func=post_func,
+        )
+
+        # check that the transform has at least one random component, and that all random transforms are invertible
+        self._check_transforms()
+        self.plans=plans
+        self.configuration=configuration
+        self.fold=fold
+        self.dataset_json=dataset_json
+        self.is_swin_monai=is_swin_monai
+        self.is_classic_nnunet=is_classic_nnunet
+        self.checkpoint_paths=checkpoint_paths
+
+
+    def _check_transforms(self):
+        """Should be at least 1 random transform, and all random transforms should be invertible."""
+        ts = [self.transform] if not isinstance(self.transform, Compose) else self.transform.transforms
+        randoms = np.array([isinstance(t, Randomizable) for t in ts])
+        invertibles = np.array([isinstance(t, InvertibleTransform) for t in ts])
+        # check at least 1 random
+        if sum(randoms) == 0:
+            warnings.warn(
+                "TTA usually has at least a `Randomizable` transform or `Compose` contains `Randomizable` transforms."
+            )
+        # check that whenever randoms is True, invertibles is also true
+        for r, i in zip(randoms, invertibles):
+            if r and not i:
+                warnings.warn(
+                    f"Not all applied random transform(s) are invertible. Problematic transform: {type(r).__name__}"
+                )
+
+    def __call__(
+        self, data: dict[str, Any],clinical,properties,num_examples: int = 10
+    ) -> tuple[NdarrayOrTensor, NdarrayOrTensor, NdarrayOrTensor, float] | NdarrayOrTensor:
+        """
+        Args:
+            data: dictionary data to be processed.
+            num_examples: number of realizations to be processed and results combined.
+
+        Returns:
+            - if `return_full_data==False`: mode, mean, std, vvc. The mode, mean and standard deviation are
+                calculated across `num_examples` outputs at each voxel. The volume variation coefficient (VVC)
+                is `std/mean` across the whole output, including `num_examples`. See original paper for clarification.
+            - if `return_full_data==False`: data is returned as-is after applying the `inferrer_fn` and then
+                concatenating across the first dimension containing `num_examples`. This allows the user to perform
+                their own analysis if desired.
+        """
+        d = dict(data)
+
+        # check num examples is multiple of batch size
+        if num_examples % self.batch_size != 0:
+            raise ValueError("num_examples should be multiple of batch size.")
+
+        # generate batch of data of size == batch_size, dataset and dataloader
+        data_in = [deepcopy(d) for _ in range(num_examples)]
+        ds = Dataset(data_in, self.transform)
+        dl = DataLoader(ds, num_workers=self.num_workers, batch_size=self.batch_size, collate_fn=pad_list_data_collate)
+
+        outs: list = []
+        summ=0
+        for checkpoint_path_tupl in self.checkpoint_paths:
+            is_classic_nnunet,checkpoint_path, arch_weight =checkpoint_path_tupl
+            is_swin_monai=not is_classic_nnunet
+            trainer= Main_trainer_pl(plans=self.plans,configuration=self.configuration
+                            ,fold=self.fold ,dataset_json=self.dataset_json)
+            trainer.on_train_start(is_swin_monai=is_swin_monai,is_classic_nnunet=is_classic_nnunet,checkpoint_path=checkpoint_path)
+            pl_model=trainer.pl_model
+            network=pl_model.network.cuda()
+            network.eval()
+            label_manager = trainer.plans_manager.get_label_manager(self.dataset_json)
+            
+            for b in tqdm(dl) if has_tqdm and self.progress else dl:
+            # do model forward pass
+
+                # b[self._pred_key] = self.inferrer_fn(b[self.image_key].to(self.device))
+                # curr=torch.sigmoid(execute_infrence(b[self.image_key],clinical,network,is_swin_monai))[0,:,:,:,:].detach().cpu().numpy()
+                curr=torch.sigmoid(execute_infrence(b[self.image_key],clinical,network,is_swin_monai)).detach().cpu().numpy()*arch_weight
+                summ=summ+arch_weight
+                b[self._pred_key]=torch.tensor(curr)
+                    # execute_model_from_path(self.plans
+                    #                                        ,self.configuration
+                    #                                        ,self.fold,dataset_json
+                    #                                        ,not is_classic_nnunet
+                    #                                        ,is_classic_nnunet
+                    #                                        ,checkpoint_path
+                    #                                        ,clinical
+                    #                                        ,properties
+                    #                                        ,b[self.image_key])#[0,:,:,:,:,:]
+                outs.extend([self.inverter(PadListDataCollate.inverse(i))[self._pred_key] for i in decollate_batch(b)])
+
+        output: NdarrayOrTensor = stack(outs, 0)
+
+        if self.return_full_data:
+            return output
+
+        # calculate metrics
+        _mode = mode(output, dim=0)
+        mean = output.sum(0)/summ
+        std = output.std(0)
+        vvc = (output.std() / output.mean()).item()
+        del output
+        arrs=list(map( lambda curr: my_convert_predicted_logits_to_segmentation_with_correct_shape(curr,
+                                                                            plans_manager= trainer.plans_manager,
+                                                                            configuration_manager= trainer.configuration_manager,
+                                                                            label_manager=label_manager,
+                                                                            properties_dict=properties,
+                                                                            return_probabilities = True,
+                                                                            num_threads_torch = 1),[_mode,mean,std]))
+        return arrs[0], arrs[1], arrs[2], vvc
+
+
+
+# def execute_model_from_path(plans,configuration,fold,dataset_json,is_swin_monai,is_classic_nnunet,checkpoint_path,clinical,properties,output):
+#     trainer= Main_trainer_pl(plans=plans,configuration=configuration
+#                     ,fold=fold ,dataset_json=dataset_json)
+#     trainer.on_train_start(is_swin_monai=is_swin_monai,is_classic_nnunet=is_classic_nnunet,checkpoint_path=checkpoint_path)
+#     pl_model=trainer.pl_model
+#     network=pl_model.network.cuda()
+#     network.eval()
+    
+#     # output = network(torch.tensor(data).float().cuda())[0] 
+#     # output = einops.rearrange(output,'b c z y x -> (b c) z y x')
+#     #reverse cropping etc to get back to the place just after manual preprocessing and before nnunet preprocessing
+#     label_manager = trainer.plans_manager.get_label_manager(dataset_json)
+#     # mode_tta, mean_tta, std_tta, vvc_tta=test_time_augmentation(output,clinical,network,is_swin_monai)
+#     output=torch.sigmoid(execute_infrence(output,clinical,network,is_swin_monai))[0,:,:,:,:]
+
+
+#     def convert_inner(arr):
+#         arr=arr.detach().cpu().numpy()
+#         #TODO use uncertanity quantification like in https://www.sciencedirect.com/science/article/pii/S0925231219301961
+#         arr=my_convert_predicted_logits_to_segmentation_with_correct_shape(arr,
+#                                                                             plans_manager= trainer.plans_manager,
+#                                                                             configuration_manager= trainer.configuration_manager,
+#                                                                             label_manager=label_manager,
+#                                                                             properties_dict=properties,
+#                                                                             return_probabilities = True,
+#                                                                             num_threads_torch = 1)
+#         return arr
+
+#     return torch.tensor(convert_inner(output))
+
+
+
+
+
+def test_time_augmentation(data
+                           ,clinical
+                           ,is_swin_monai
+                           ,plans
+                        ,configuration
+                        ,fold,dataset_json
+                        ,checkpoint_paths
+                        ,properties
+                        ,hparam_dict):
     keys = ["image"]
     sizee=(48, 192, 160)
     if(is_swin_monai):
         sizee=(64, 192, 160)
+    is_classic_nnunet=not is_swin_monai
+
+
 
     val_transforms = Compose(
         [
@@ -638,160 +835,274 @@ def test_time_augmentation(data,clinical,network,is_swin_monai):
                 keys,
                 prob=1.0,
                 spatial_size=sizee,
-                rotate_range=(np.pi / 10, np.pi / 10, np.pi / 10),
-                shear_range=(0.5,0.5),
-                # rotate_range=(np.pi / 3, np.pi / 3, np.pi / 3),
-                translate_range=(0.1, 0.1, 0.1),
-                scale_range=((0.99, 1), (0.99, 1), (0.99, 1)),
+                rotate_range=(hparam_dict["rotate_a"], hparam_dict["rotate_b"], hparam_dict["rotate_c"]),
+                shear_range=(hparam_dict["shear_a"],hparam_dict["shear_b"],hparam_dict["shear_c"]),
+                # translate_range=(0.1, 0.1, 0.1),
+                # scale_range=((hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
+                #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
+                #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])),
                 padding_mode="zeros",
                 mode=("bilinear"),
             ),
             # CropForegroundd(keys, source_key="image"),
             # DivisiblePadd(keys, 16),
             ScaleIntensityd("image"),
-            AdjustContrastd("image",2),
-            Rand3DElasticd("image",sigma_range=(5,7), magnitude_range=(50,150),prob=1.0) 
-            # CropForegroundd(keys, source_key="image")
+            AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
+            Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
+                           , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_diff"])
+                           ,prob=hparam_dict["prob_elastic"]) 
 
         ]
     )
+    # print(f"ddddddddd {data.shape}")
+    data=data[0,:,:,:,:]
+    tt_aug = My_TestTimeAugmentation(  val_transforms, batch_size=1, num_workers=0,plans=plans,configuration=configuration,fold=fold ,dataset_json=dataset_json
+                                     ,is_swin_monai=is_swin_monai,is_classic_nnunet=is_classic_nnunet,checkpoint_paths=checkpoint_paths)
+    mode_tta, mean_tta, std_tta, vvc_tta = tt_aug({"image" : data},clinical=clinical,properties=properties, num_examples=hparam_dict["num_examples"])
 
-
-    tt_aug = TestTimeAugmentation(
-        val_transforms, batch_size=1, num_workers=0, inferrer_fn=lambda data: torch.sigmoid(execute_infrence(data,clinical,network,is_swin_monai)), device="cuda"
-        # val_transforms, batch_size=1, num_workers=0, inferrer_fn=lambda data: execute_infrence(data,clinical,network,is_swin_monai), device="cuda"
-    )
-    mode_tta, mean_tta, std_tta, vvc_tta = tt_aug({"image" : data}, num_examples=15)
-
-    # transform = tio.RandomAffine(image_interpolation='bspline')
-    # transformed = transform()
-    # output=execute_infrence(transform(data),clinical,network,is_swin_monai)
-
-    # segmentation = model(transformed)
-    # transformed_native_space = segmentation.apply_inverse_transform(image_interpolation='linear')
-    # segmentations.append(transformed_native_space)
+    # print(f"mmmm mean_tta {mean_tta.shape}")
     return mode_tta, mean_tta, std_tta, vvc_tta
 
 
 
 
 
-def execute_model_from_path(plans,configuration,fold,dataset_json,is_swin_monai,is_classic_nnunet,checkpoint_path,clinical,properties,output):
-    trainer= Main_trainer_pl(plans=plans,configuration=configuration
-                    ,fold=fold ,dataset_json=dataset_json)
-    trainer.on_train_start(is_swin_monai=is_swin_monai,is_classic_nnunet=is_classic_nnunet,checkpoint_path=checkpoint_path)
-    pl_model=trainer.pl_model
-    network=pl_model.network.cuda()
-    network.eval()
+def case_preprocessing(plans_file,dataset_json_file,configuration, input_images_paths,temp_dir):
+
+    #load orient
+    input_images= list(map(orientt,input_images_paths))
+    #resampling to t2w
+    input_images[1]=sitk.Resample(input_images[1], input_images[0], sitk.Transform(3, sitk.sitkIdentity), sitk.sitkBSpline, 0)
+    input_images[2]=sitk.Resample(input_images[2], input_images[0], sitk.Transform(3, sitk.sitkIdentity), sitk.sitkBSpline, 0)
+
+    #cropping
+    physical_size=[138.0, 128.0, 124.0]
+    # size=(48, 193, 165)
+    # input_images=list(map(lambda im: crop_or_pad(image=im, size=size),input_images))
+    input_images=list(map(lambda im: my_center_crop(image=im, physical_size=physical_size),input_images))
+
+    #bias field correction
+    # input_images=bias_field_and_normalize(input_images[0],input_images[1],input_images[2]) TODO unhash
+
+
+    #save back into files into temporary directory
+
+    # temp_dir = "/workspaces/konwersjaJsonData/data/curr"
+    input_images_paths=list(map( lambda tupl: save_into_temp(tupl,temp_dir),list(zip(input_images,input_images_paths))))
+
+    pp = AnatomyPreprocessor()
+
+    # _ because this position would be the segmentation if seg_file was not None (training case)
+    # even if you have the segmentation, don't put the file there! You should always evaluate in the original
+    # resolution. What comes out of the preprocessor might have been resampled to some other image resolution (as
+    # specified by plans)
+    plans_manager = PlansManager(plans_file)
+    data, _, properties = pp.run_case(input_images_paths, seg_file=None, plans_manager=plans_manager,
+                                      configuration_manager=plans_manager.get_configuration(configuration),
+                                      dataset_json=dataset_json_file)
+
+
+    return data,properties,input_images_paths
+
+def get_el_1(arr):
+    if(len(arr)>0):
+        return arr[0]
+    return " "
+def get_bool_arr_from_path(pathh,reference):
+    """    
+    given path reads it resamples it to the space of reference  and return associated array
+    then it casts it to boolean data type
+    """
+    ref_image=sitk.ReadImage(reference)
+    imageA=sitk.ReadImage(pathh)
+
+    imageA=sitk.Resample(imageA, ref_image, sitk.Transform(3, sitk.sitkIdentity), sitk.sitkNearestNeighbor, 0)
+    return sitk.GetArrayFromImage(imageA).astype(bool)
+
+def get_Metrics(one_hot,target):
+    """
+    return the metrics used in anatomy 
+    """
+    name=""
+    labelPred=sitk.GetImageFromArray(one_hot.astype(np.uint8))
+    labelTrue=sitk.GetImageFromArray(target.astype(np.uint8))
+    quality=dict()
+    dicecomputer=sitk.LabelOverlapMeasuresImageFilter()
+    dicecomputer.Execute(labelTrue>0.5,labelPred>0.5)
+    quality[f"dice_{name}"]=dicecomputer.GetDiceCoefficient()
+    quality[f"volume_similarity_{name}"]=dicecomputer.GetVolumeSimilarity()
+
+    if(np.sum(one_hot.flatten())==0 or np.sum(target.flatten())==0):
+        return list(quality.items()),quality[f"dice_{name}"]
+
+    hausdorffcomputer=sitk.HausdorffDistanceImageFilter()
+    hausdorffcomputer.Execute(labelTrue>0.5,labelPred>0.5)
+    quality[f"avgHausdorff_{name}"]=hausdorffcomputer.GetAverageHausdorffDistance()
+    # quality["Hausdorff"]=hausdorffcomputer.GetHausdorffDistance()
+
+    return list(quality.items()),quality[f"dice_{name}"]
+
+
+def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,clinical,is_swin_monai,checkpoint_paths):
+
+    pat_num,group_dict=groupp
+    anatomic_cols=['cz_noSeg','pz_noSeg','sv_l_noSeg','sv_r_noSeg','pg_noSeg']
+    input_names=["t2w","adc","hbv"]
+    # print(group_dict)
+    mris=list(map(lambda inner_dict: inner_dict[1]['series_MRI_path'], group_dict))
+    input_paths=list(map(lambda name: list(filter(lambda el: name in el,mris)),input_names))
+    input_paths=list(map(get_el_1,input_paths))
+    anatomic_cols_paths=list(map( lambda col_name: list(map(lambda inner_dict: inner_dict[1][col_name], group_dict)),anatomic_cols))
+    anatomic_cols_paths=list(map(lambda inner_list :list(filter(lambda el: len(el)>4,inner_list )) ,anatomic_cols_paths))
+    if(len(anatomic_cols_paths[-1])==0):
+        return " "
+    anatomic_cols_paths= list(map(get_el_1,anatomic_cols_paths))
+
+
+
+    # print(input_paths)
+    # print(anatomic_cols_paths)
+
     
 
-
-    # output = network(torch.tensor(data).float().cuda())[0] 
-    output = einops.rearrange(output,'b c z y x -> (b c) z y x')
-    #reverse cropping etc to get back to the place just after manual preprocessing and before nnunet preprocessing
-    label_manager = trainer.plans_manager.get_label_manager(dataset_json)
-    mode_tta, mean_tta, std_tta, vvc_tta=test_time_augmentation(output,clinical,network,is_swin_monai)
-    output=mean_tta
-    print(f" mode_tta {type(mode_tta)} {type(mean_tta)} vvc_tta {type(std_tta)}  ")
-
-    def convert_inner(arr):
-        arr=arr.detach().cpu().numpy()
-        #TODO use uncertanity quantification like in https://www.sciencedirect.com/science/article/pii/S0925231219301961
-        arr=my_convert_predicted_logits_to_segmentation_with_correct_shape(arr,
-                                                                            plans_manager= trainer.plans_manager,
-                                                                            configuration_manager= trainer.configuration_manager,
-                                                                            label_manager=label_manager,
-                                                                            properties_dict=properties,
-                                                                            return_probabilities = True,
-                                                                            num_threads_torch = 1)
-        return arr
-
-    print(f"mmmmode_tta   { mode_tta.shape} mean_tta {mean_tta.shape} std_tta {std_tta.shape}")
-    return (convert_inner(mode_tta), convert_inner(mean_tta), convert_inner(std_tta)) #, convert_inner(vvc_tta)
-
-
-if __name__ == '__main__':
-
-
-    data,properties,input_images_paths=test_case_preprocessing()
-    size=(3,48, 192, 160)
+    temp_dir = "/workspaces/konwersjaJsonData/data/curr" #TODO change
+    data,properties,input_images_paths=case_preprocessing(plans_file,dataset_json_file,configuration, input_paths,temp_dir)
+    # size=(3,48, 192, 160)
     # data= crop_or_pad(image=data, size=size)
-
-
     data=einops.rearrange(data,'c z y x->1 c z y x')
-
-    # data= np.zeros((1,3, 48, 192, 160))
-
-    plans_file = '/workspaces/konwersjaJsonData/infrence/plans/anatomy_plans.json'
-    dataset_json_file = '/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/dataset.json'
-    configuration = '3d_lowres'
     fold=0
-    
     plans = load_json(plans_file)
     dataset_json = load_json(dataset_json_file)
 
+    mode_tta, mean_tta, std_tta, vvc_tta=test_time_augmentation(data
+                           ,clinical
+                           ,is_swin_monai
+                           ,plans
+                        ,configuration
+                        ,fold,dataset_json
+                        ,checkpoint_paths
+                        ,properties
+                        ,hparam_dict)
 
-    checkpoint_paths=[(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=275-step=5796.ckpt")
-                      ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_1/epoch=509-step=10710.ckpt")
-                    #   ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_2/epoch=467-step=9828.ckpt")
-                    #   ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_2/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_3/epoch=413-step=8694.ckpt")
-                    #   ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_2/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_3/epoch=413-step=8694.ckpt")
-                    #   ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_3/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_4/epoch=449-step=9450.ckpt" )                     
+    #clearing temporary directory
+    # shutil.rmtree(temp_dir, ignore_errors=True)#TODO unhash
+    
+    print(f"hhhhhhhhhh mean_tta {np.min(mean_tta.flatten())} {np.mean(mean_tta.flatten())} {np.max(mean_tta.flatten())}  ")
+    print(f"hhhhhhhhhh mode_tta {np.min(mode_tta.flatten())} {np.mean(mode_tta.flatten())} {np.max(mode_tta.flatten())}  ")
+    print(f"hhhhhhhhhh std_tta {np.min(std_tta.flatten())} {np.mean(std_tta.flatten())} {np.max(std_tta.flatten())}  ")
+
+    #thresholding and getting single largest component
+    mean_tta=(mean_tta>hparam_dict["treshold"]).astype(np.uint8)
+    mean_tta=list(map( lambda i: get_largest_connected_component(mean_tta[i,:,:,:]),list(range(mean_tta.shape[0]))))
+    mean_tta= np.stack(mean_tta)
+
+
+
+
+    path_of_example=input_images_paths[0]  #"/workspaces/konwersjaJsonData/data/curr/1_t2w.nii.gz"
+
+    #pz=pz+cz
+    pz=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[0],path_of_example),get_bool_arr_from_path(anatomic_cols_paths[1],path_of_example))
+    full_pros=get_bool_arr_from_path(anatomic_cols_paths[4],path_of_example)
+    #tz is rest of prostate not pz
+    tz=np.logical_and(np.logical_not(pz),full_pros)
+    #sv jointly
+    sv=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[2],path_of_example),get_bool_arr_from_path(anatomic_cols_paths[3],path_of_example))
+
+    # pz,full_pros,pz,sv    
+    pz_metr=dict(get_Metrics(mean_tta[0,:,:,:],pz)[0])
+    print(pz_metr)
+    # tz_metr=get_Metrics(mean_tta[1,:,:,:],tz)[0]
+    # sv_metr=get_Metrics(mean_tta[2,:,:,:],sv)[0]
+    # full_metr=get_Metrics(mean_tta[3,:,:,:],full_pros)[0]
+
+    # output=np.mean(np.stack(output),axis=0)
+    # save_label(mode_tta,3,"mode_tta",path_of_example)
+    # save_label(mean_tta,0,"mean_pz",path_of_example)
+    # save_label(mean_tta,1,"mean_tz",path_of_example)
+    # save_label(mean_tta,2,"mean_sv",path_of_example)
+    # save_label(mean_tta,3,"mean_sum",path_of_example)
+    # save_label(std_tta,3,"std_tta",path_of_example)    
+    return pz_metr["avgHausdorff_"]
+
+def objective(resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration) -> float:
+    hparam_dict={}
+    hparam_dict["rotate_a"]=np.pi / 10 #np.pi / 10
+    hparam_dict["rotate_b"]=np.pi / 10
+    hparam_dict["rotate_c"]=np.pi / 10
+    hparam_dict["shear_a"]=0.005#0.5
+    hparam_dict["shear_b"]=0.005
+    hparam_dict["shear_c"]=0.005
+    # hparam_dict["scale_range_low"]=0.99
+    # hparam_dict["scale_range_high"]=1.0
+    hparam_dict["AdjustContrastd"]=2.0#2
+
+    hparam_dict["sigma_low"]=5.0#5
+    hparam_dict["sigma_diff"]=2.0#2
+    hparam_dict["magnitude_range_low"]=50.0#50
+    hparam_dict["magnitude_range_diff"]=100.0#100
+    hparam_dict["prob_elastic"]=0.000001#1.0
+    hparam_dict["num_examples"]=2#15
+    hparam_dict["treshold"]=0.2
+    hparam_dict["swin_weight"]=1.0
+
+
+    checkpoint_paths=[(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=275-step=5796.ckpt",1.0)
+                      ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_1/epoch=509-step=10710.ckpt",1.0)
+                      ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_2/epoch=467-step=9828.ckpt",1.0)
+                      ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_2/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_3/epoch=413-step=8694.ckpt",1.0)
+                      ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_2/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_3/epoch=413-step=8694.ckpt",1.0)
+                      ,(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_3/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_4/epoch=449-step=9450.ckpt",1.0 )                     
                       
-                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=359-step=7561.ckpt" )     
-                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_1/epoch=539-step=11341.ckpt" )     
-                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_2/epoch=395-step=8317.ckpt" )     
-                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_3/epoch=323-step=6805.ckpt" )     
-                    #   ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_4/epoch=341-step=7183.ckpt" )     
-                                      
+                      ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=359-step=7561.ckpt",hparam_dict["swin_weight"] )     
+                      ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_1/epoch=539-step=11341.ckpt",hparam_dict["swin_weight"] )     
+                      ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_2/epoch=395-step=8317.ckpt",hparam_dict["swin_weight"] )     
+                      ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_3/epoch=323-step=6805.ckpt",hparam_dict["swin_weight"] )     
+                      ,(False,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_4/epoch=341-step=7183.ckpt",hparam_dict["swin_weight"] )     
+
                                                       ]
     
     is_swin_monai=False
     is_classic_nnunet=True
     #is_classic_nnunet,checkpoint_path
     clinical= torch.tensor([-1.0,-1.0,-1.0])#TODO load real data
+   
+    test_ids=pd.read_csv(test_ids_CSVDir)['ids'].to_numpy().flatten()
+    sourceFrame = pd.read_csv(resCSVDir) 
+    grouped_rows=list(groupByMaster(list(sourceFrame.iterrows())))
 
-    output=list(map(lambda tupl : execute_model_from_path(plans,configuration,fold,dataset_json,(not tupl[0]),tupl[0],tupl[1],clinical,properties,data),checkpoint_paths  ))
-    
-    mode_tta=list(map(lambda tupl:tupl[0],output))
+    grouped_rows=list(filter(lambda groupp:groupp[0] not in test_ids,grouped_rows ))
+    grouped_rows=grouped_rows[0:2]
 
-    mode_tta= np.mean(np.stack(mode_tta,axis=0),axis=0)
-    mean_tta= np.mean(np.stack(list(map(lambda tupl:tupl[1],output)),axis=0),axis=0)
-    std_tta= np.mean(np.stack(list(map(lambda tupl:tupl[2],output)),axis=0),axis=0)
-    # vvc_tta= np.mean(np.stack(list(map(lambda tupl:tupl[3],output))),axis=0)
-    print(f"hhhhhhhhhh mean_tta {np.min(mean_tta.flatten())} {np.mean(mean_tta.flatten())} {np.max(mean_tta.flatten())}  ")
-    print(f"hhhhhhhhhh mode_tta {np.min(mode_tta.flatten())} {np.mean(mode_tta.flatten())} {np.max(mode_tta.flatten())}  ")
-    print(f"hhhhhhhhhh std_tta {np.min(std_tta.flatten())} {np.mean(std_tta.flatten())} {np.max(std_tta.flatten())}  ")
 
-    mean_tta=(mean_tta>0.5).astype(np.uint8)
+    # print(grouped_rows[0])
 
-    # output=np.mean(np.stack(output),axis=0)
-    path_of_example=input_images_paths[0]  #"/workspaces/konwersjaJsonData/data/curr/1_t2w.nii.gz"
-    save_label(mode_tta,3,"mode_tta",path_of_example)
-    save_label(mean_tta,0,"mean_pz",path_of_example)
-    save_label(mean_tta,1,"mean_tz",path_of_example)
-    save_label(mean_tta,2,"mean_sv",path_of_example)
-    save_label(mean_tta,3,"mean_sum",path_of_example)
 
-    save_label(std_tta,3,"std_tta",path_of_example)
+    res=list(map( lambda groupp :full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,clinical,is_swin_monai,checkpoint_paths), grouped_rows))
+    res=list(filter(lambda el: el!=" ",res))
+    return np.mean(res)
+
+
+if __name__ == '__main__':
+
+    resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
+
+    test_ids_CSVDir='/workspaces/konwersjaJsonData/test_ids.csv'
+    # (paths to files may need adaptations)
+    plans_file = '/workspaces/konwersjaJsonData/infrence/plans/anatomy_plans.json'
+    dataset_json_file = '/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/swin_all/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/dataset.json'
+    configuration = '3d_lowres'
+    objective(resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration)
+    #'t2w','adc','hbv'
+    # main_dat='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data/014'
+    # input_images_paths = [f"{main_dat}/14_t2w.mha",f"{main_dat}/14_adc.mha",f"{main_dat}/14_hbv.mha" , ]  # if you only have one channel, you still need a list: ['case000_0000.nii.gz']
+# def objective(trial: optuna.trial.Trial) -> float:
+
+
+
     # save_label(vvc_tta,3,"vvc_tta",path_of_example)
 
 
-
-    
-
-    # predicted_segmentation_onehot=torch.tensor(output)
-    # curr=predicted_segmentation_onehot.detach().cpu().numpy()
-
-    # curr=list(map( lambda i: get_largest_connected_component(curr[i,:,:,:]),list(range(curr.shape[0]))))
-    # curr= np.stack(curr)
-
-
-    # path_of_example=input_images_paths[0]  #"/workspaces/konwersjaJsonData/data/curr/1_t2w.nii.gz"
-    # save_label(curr,0,"target_pz",path_of_example)
-    # save_label(curr,1,"target_tz",path_of_example)
-    # save_label(curr,2,"target_sv",path_of_example)
-    # save_label(curr,3,"target_sum",path_of_example)
 
 
 
