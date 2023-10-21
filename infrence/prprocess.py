@@ -1078,11 +1078,14 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
 
     res=list(map( lambda groupp :full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,is_swin_monai,checkpoint_paths,df), grouped_rows))
     res=list(filter(lambda el: el!=" ",res))
-
-    avgHausdorff_=np.mean(list(map(lambda dd: dd["avgHausdorff_"], res)))
-    dice_=np.mean(list(map(lambda dd: dd["dice_"], res)))
-    volume_similarity_=np.mean(list(map(lambda dd: dd["volume_similarity_"], res)))
-
+    print(f"rrrrrrrrrr {res}")
+    avgHausdorff_=0.0
+    try:
+        avgHausdorff_=np.mean(list(map(lambda dd: dd["avgHausdorff_"], res)))
+        dice_=np.mean(list(map(lambda dd: dd["dice_"], res)))
+        volume_similarity_=np.mean(list(map(lambda dd: dd["volume_similarity_"], res)))
+    except:
+        avgHausdorff_=0.0
     comet_logger.log_hyperparams(hparam_dict)
     comet_logger.log_metrics({"avgHausdorff_":avgHausdorff_,"dice_":dice_,"volume_similarity_":volume_similarity_  })
     
