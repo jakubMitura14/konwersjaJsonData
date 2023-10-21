@@ -349,7 +349,7 @@ class Main_trainer_pl(nnUNetTrainer):
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
-            patience=30,
+            patience=32,
             mode=mode,
             #divergence_threshold=(-0.1)
         )
@@ -357,7 +357,7 @@ class Main_trainer_pl(nnUNetTrainer):
         # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
         self.trainer = pl.Trainer(
             #accelerator="cpu", #TODO(remove)
-            max_epochs=1100,
+            max_epochs=1300,
             #gpus=1,
             # precision='16-mixed', 
             callbacks=[checkpoint_callback,stochasticAveraging,early_stopping], # stochasticAveraging ,stochasticAveraging ,  FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
