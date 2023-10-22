@@ -816,7 +816,7 @@ def test_time_augmentation(data
                 prob=1.0,
                 spatial_size=sizee,
                 rotate_range=(hparam_dict["rotate_a"], hparam_dict["rotate_b"], hparam_dict["rotate_c"]),
-                shear_range=(hparam_dict["shear_a"],hparam_dict["shear_b"],hparam_dict["shear_c"]),
+                # shear_range=(hparam_dict["shear_a"],hparam_dict["shear_b"],hparam_dict["shear_c"]),
                 # translate_range=(0.1, 0.1, 0.1),
                 # scale_range=((hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
                 #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
@@ -1022,12 +1022,13 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
 def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
     hparam_dict={}
-    hparam_dict["rotate_a"]=np.pi / trial.suggest_float("rotate_a", 0.5,100.0) #np.pi / 10
-    hparam_dict["rotate_b"]=np.pi / trial.suggest_float("rotate_b", 0.5,100.0)
-    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_c", 0.5,100.0)
-    hparam_dict["shear_a"]=trial.suggest_float("shear_a", 0.0,10.0)
-    hparam_dict["shear_b"]=trial.suggest_float("shear_b", 0.0,10.0)
-    hparam_dict["shear_c"]=trial.suggest_float("shear_c", 0.0,10.0)
+    rotate=trial.suggest_float("rotate_a", 5.0,50.0)
+    hparam_dict["rotate_a"]=np.pi / rotate #np.pi / 10
+    hparam_dict["rotate_b"]=np.pi / rotate
+    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_a", 5.0,50.0)
+    # hparam_dict["shear_a"]=trial.suggest_float("shear_a", 0.0,10.0)
+    # hparam_dict["shear_b"]=trial.suggest_float("shear_b", 0.0,10.0)
+    # hparam_dict["shear_c"]=trial.suggest_float("shear_c", 0.0,10.0)
     # hparam_dict["scale_range_low"]=0.99
     # hparam_dict["scale_range_high"]=1.0
     hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
@@ -1036,9 +1037,9 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
     hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
     hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
-    hparam_dict["prob_elastic"]=trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
-    hparam_dict["num_examples"]=trial.suggest_int("num_examples", 8,16)
-    hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.7)
+    hparam_dict["prob_elastic"]=1.0#trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
+    hparam_dict["num_examples"]=10#trial.suggest_int("num_examples", 8,16)
+    hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.5)
     hparam_dict["swin_weight"]=trial.suggest_float("swin_weight", 0.0,1.0)
 
 
@@ -1117,7 +1118,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence"
+    experiment_name="anatomy_infrenceb"
     study = optuna.create_study(
             study_name=experiment_name
             ,sampler=optuna.samplers.CmaEsSampler()    
