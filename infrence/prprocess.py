@@ -1025,7 +1025,7 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     rotate=trial.suggest_float("rotate_a", 5.0,50.0)
     hparam_dict["rotate_a"]=np.pi / rotate #np.pi / 10
     hparam_dict["rotate_b"]=np.pi / rotate
-    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_a", 5.0,50.0)
+    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 5.0,50.0)
     # hparam_dict["shear_a"]=trial.suggest_float("shear_a", 0.0,10.0)
     # hparam_dict["shear_b"]=trial.suggest_float("shear_b", 0.0,10.0)
     # hparam_dict["shear_c"]=trial.suggest_float("shear_c", 0.0,10.0)
