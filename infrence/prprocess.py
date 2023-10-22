@@ -1036,9 +1036,9 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
     hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
     hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
-    hparam_dict["prob_elastic"]=trial.suggest_float("prob_elastic", 0.0,200.0)#1.0
+    hparam_dict["prob_elastic"]=trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
     hparam_dict["num_examples"]=trial.suggest_int("num_examples", 8,16)
-    hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.9)
+    hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.7)
     hparam_dict["swin_weight"]=trial.suggest_float("swin_weight", 0.0,1.0)
 
 
@@ -1079,13 +1079,15 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     res=list(map( lambda groupp :full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,hparam_dict,is_swin_monai,checkpoint_paths,df), grouped_rows))
     res=list(filter(lambda el: el!=" ",res))
     print(f"rrrrrrrrrr {res}")
-    avgHausdorff_=0.0
+    avgHausdorff_=100.0
     try:
         avgHausdorff_=np.mean(list(map(lambda dd: dd["avgHausdorff_"], res)))
         dice_=np.mean(list(map(lambda dd: dd["dice_"], res)))
         volume_similarity_=np.mean(list(map(lambda dd: dd["volume_similarity_"], res)))
-    except:
-        avgHausdorff_=0.0
+    except:    
+        dice_=0.0
+        volume_similarity_=0.0
+        avgHausdorff_=100.0
     comet_logger.log_hyperparams(hparam_dict)
     comet_logger.log_metrics({"avgHausdorff_":avgHausdorff_,"dice_":dice_,"volume_similarity_":volume_similarity_  })
     
@@ -1145,6 +1147,6 @@ if __name__ == '__main__':
 
 
 
-
+# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence
 # cd /workspaces/konwersjaJsonData
 # python3 -m infrence.prprocess
