@@ -826,11 +826,12 @@ def test_time_augmentation(data
             ),
             # CropForegroundd(keys, source_key="image"),
             # DivisiblePadd(keys, 16),
-            ScaleIntensityd("image"),
-            AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
-            Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
-                           , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
-                           ,prob=hparam_dict["prob_elastic"]) 
+            
+            # ScaleIntensityd("image"),
+            # AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
+            # Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
+            #                , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
+            #                ,prob=hparam_dict["prob_elastic"]) 
 
         ]
     )
@@ -1031,12 +1032,14 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     # hparam_dict["shear_c"]=trial.suggest_float("shear_c", 0.0,10.0)
     # hparam_dict["scale_range_low"]=0.99
     # hparam_dict["scale_range_high"]=1.0
-    hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
 
-    hparam_dict["sigma_low"]=trial.suggest_float("sigma_low", 0.0,10.0)#5
-    hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
-    hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
-    hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
+    # hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
+    # hparam_dict["sigma_low"]=trial.suggest_float("sigma_low", 0.0,10.0)#5
+    # hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
+    # hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
+    # hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
+
+
     hparam_dict["prob_elastic"]=1.0#trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
     hparam_dict["num_examples"]=10#trial.suggest_int("num_examples", 8,16)
     hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.5)
@@ -1118,11 +1121,11 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrenceb"
+    experiment_name="anatomy_infrencec"
     study = optuna.create_study(
             study_name=experiment_name
-            ,sampler=optuna.samplers.CmaEsSampler()    
-            # ,sampler=optuna.samplers.NSGAIISampler()    
+            # ,sampler=optuna.samplers.CmaEsSampler()    
+            ,sampler=optuna.samplers.NSGAIISampler()    
             ,pruner=optuna.pruners.HyperbandPruner()
             # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
             ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
