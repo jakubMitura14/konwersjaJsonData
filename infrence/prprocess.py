@@ -826,7 +826,7 @@ def test_time_augmentation(data
             ),
             # CropForegroundd(keys, source_key="image"),
             # DivisiblePadd(keys, 16),
-            
+
             # ScaleIntensityd("image"),
             # AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
             # Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
@@ -1023,10 +1023,10 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
 def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
     hparam_dict={}
-    rotate=trial.suggest_float("rotate_a", 5.0,50.0)
+    rotate=trial.suggest_float("rotate_a", 2.0,50.0)
     hparam_dict["rotate_a"]=np.pi / rotate #np.pi / 10
     hparam_dict["rotate_b"]=np.pi / rotate
-    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 5.0,50.0)
+    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 2.0,50.0)
     # hparam_dict["shear_a"]=trial.suggest_float("shear_a", 0.0,10.0)
     # hparam_dict["shear_b"]=trial.suggest_float("shear_b", 0.0,10.0)
     # hparam_dict["shear_c"]=trial.suggest_float("shear_c", 0.0,10.0)
