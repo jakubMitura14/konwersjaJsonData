@@ -384,6 +384,8 @@ def save_into_temp(tupl,temp_dir):
     return newPath
 
 
+
+
 def get_im_from_array(arr,channel,orig_im):
     arr=arr[channel,:,:,:]
     image = sitk.GetImageFromArray(arr)  
@@ -849,8 +851,26 @@ def test_time_augmentation(data
 
 import cupy
 
-def case_preprocessing(plans_file,dataset_json_file,configuration, input_images_paths,temp_dir):
 
+def save_target(arr,orig_im,name,temp_dir,physical_size):
+    image= get_im_from_array(np.expand_dims(arr,0).astype(np.uint8),0,orig_im)  
+    image=sitk.DICOMOrient(image, 'LPS')
+    image.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
+    # image=sitk.Resample(image, orig_im, sitk.Transform(3, sitk.sitkIdentity), sitk.sitkNearestNeighbor, 0)
+    image=my_center_crop(image=image, physical_size=physical_size)
+    writer = sitk.ImageFileWriter()
+    newPath=f"{temp_dir}/{name}.nii.gz"
+    writer.SetFileName(newPath)
+    writer.Execute(image)
+    return newPath
+
+  
+
+def case_preprocessing(plans_file,dataset_json_file,configuration, input_images_paths,temp_dir,anatomic_cols_paths):
+
+    for p in anatomic_cols_paths:
+        if len(p)<4 :
+            return " "," "," "," "
     #load orient
     input_images= list(map(orientt,input_images_paths))
     #resampling to t2w
@@ -860,9 +880,33 @@ def case_preprocessing(plans_file,dataset_json_file,configuration, input_images_
     #cropping
     physical_size=[138.0, 128.0, 124.0]
     # size=(48, 193, 165)
-    # input_images=list(map(lambda im: crop_or_pad(image=im, size=size),input_images))
+    # input_images=list(map(lambda im: crop_or_pad(image=im, size=size),input_images)) 
+    t2w=input_images[0]
+    
+    pz=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[0],t2w),get_bool_arr_from_path(anatomic_cols_paths[1],t2w))
+    full_pros=get_bool_arr_from_path(anatomic_cols_paths[4],t2w)
+    # tz is rest of prostate not pz
+    tz=np.logical_and(np.logical_not(pz),full_pros)
+    #sv jointly
+    sv=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[2],t2w),get_bool_arr_from_path(anatomic_cols_paths[3],t2w))
+
+
+
+
     input_images=list(map(lambda im: my_center_crop(image=im, physical_size=physical_size),input_images))
+
     torch.cuda.empty_cache()
+
+
+    target_paths=[save_target(pz,t2w,"target_pz",temp_dir,physical_size)
+                  ,save_target(tz,t2w,"target_tz",temp_dir,physical_size)
+                  ,save_target(sv,t2w,"target_sv",temp_dir,physical_size)
+                  ,save_target(full_pros,t2w,"target_full_pros",temp_dir,physical_size)
+                  ]
+
+
+    input_images_paths=list(map( lambda tupl: save_into_temp(tupl,temp_dir),list(zip(input_images,input_images_paths))))
+
     #bias field correction
     input_images=bias_field_and_normalize(input_images[0],input_images[1],input_images[2])
     cupy._default_memory_pool.free_all_blocks()
@@ -870,7 +914,8 @@ def case_preprocessing(plans_file,dataset_json_file,configuration, input_images_
     #save back into files into temporary directory
 
     # temp_dir = "/workspaces/konwersjaJsonData/data/curr"
-    input_images_paths=list(map( lambda tupl: save_into_temp(tupl,temp_dir),list(zip(input_images,input_images_paths))))
+
+
 
     pp = AnatomyPreprocessor()
 
@@ -884,22 +929,25 @@ def case_preprocessing(plans_file,dataset_json_file,configuration, input_images_
                                       dataset_json=dataset_json_file)
 
 
-    return data,properties,input_images_paths
+    return data,properties,input_images_paths,target_paths
 
 def get_el_1(arr):
     if(len(arr)>0):
         return arr[0]
     return " "
-def get_bool_arr_from_path(pathh,reference):
+def get_bool_arr_from_path(pathh,ref_image):
     """    
     given path reads it resamples it to the space of reference  and return associated array
     then it casts it to boolean data type
     """
-    ref_image=sitk.ReadImage(reference)
+    # ref_image=sitk.ReadImage(reference)
     imageA=sitk.ReadImage(pathh)
 
-    imageA=sitk.Resample(imageA, ref_image, sitk.Transform(3, sitk.sitkIdentity), sitk.sitkNearestNeighbor, 0)
+    # imageA=sitk.Resample(imageA, ref_image, sitk.Transform(3, sitk.sitkIdentity), sitk.sitkNearestNeighbor, 0)
     return sitk.GetArrayFromImage(imageA).astype(bool)
+    # return imageA#sitk.GetArrayFromImage(imageA).astype(bool)
+
+
 
 def get_Metrics(one_hot,target):
     """
@@ -960,8 +1008,11 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
     
 
-    temp_dir =tempfile.mkdtemp()# "/workspaces/konwersjaJsonData/data/curr" 
-    data,properties,input_images_paths=case_preprocessing(plans_file,dataset_json_file,configuration, input_paths,temp_dir)
+    temp_dir ="/workspaces/konwersjaJsonData/data/curr" 
+    # temp_dir =tempfile.mkdtemp()# "/workspaces/konwersjaJsonData/data/curr" TODO unhash 
+    data,properties,input_images_paths,target_paths=case_preprocessing(plans_file,dataset_json_file,configuration, input_paths,temp_dir,anatomic_cols_paths)
+    if data==" ":
+        return " "
     # size=(3,48, 192, 160)
     # data= crop_or_pad(image=data, size=size)
     data=einops.rearrange(data,'c z y x->1 c z y x')
@@ -996,17 +1047,21 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     path_of_example=input_images_paths[0]  #"/workspaces/konwersjaJsonData/data/curr/1_t2w.nii.gz"
 
     #pz=pz+cz
-    pz=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[0],path_of_example),get_bool_arr_from_path(anatomic_cols_paths[1],path_of_example))
-    full_pros=get_bool_arr_from_path(anatomic_cols_paths[4],path_of_example)
-    #tz is rest of prostate not pz
+    # pz=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[0],path_of_example),get_bool_arr_from_path(anatomic_cols_paths[1],path_of_example))
+    # full_pros=get_bool_arr_from_path(anatomic_cols_paths[4],path_of_example)
+    # # tz is rest of prostate not pz
     # tz=np.logical_and(np.logical_not(pz),full_pros)
     # #sv jointly
     # sv=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[2],path_of_example),get_bool_arr_from_path(anatomic_cols_paths[3],path_of_example))
+    # krowa
+    pz=sitk.GetArrayFromImage(sitk.ReadImage(target_paths[0])).astype(bool)
+    
 
     # pz,full_pros,pz,sv    
     pz_metr=dict(get_Metrics(mean_tta[0,:,:,:],pz)[0])
     print(pz_metr)
-    shutil.rmtree(temp_dir, ignore_errors=True)
+
+    #shutil.rmtree(temp_dir, ignore_errors=True)#TODO unhash
 
     # tz_metr=get_Metrics(mean_tta[1,:,:,:],tz)[0]
     # sv_metr=get_Metrics(mean_tta[2,:,:,:],sv)[0]
@@ -1014,19 +1069,26 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
     # output=np.mean(np.stack(output),axis=0)
     # save_label(mode_tta,3,"mode_tta",path_of_example)
-    # save_label(mean_tta,0,"mean_pz",path_of_example)
-    # save_label(mean_tta,1,"mean_tz",path_of_example)
-    # save_label(mean_tta,2,"mean_sv",path_of_example)
-    # save_label(mean_tta,3,"mean_sum",path_of_example)
-    # save_label(std_tta,3,"std_tta",path_of_example)    
+    save_label(mean_tta,0,"mean_pz",path_of_example)
+    save_label(mean_tta,1,"mean_tz",path_of_example)
+    save_label(mean_tta,2,"mean_sv",path_of_example)
+    save_label(mean_tta,3,"mean_sum",path_of_example)
+
+
+    # save_label(np.expand_dims(pz,0).astype(np.uint8),0,"target_pz",path_of_example)  
+    # save_label(np.expand_dims(tz,0).astype(np.uint8),0,"target_tz",path_of_example)
+    # save_label(np.expand_dims(full_pros,0).astype(np.uint8),0,"target_full_pros",path_of_example)
+
+    save_label(std_tta,3,"std_tta",path_of_example)    
     return pz_metr#pz_metr["avgHausdorff_"]
 
+# def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
 def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
     hparam_dict={}
-    rotate=trial.suggest_float("rotate_a", 2.0,50.0)
+    rotate=trial.suggest_float("rotate_a", 5.0,50.0)
     hparam_dict["rotate_a"]=np.pi / rotate #np.pi / 10
     hparam_dict["rotate_b"]=np.pi / rotate
-    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 2.0,50.0)
+    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 5.0,50.0)
     # hparam_dict["shear_a"]=trial.suggest_float("shear_a", 0.0,10.0)
     # hparam_dict["shear_b"]=trial.suggest_float("shear_b", 0.0,10.0)
     # hparam_dict["shear_c"]=trial.suggest_float("shear_c", 0.0,10.0)
@@ -1099,6 +1161,7 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     return avgHausdorff_
 
 
+
 if __name__ == '__main__':
 
     resCSVDir='/home/sliceruser/workspaces/konwersjaJsonData/outCsv/resCSV.csv'
@@ -1121,7 +1184,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrencec"
+    experiment_name="anatomy_infrence_d"
     study = optuna.create_study(
             study_name=experiment_name
             # ,sampler=optuna.samplers.CmaEsSampler()    
@@ -1139,15 +1202,6 @@ if __name__ == '__main__':
                         ,comet_logger=comet_logger,df=df)
 
     study.optimize(objective_p, n_trials=900)
-
-    #'t2w','adc','hbv'
-    # main_dat='/home/sliceruser/workspaces/konwersjaJsonData/AI4AR_cont/Data/014'
-    # input_images_paths = [f"{main_dat}/14_t2w.mha",f"{main_dat}/14_adc.mha",f"{main_dat}/14_hbv.mha" , ]  # if you only have one channel, you still need a list: ['case000_0000.nii.gz']
-# def objective(trial: optuna.trial.Trial) -> float:
-
-
-
-    # save_label(vvc_tta,3,"vvc_tta",path_of_example)
 
 
 
