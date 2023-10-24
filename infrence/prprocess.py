@@ -1068,17 +1068,17 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
     # output=np.mean(np.stack(output),axis=0)
     # save_label(mode_tta,3,"mode_tta",path_of_example)
-    save_label(mean_tta,0,"mean_pz",path_of_example,temp_dir)
-    save_label(mean_tta,1,"mean_tz",path_of_example,temp_dir)
-    save_label(mean_tta,2,"mean_sv",path_of_example,temp_dir)
-    save_label(mean_tta,3,"mean_sum",path_of_example,temp_dir)
+    # save_label(mean_tta,0,"mean_pz",path_of_example,temp_dir)
+    # save_label(mean_tta,1,"mean_tz",path_of_example,temp_dir)
+    # save_label(mean_tta,2,"mean_sv",path_of_example,temp_dir)
+    # save_label(mean_tta,3,"mean_sum",path_of_example,temp_dir)
 
 
-    # save_label(np.expand_dims(pz,0).astype(np.uint8),0,"target_pz",path_of_example)  
-    # save_label(np.expand_dims(tz,0).astype(np.uint8),0,"target_tz",path_of_example)
-    # save_label(np.expand_dims(full_pros,0).astype(np.uint8),0,"target_full_pros",path_of_example)
+    # # save_label(np.expand_dims(pz,0).astype(np.uint8),0,"target_pz",path_of_example)  
+    # # save_label(np.expand_dims(tz,0).astype(np.uint8),0,"target_tz",path_of_example)
+    # # save_label(np.expand_dims(full_pros,0).astype(np.uint8),0,"target_full_pros",path_of_example)
 
-    save_label(std_tta,3,"std_tta",path_of_example)    
+    # save_label(std_tta,3,"std_tta",path_of_example,,temp_dir)    
     shutil.rmtree(temp_dir, ignore_errors=True)
 
     return pz_metr#pz_metr["avgHausdorff_"]
