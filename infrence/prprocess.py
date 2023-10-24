@@ -519,10 +519,10 @@ def get_pred_one_hot(output,is_regions):
 
 
 
-def save_label(output,chann,name,path_of_example):
+def save_label(output,chann,name,path_of_example,tempdir):
     label_image=get_im_from_array(output,chann,sitk.ReadImage(path_of_example))
     writer = sitk.ImageFileWriter()   
-    newPath=f"/workspaces/konwersjaJsonData/data/curr/{name}.nii.gz"
+    newPath=f"{tempdir}/{name}.nii.gz"
     writer.SetFileName(newPath)
     writer.Execute(label_image)
  
@@ -1068,10 +1068,10 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
     # output=np.mean(np.stack(output),axis=0)
     # save_label(mode_tta,3,"mode_tta",path_of_example)
-    save_label(mean_tta,0,"mean_pz",path_of_example)
-    save_label(mean_tta,1,"mean_tz",path_of_example)
-    save_label(mean_tta,2,"mean_sv",path_of_example)
-    save_label(mean_tta,3,"mean_sum",path_of_example)
+    save_label(mean_tta,0,"mean_pz",path_of_example,temp_dir)
+    save_label(mean_tta,1,"mean_tz",path_of_example,temp_dir)
+    save_label(mean_tta,2,"mean_sv",path_of_example,temp_dir)
+    save_label(mean_tta,3,"mean_sum",path_of_example,temp_dir)
 
 
     # save_label(np.expand_dims(pz,0).astype(np.uint8),0,"target_pz",path_of_example)  
