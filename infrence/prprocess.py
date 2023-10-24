@@ -1061,7 +1061,6 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     pz_metr=dict(get_Metrics(mean_tta[0,:,:,:],pz)[0])
     print(pz_metr)
 
-    shutil.rmtree(temp_dir, ignore_errors=True)
 
     # tz_metr=get_Metrics(mean_tta[1,:,:,:],tz)[0]
     # sv_metr=get_Metrics(mean_tta[2,:,:,:],sv)[0]
@@ -1080,6 +1079,8 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     # save_label(np.expand_dims(full_pros,0).astype(np.uint8),0,"target_full_pros",path_of_example)
 
     save_label(std_tta,3,"std_tta",path_of_example)    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
     return pz_metr#pz_metr["avgHausdorff_"]
 
 # def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
