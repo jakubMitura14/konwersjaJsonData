@@ -1008,8 +1008,8 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
     
 
-    temp_dir ="/workspaces/konwersjaJsonData/data/curr" 
-    # temp_dir =tempfile.mkdtemp()# "/workspaces/konwersjaJsonData/data/curr" TODO unhash 
+    # temp_dir ="/workspaces/konwersjaJsonData/data/curr" 
+    temp_dir =tempfile.mkdtemp()# "/workspaces/konwersjaJsonData/data/curr" 
     data,properties,input_images_paths,target_paths=case_preprocessing(plans_file,dataset_json_file,configuration, input_paths,temp_dir,anatomic_cols_paths)
     if data==" ":
         return " "
@@ -1061,7 +1061,7 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     pz_metr=dict(get_Metrics(mean_tta[0,:,:,:],pz)[0])
     print(pz_metr)
 
-    #shutil.rmtree(temp_dir, ignore_errors=True)#TODO unhash
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
     # tz_metr=get_Metrics(mean_tta[1,:,:,:],tz)[0]
     # sv_metr=get_Metrics(mean_tta[2,:,:,:],sv)[0]
