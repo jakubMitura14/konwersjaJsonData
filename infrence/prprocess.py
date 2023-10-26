@@ -813,27 +813,27 @@ def test_time_augmentation(data
 
     val_transforms = Compose(
         [
-            RandAffined(
-                keys,
-                prob=1.0,
-                spatial_size=sizee,
-                rotate_range=(hparam_dict["rotate_a"], hparam_dict["rotate_b"], hparam_dict["rotate_c"]),
-                # shear_range=(hparam_dict["shear_a"],hparam_dict["shear_b"],hparam_dict["shear_c"]),
-                # translate_range=(0.1, 0.1, 0.1),
-                # scale_range=((hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
-                #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
-                #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])),
-                padding_mode="zeros",
-                mode=("bilinear"),
-            ),
+            # RandAffined(
+            #     keys,
+            #     prob=1.0,
+            #     spatial_size=sizee,
+            #     rotate_range=(hparam_dict["rotate_a"], hparam_dict["rotate_b"], hparam_dict["rotate_c"]),
+            #     # shear_range=(hparam_dict["shear_a"],hparam_dict["shear_b"],hparam_dict["shear_c"]),
+            #     # translate_range=(0.1, 0.1, 0.1),
+            #     # scale_range=((hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
+            #     #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
+            #     #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])),
+            #     padding_mode="zeros",
+            #     mode=("bilinear"),
+            # ),
             # CropForegroundd(keys, source_key="image"),
             # DivisiblePadd(keys, 16),
 
             # ScaleIntensityd("image"),
             # AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
-            # Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
-            #                , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
-            #                ,prob=hparam_dict["prob_elastic"]) 
+            Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
+                           , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
+                           ,prob=hparam_dict["prob_elastic"]) 
 
         ]
     )
@@ -1087,9 +1087,9 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
     hparam_dict={}
     rotate=trial.suggest_float("rotate_a", 5.0,50.0)
-    hparam_dict["rotate_a"]=np.pi / rotate #np.pi / 10
-    hparam_dict["rotate_b"]=np.pi / rotate
-    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 5.0,50.0)
+    # hparam_dict["rotate_a"]=np.pi / rotate #np.pi / 10
+    # hparam_dict["rotate_b"]=np.pi / rotate
+    # hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 5.0,50.0)
     # hparam_dict["shear_a"]=trial.suggest_float("shear_a", 0.0,10.0)
     # hparam_dict["shear_b"]=trial.suggest_float("shear_b", 0.0,10.0)
     # hparam_dict["shear_c"]=trial.suggest_float("shear_c", 0.0,10.0)
@@ -1097,10 +1097,10 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     # hparam_dict["scale_range_high"]=1.0
 
     # hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
-    # hparam_dict["sigma_low"]=trial.suggest_float("sigma_low", 0.0,10.0)#5
-    # hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
-    # hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
-    # hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
+    hparam_dict["sigma_low"]=trial.suggest_float("sigma_low", 0.0,10.0)#5
+    hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
+    hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
+    hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
 
 
     hparam_dict["prob_elastic"]=1.0#trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
@@ -1185,7 +1185,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence_d"
+    experiment_name="anatomy_infrence_e"
     study = optuna.create_study(
             study_name=experiment_name
             # ,sampler=optuna.samplers.CmaEsSampler()    
@@ -1206,6 +1206,6 @@ if __name__ == '__main__':
 
 
 
-# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrencec
+# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_d
 # cd /workspaces/konwersjaJsonData
 # python3 -m infrence.prprocess
