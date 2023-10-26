@@ -1086,7 +1086,7 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 # def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
 def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
     hparam_dict={}
-    rotate=trial.suggest_float("rotate_a", 5.0,50.0)
+    # rotate=trial.suggest_float("rotate_a", 5.0,50.0)
     # hparam_dict["rotate_a"]=np.pi / rotate #np.pi / 10
     # hparam_dict["rotate_b"]=np.pi / rotate
     # hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 5.0,50.0)
@@ -1206,6 +1206,6 @@ if __name__ == '__main__':
 
 
 
-# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_d
+# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_e
 # cd /workspaces/konwersjaJsonData
 # python3 -m infrence.prprocess
