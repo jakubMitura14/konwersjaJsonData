@@ -1188,8 +1188,8 @@ if __name__ == '__main__':
     experiment_name="anatomy_infrence_e"
     study = optuna.create_study(
             study_name=experiment_name
-            # ,sampler=optuna.samplers.CmaEsSampler()    
-            ,sampler=optuna.samplers.NSGAIISampler()    
+            ,sampler=optuna.samplers.CmaEsSampler()    
+            # ,sampler=optuna.samplers.NSGAIISampler()    
             ,pruner=optuna.pruners.HyperbandPruner()
             # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
             ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
