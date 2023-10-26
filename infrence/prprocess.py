@@ -1106,7 +1106,7 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     hparam_dict["prob_elastic"]=1.0#trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
     hparam_dict["num_examples"]=10#trial.suggest_int("num_examples", 8,16)
     hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.5)
-    hparam_dict["swin_weight"]=trial.suggest_float("swin_weight", 0.0,1.0)
+    hparam_dict["swin_weight"]=0.9#trial.suggest_float("swin_weight", 0.0,1.0)
 
 
     checkpoint_paths=[(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=275-step=5796.ckpt",1.0)
