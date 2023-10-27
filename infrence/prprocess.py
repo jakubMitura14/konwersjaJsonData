@@ -519,10 +519,10 @@ def get_pred_one_hot(output,is_regions):
 
 
 
-def save_label(output,chann,name,path_of_example):
+def save_label(output,chann,name,path_of_example,tempdir):
     label_image=get_im_from_array(output,chann,sitk.ReadImage(path_of_example))
     writer = sitk.ImageFileWriter()   
-    newPath=f"/workspaces/konwersjaJsonData/data/curr/{name}.nii.gz"
+    newPath=f"{tempdir}/{name}.nii.gz"
     writer.SetFileName(newPath)
     writer.Execute(label_image)
  
@@ -813,27 +813,27 @@ def test_time_augmentation(data
 
     val_transforms = Compose(
         [
-            RandAffined(
-                keys,
-                prob=1.0,
-                spatial_size=sizee,
-                rotate_range=(hparam_dict["rotate_a"], hparam_dict["rotate_b"], hparam_dict["rotate_c"]),
-                # shear_range=(hparam_dict["shear_a"],hparam_dict["shear_b"],hparam_dict["shear_c"]),
-                # translate_range=(0.1, 0.1, 0.1),
-                # scale_range=((hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
-                #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
-                #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])),
-                padding_mode="zeros",
-                mode=("bilinear"),
-            ),
+            # RandAffined(
+            #     keys,
+            #     prob=1.0,
+            #     spatial_size=sizee,
+            #     rotate_range=(hparam_dict["rotate_a"], hparam_dict["rotate_b"], hparam_dict["rotate_c"]),
+            #     # shear_range=(hparam_dict["shear_a"],hparam_dict["shear_b"],hparam_dict["shear_c"]),
+            #     # translate_range=(0.1, 0.1, 0.1),
+            #     # scale_range=((hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
+            #     #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])
+            #     #              ,(hparam_dict["scale_range_low"],hparam_dict["scale_range_high"])),
+            #     padding_mode="zeros",
+            #     mode=("bilinear"),
+            # ),
             # CropForegroundd(keys, source_key="image"),
             # DivisiblePadd(keys, 16),
 
-            # ScaleIntensityd("image"),
-            # AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
-            # Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
-            #                , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
-            #                ,prob=hparam_dict["prob_elastic"]) 
+            ScaleIntensityd("image"),
+            AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
+            Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
+                           , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
+                           ,prob=hparam_dict["prob_elastic"]) 
 
         ]
     )
@@ -1008,8 +1008,8 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
     
 
-    temp_dir ="/workspaces/konwersjaJsonData/data/curr" 
-    # temp_dir =tempfile.mkdtemp()# "/workspaces/konwersjaJsonData/data/curr" TODO unhash 
+    # temp_dir ="/workspaces/konwersjaJsonData/data/curr" 
+    temp_dir =tempfile.mkdtemp()# "/workspaces/konwersjaJsonData/data/curr" 
     data,properties,input_images_paths,target_paths=case_preprocessing(plans_file,dataset_json_file,configuration, input_paths,temp_dir,anatomic_cols_paths)
     if data==" ":
         return " "
@@ -1061,7 +1061,6 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
     pz_metr=dict(get_Metrics(mean_tta[0,:,:,:],pz)[0])
     print(pz_metr)
 
-    #shutil.rmtree(temp_dir, ignore_errors=True)#TODO unhash
 
     # tz_metr=get_Metrics(mean_tta[1,:,:,:],tz)[0]
     # sv_metr=get_Metrics(mean_tta[2,:,:,:],sv)[0]
@@ -1069,43 +1068,46 @@ def full_infer_anatomy_case(plans_file,dataset_json_file,configuration, groupp,h
 
     # output=np.mean(np.stack(output),axis=0)
     # save_label(mode_tta,3,"mode_tta",path_of_example)
-    save_label(mean_tta,0,"mean_pz",path_of_example)
-    save_label(mean_tta,1,"mean_tz",path_of_example)
-    save_label(mean_tta,2,"mean_sv",path_of_example)
-    save_label(mean_tta,3,"mean_sum",path_of_example)
+    # save_label(mean_tta,0,"mean_pz",path_of_example,temp_dir)
+    # save_label(mean_tta,1,"mean_tz",path_of_example,temp_dir)
+    # save_label(mean_tta,2,"mean_sv",path_of_example,temp_dir)
+    # save_label(mean_tta,3,"mean_sum",path_of_example,temp_dir)
 
 
-    # save_label(np.expand_dims(pz,0).astype(np.uint8),0,"target_pz",path_of_example)  
-    # save_label(np.expand_dims(tz,0).astype(np.uint8),0,"target_tz",path_of_example)
-    # save_label(np.expand_dims(full_pros,0).astype(np.uint8),0,"target_full_pros",path_of_example)
+    # # save_label(np.expand_dims(pz,0).astype(np.uint8),0,"target_pz",path_of_example)  
+    # # save_label(np.expand_dims(tz,0).astype(np.uint8),0,"target_tz",path_of_example)
+    # # save_label(np.expand_dims(full_pros,0).astype(np.uint8),0,"target_full_pros",path_of_example)
 
-    save_label(std_tta,3,"std_tta",path_of_example)    
+    # save_label(std_tta,3,"std_tta",path_of_example,,temp_dir)    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
     return pz_metr#pz_metr["avgHausdorff_"]
 
 # def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
 def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df) -> float:
     hparam_dict={}
-    rotate=trial.suggest_float("rotate_a", 5.0,50.0)
-    hparam_dict["rotate_a"]=np.pi / rotate #np.pi / 10
-    hparam_dict["rotate_b"]=np.pi / rotate
-    hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 5.0,50.0)
+    # rotate=trial.suggest_float("rotate_a", 5.0,50.0)
+    # hparam_dict["rotate_a"]=np.pi / rotate #np.pi / 10
+    # hparam_dict["rotate_b"]=np.pi / rotate
+    # hparam_dict["rotate_c"]=np.pi / trial.suggest_float("rotate_b", 5.0,50.0)
     # hparam_dict["shear_a"]=trial.suggest_float("shear_a", 0.0,10.0)
     # hparam_dict["shear_b"]=trial.suggest_float("shear_b", 0.0,10.0)
     # hparam_dict["shear_c"]=trial.suggest_float("shear_c", 0.0,10.0)
     # hparam_dict["scale_range_low"]=0.99
     # hparam_dict["scale_range_high"]=1.0
 
-    # hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
-    # hparam_dict["sigma_low"]=trial.suggest_float("sigma_low", 0.0,10.0)#5
-    # hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
-    # hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
-    # hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
+    hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
+    hparam_dict["sigma_low"]=7.077968784031422#trial.suggest_float("sigma_low", 0.0,10.0)#5
+    hparam_dict["sigma_diff"]=8.048997012706618#trial.suggest_float("sigma_diff", 0.0,10.0)#2
+    hparam_dict["magnitude_range_low"]=3.85995070774654#trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
+    hparam_dict["magnitude_range_diff"]=172.39161544780146#trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
 
 
     hparam_dict["prob_elastic"]=1.0#trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
-    hparam_dict["num_examples"]=10#trial.suggest_int("num_examples", 8,16)
+    hparam_dict["num_examples"]=trial.suggest_int("num_examples", 8,16)
     hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.5)
-    hparam_dict["swin_weight"]=trial.suggest_float("swin_weight", 0.0,1.0)
+    hparam_dict["swin_weight"]=0.9#trial.suggest_float("swin_weight", 0.0,1.0)
+
 
 
     checkpoint_paths=[(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=275-step=5796.ckpt",1.0)
@@ -1184,11 +1186,11 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence_d"
+    experiment_name="anatomy_infrence_g"
     study = optuna.create_study(
             study_name=experiment_name
-            # ,sampler=optuna.samplers.CmaEsSampler()    
-            ,sampler=optuna.samplers.NSGAIISampler()    
+            ,sampler=optuna.samplers.CmaEsSampler()    
+            # ,sampler=optuna.samplers.NSGAIISampler()    
             ,pruner=optuna.pruners.HyperbandPruner()
             # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
             ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
@@ -1205,6 +1207,6 @@ if __name__ == '__main__':
 
 
 
-# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrenceb
+# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_g
 # cd /workspaces/konwersjaJsonData
 # python3 -m infrence.prprocess
