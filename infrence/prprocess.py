@@ -829,8 +829,8 @@ def test_time_augmentation(data
             # CropForegroundd(keys, source_key="image"),
             # DivisiblePadd(keys, 16),
 
-            # ScaleIntensityd("image"),
-            # AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
+            ScaleIntensityd("image"),
+            AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
             Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
                            , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
                            ,prob=hparam_dict["prob_elastic"]) 
@@ -1096,17 +1096,18 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     # hparam_dict["scale_range_low"]=0.99
     # hparam_dict["scale_range_high"]=1.0
 
-    # hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
-    hparam_dict["sigma_low"]=trial.suggest_float("sigma_low", 0.0,10.0)#5
-    hparam_dict["sigma_diff"]=trial.suggest_float("sigma_diff", 0.0,10.0)#2
-    hparam_dict["magnitude_range_low"]=trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
-    hparam_dict["magnitude_range_diff"]=trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
+    hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
+    hparam_dict["sigma_low"]=7.077968784031422#trial.suggest_float("sigma_low", 0.0,10.0)#5
+    hparam_dict["sigma_diff"]=8.048997012706618#trial.suggest_float("sigma_diff", 0.0,10.0)#2
+    hparam_dict["magnitude_range_low"]=3.85995070774654#trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
+    hparam_dict["magnitude_range_diff"]=172.39161544780146#trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
 
 
     hparam_dict["prob_elastic"]=1.0#trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
-    hparam_dict["num_examples"]=10#trial.suggest_int("num_examples", 8,16)
+    hparam_dict["num_examples"]=trial.suggest_int("num_examples", 8,16)
     hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.5)
     hparam_dict["swin_weight"]=0.9#trial.suggest_float("swin_weight", 0.0,1.0)
+
 
 
     checkpoint_paths=[(True,"/workspaces/konwersjaJsonData/data/anatomy_res/nnunet_classic/plain_0/results_out/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0/epoch=275-step=5796.ckpt",1.0)
@@ -1185,7 +1186,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence_f"
+    experiment_name="anatomy_infrence_g"
     study = optuna.create_study(
             study_name=experiment_name
             ,sampler=optuna.samplers.CmaEsSampler()    
@@ -1206,6 +1207,6 @@ if __name__ == '__main__':
 
 
 
-# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_e
+# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_g
 # cd /workspaces/konwersjaJsonData
 # python3 -m infrence.prprocess
