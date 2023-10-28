@@ -829,7 +829,7 @@ def test_time_augmentation(data
             # CropForegroundd(keys, source_key="image"),
             # DivisiblePadd(keys, 16),
 
-            ScaleIntensityd("image"),
+            # ScaleIntensityd("image"),
             AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
             Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
                            , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
@@ -1186,7 +1186,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence_g"
+    experiment_name="anatomy_infrence_h"
     study = optuna.create_study(
             study_name=experiment_name
             ,sampler=optuna.samplers.CmaEsSampler()    
