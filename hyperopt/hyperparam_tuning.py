@@ -183,7 +183,7 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="classic_augmentations2"#bias_norm
+experiment_name="classic_augmentations3"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
@@ -205,8 +205,8 @@ def setup_pseudo_lesion_adder_and_loss(trial):
     os.environ['mult_old_b'] = str(1.0)#str(trial.suggest_float("mult_old_b", 0.0,1.0))
     os.environ['is_anatomic'] = "1"#trial.suggest_categorical("is_anatomic", ["0", "1"])
     #for custom loss function
-    os.environ['w0'] = str(trial.suggest_float("w0", 0.0,1.0))
-    os.environ['w1'] = str(trial.suggest_float("w1", 0.0,1.0))
+    # os.environ['w0'] = str(trial.suggest_float("w0", 0.0,1.0))
+    # os.environ['w1'] = str(trial.suggest_float("w1", 0.0,1.0))
     # os.environ['w2'] = str(trial.suggest_float("w2", 0.001,0.999))
 
 
@@ -244,9 +244,9 @@ def objective(trial: optuna.trial.Trial) -> float:
 # storage="mysql://root@34.90.134.17/testt"
 study = optuna.create_study(
         study_name=experiment_name
-        ,sampler=optuna.samplers.CmaEsSampler()    
-        # ,sampler=optuna.samplers.NSGAIISampler()    
-        ,pruner=optuna.pruners.HyperbandPruner()
+        # ,sampler=optuna.samplers.CmaEsSampler()    
+        ,sampler=optuna.samplers.NSGAIISampler()    
+        # ,pruner=optuna.pruners.HyperbandPruner()
         # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
         ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
         ,load_if_exists=True
