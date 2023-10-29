@@ -259,8 +259,8 @@ class Picai_FL_and_CE_loss(nn.Module):
         # self.ce = RobustCrossEntropyLoss(**ce_kwargs)
         self.alpha = alpha
 
-        self.w0=float(os.getenv('w0'))
-        self.w1=float(os.getenv('w1'))
+        self.w0=0.4#float(os.getenv('w0'))
+        self.w1=0.95#float(os.getenv('w1'))
         self.w2=2-self.w0-self.w1
 
         self.w0=self.w0/2
