@@ -829,7 +829,7 @@ def test_time_augmentation(data
             # CropForegroundd(keys, source_key="image"),
             # DivisiblePadd(keys, 16),
 
-            ScaleIntensityd("image"),
+            # ScaleIntensityd("image"),
             # AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
             Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
                            , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
@@ -1096,7 +1096,7 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     # hparam_dict["scale_range_low"]=0.99
     # hparam_dict["scale_range_high"]=1.0
 
-    hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
+    # hparam_dict["AdjustContrastd"]=trial.suggest_float("AdjustContrastd", 0.0,10.0)#2
     hparam_dict["sigma_low"]=7.077968784031422#trial.suggest_float("sigma_low", 0.0,10.0)#5
     hparam_dict["sigma_diff"]=8.048997012706618#trial.suggest_float("sigma_diff", 0.0,10.0)#2
     hparam_dict["magnitude_range_low"]=3.85995070774654#trial.suggest_float("magnitude_range_low", 0.0,200.0)#50
@@ -1104,7 +1104,7 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
 
 
     hparam_dict["prob_elastic"]=1.0#trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
-    hparam_dict["num_examples"]=trial.suggest_int("num_examples", 8,16)
+    hparam_dict["num_examples"]=10#trial.suggest_int("num_examples", 8,16)
     hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.5)
     hparam_dict["swin_weight"]=0.9#trial.suggest_float("swin_weight", 0.0,1.0)
 
@@ -1138,7 +1138,7 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     grouped_rows=list(groupByMaster(list(sourceFrame.iterrows())))
 
     grouped_rows=list(filter(lambda groupp:groupp[0] not in test_ids,grouped_rows ))
-    grouped_rows=grouped_rows[0:5]#TODO increase
+    grouped_rows=grouped_rows[0:50]#TODO increase
 
 
     # print(grouped_rows[0])
@@ -1186,7 +1186,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence_i"
+    experiment_name="anatomy_infrence_j"
     study = optuna.create_study(
             study_name=experiment_name
             ,sampler=optuna.samplers.CmaEsSampler()    
@@ -1207,6 +1207,6 @@ if __name__ == '__main__':
 
 
 
-# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_i
+# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_j
 # cd /workspaces/konwersjaJsonData
 # python3 -m infrence.prprocess
