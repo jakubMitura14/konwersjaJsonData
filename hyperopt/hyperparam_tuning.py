@@ -114,9 +114,9 @@ def set_env_variables_for_general_transforms(trial):
     os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
     
     gmma_bottom=trial.suggest_float("gamma_bottom_c", 0.0,3.0)
-    os.environ['gamma_bottom_c']=gmma_bottom
-    os.environ['gamma_up_c']=trial.suggest_float("gamma_up_c",  0.0,3.0)+gmma_bottom
-    os.environ['gamma_prob_c']=trial.suggest_float("gamma_prob_c", 0.0,1.0)
+    os.environ['gamma_bottom_c']=str(gmma_bottom)
+    os.environ['gamma_up_c']=str(trial.suggest_float("gamma_up_c",  0.0,3.0)+gmma_bottom)
+    os.environ['gamma_prob_c']=str(trial.suggest_float("gamma_prob_c", 0.0,1.0))
 
     os.environ['RicianNoiseTransform'] = str(0.40230497711508434)
     # os.environ['GaussianBlurTransform'] = str(0.30684212800169935)
