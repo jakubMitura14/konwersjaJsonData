@@ -829,8 +829,8 @@ def test_time_augmentation(data
             # CropForegroundd(keys, source_key="image"),
             # DivisiblePadd(keys, 16),
 
-            # ScaleIntensityd("image"),
-            AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
+            ScaleIntensityd("image"),
+            # AdjustContrastd("image",hparam_dict["AdjustContrastd"]),
             Rand3DElasticd("image",sigma_range=(hparam_dict["sigma_low"],hparam_dict["sigma_low"]+hparam_dict["sigma_diff"])
                            , magnitude_range=(hparam_dict["magnitude_range_low"],hparam_dict["magnitude_range_low"]+hparam_dict["magnitude_range_diff"])
                            ,prob=hparam_dict["prob_elastic"]) 
@@ -1186,7 +1186,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence_h"
+    experiment_name="anatomy_infrence_i"
     study = optuna.create_study(
             study_name=experiment_name
             ,sampler=optuna.samplers.CmaEsSampler()    
@@ -1207,6 +1207,6 @@ if __name__ == '__main__':
 
 
 
-# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_g
+# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_i
 # cd /workspaces/konwersjaJsonData
 # python3 -m infrence.prprocess
