@@ -441,7 +441,7 @@ def bias_field_and_normalize_help(t2w_image,adc_image,hbv_image):
     if(nan_summ>0):
         print(f"eeeeeeeeeeeeeerrorrr naaans")
         raise Exception('nanns')   
-
+    
     params = get_paramss(arrrr)
     # Run debias procedure and take parameter output
     arrrr= lapgm.debias(arrrr, params)
@@ -496,11 +496,10 @@ def bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image):
 
 
 def bias_field_and_normalize(t2w_image,adc_image,hbv_image):
-    return  bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
-    # try:
-    #     return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
-    # except:
-    #     return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
+    try:
+        return bias_field_and_normalize_help_b(t2w_image,adc_image,hbv_image)
+    except:
+        return bias_field_and_normalize_help_sitk(t2w_image,adc_image,hbv_image) 
 
 def get_pred_one_hot(output,is_regions):
     if(is_regions):
