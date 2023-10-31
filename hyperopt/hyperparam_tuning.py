@@ -100,7 +100,7 @@ def set_env_variables_for_general_transforms(trial):
     os.environ['p_scale_per_sample'] = str(trial.suggest_float("p_scale_per_sample", 0.0,0.9))
     # os.environ['p_rot_per_sample'] = str(trial.suggest_float("p_rot_per_sample", 0.0,0.9))
     baseLr=0.00831
-    os.environ['learning_rate'] = baseLr/15#str(trial.suggest_float("learning_rate", baseLr/50,baseLr*2))
+    os.environ['learning_rate'] = str(baseLr/15)#str(trial.suggest_float("learning_rate", baseLr/50,baseLr*2))
 
 
 
