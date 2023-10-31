@@ -1185,7 +1185,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence_j"
+    experiment_name="anatomy_infrence_k"
     study = optuna.create_study(
             study_name=experiment_name
             ,sampler=optuna.samplers.CmaEsSampler()    
