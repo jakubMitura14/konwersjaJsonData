@@ -183,7 +183,7 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="classic_augmentations3"#bias_norm
+experiment_name="classic_augmentations4"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
@@ -240,7 +240,8 @@ def objective(trial: optuna.trial.Trial) -> float:
     res=  np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
     print(f"rrr res {res} aa {a}")   
 
-    return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
+    # return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
+    return np.max(a)
 # storage="mysql://root@34.90.134.17/testt"
 study = optuna.create_study(
         study_name=experiment_name
