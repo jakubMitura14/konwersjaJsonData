@@ -90,7 +90,7 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=7
+        self.log_every_n=4
         self.num_batch_to_eval=20
         self.batch_size=1
         self.is_deep_supervision=True
@@ -475,7 +475,7 @@ class Main_trainer_pl(nnUNetTrainer):
             ,do_rotation=True, angle_x=rotation_for_DA['x']
             ,angle_y=rotation_for_DA['y']
             ,angle_z=rotation_for_DA['z']
-            ,p_rot_per_axis=1#int(os.getenv('p_rot_per_axis')) #1,  # todo experiment with this
+            ,p_rot_per_axis=int(os.getenv('p_rot_per_axis')) #1,  # todo experiment with this
             ,do_scale=True, scale=(0.7, 1.4),
             border_mode_data="constant", border_cval_data=0, order_data=order_resampling_data,
             border_mode_seg="constant", border_cval_seg=border_val_seg, order_seg=order_resampling_seg,
@@ -505,6 +505,7 @@ class Main_trainer_pl(nnUNetTrainer):
                                                             ignore_axes=ignore_axes))
         tr_transforms.append(GammaTransform((0.7, 1.5), True, True, retain_stats=True, p_per_sample=float(os.getenv('GammaTransform_a'))))
         tr_transforms.append(GammaTransform((0.7, 1.5), False, True, retain_stats=True, p_per_sample=float(os.getenv('GammaTransform_b'))))
+        tr_transforms.append(GammaTransform((float(os.getenv('gamma_bottom_c')), float(os.getenv('gamma_up_c'))), True, True, retain_stats=True, p_per_sample=float(os.getenv('gamma_prob_c'))))
         # tr_transforms.append(RicianNoiseTransform(p_per_sample=0.1))
         # # tr_transforms.append(My_PseudoLesion_adder())
         # if(self.is_priming_segm):

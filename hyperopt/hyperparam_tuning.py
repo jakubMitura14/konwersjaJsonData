@@ -84,25 +84,20 @@ def set_env_variables_for_general_transforms(trial):
     set the hyperparameters for transforms in lesion segmentation
     """
 
-    # alpha_low=trial.suggest_float("alpha_low", 0.0, 1000.0)
-    # os.environ['alpha_low'] = str(alpha_low)
-    # os.environ['alpha_high'] = str(alpha_low+trial.suggest_float("alpha_high", 0.0, 2000.0))
+    alpha_low=trial.suggest_float("alpha_low", 0.0, 1000.0)
+    os.environ['alpha_low'] = str(alpha_low)
+    os.environ['alpha_high'] = str(alpha_low+trial.suggest_float("alpha_high", 0.0, 2000.0))
 
-    # sigma_low=trial.suggest_float("sigma_low", 0.0, 19.0)
-    # os.environ['sigma_low'] = str(sigma_low)
-    # os.environ['sigma_high'] = str(sigma_low+trial.suggest_float("sigma_high", 0.0, 20.0))
+    sigma_low=trial.suggest_float("sigma_low", 0.0, 19.0)
+    os.environ['sigma_low'] = str(sigma_low)
+    os.environ['sigma_high'] = str(sigma_low+trial.suggest_float("sigma_high", 0.0, 20.0))
 
-    # # os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
+    os.environ['GaussianBlurTransform'] = str(trial.suggest_float("GaussianBlurTransform", 0.0,0.9))
 
-    # os.environ['RicianNoiseTransform'] = str(trial.suggest_float("RicianNoiseTransform", 0.0,0.9))
-    # os.environ['GaussianBlurTransform'] = str(trial.suggest_float("GaussianBlurTransform", 0.0,0.9))
-
-    # os.environ['ContrastAugmentationTransform'] = str(trial.suggest_float("ContrastAugmentationTransform", 0.0,0.9))
-    # os.environ['SimulateLowResolutionTransform'] = str(trial.suggest_float("SimulateLowResolutionTransform", 0.0,0.9))
-    # os.environ['GammaTransform_a'] = str(trial.suggest_float("GammaTransform_a", 0.0,0.9))
-    # os.environ['GammaTransform_b'] = str(trial.suggest_float("GammaTransform_b", 0.0,0.9))
-    # os.environ['p_el_per_sample'] = str(trial.suggest_float("p_el_per_sample", 0.0,0.9))
-    # os.environ['p_scale_per_sample'] = str(trial.suggest_float("p_scale_per_sample", 0.0,0.9))
+    os.environ['SimulateLowResolutionTransform'] = str(trial.suggest_float("SimulateLowResolutionTransform", 0.0,0.9))
+    os.environ['GammaTransform_a'] = str(trial.suggest_float("GammaTransform_a", 0.0,0.9))
+    os.environ['GammaTransform_b'] = str(trial.suggest_float("GammaTransform_b", 0.0,0.9))
+    os.environ['p_scale_per_sample'] = str(trial.suggest_float("p_scale_per_sample", 0.0,0.9))
     # os.environ['p_rot_per_sample'] = str(trial.suggest_float("p_rot_per_sample", 0.0,0.9))
     baseLr=0.00831
     os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/50,baseLr*2))
@@ -110,23 +105,28 @@ def set_env_variables_for_general_transforms(trial):
 
 
     ###os.environ['attn_num_mem_kv'] = '0'
-    os.environ['alpha_low'] = str(421.60033013863716)
-    os.environ['alpha_high'] = str(421.60033013863716+1451.4488917182302)
+    # os.environ['alpha_low'] = str(421.60033013863716)
+    # os.environ['alpha_high'] = str(421.60033013863716+1451.4488917182302)
 
-    os.environ['sigma_low'] = str(11.541639008878207)
-    os.environ['sigma_high'] = str(11.541639008878207+ 9.669272682121036)
+    # os.environ['sigma_low'] = str(11.541639008878207)
+    # os.environ['sigma_high'] = str(11.541639008878207+ 9.669272682121036)
 
-    # os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
+    os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
+    
+    gmma_bottom=trial.suggest_float("gamma_bottom_c", 0.0,3.0)
+    os.environ['gamma_bottom_c']=str(gmma_bottom)
+    os.environ['gamma_up_c']=str(trial.suggest_float("gamma_up_c",  0.0,3.0)+gmma_bottom)
+    os.environ['gamma_prob_c']=str(trial.suggest_float("gamma_prob_c", 0.0,1.0))
 
     os.environ['RicianNoiseTransform'] = str(0.40230497711508434)
-    os.environ['GaussianBlurTransform'] = str(0.30684212800169935)
+    # os.environ['GaussianBlurTransform'] = str(0.30684212800169935)
 
     os.environ['ContrastAugmentationTransform'] = str(0.6110392464376544)
-    os.environ['SimulateLowResolutionTransform'] = str(0.51587313094672182)
-    os.environ['GammaTransform_a'] = str(0.09474295989278318)
-    os.environ['GammaTransform_b'] = str(0.3249770010008122)
+    # os.environ['SimulateLowResolutionTransform'] = str(0.51587313094672182)
+    # os.environ['GammaTransform_a'] = str(0.09474295989278318)
+    # os.environ['GammaTransform_b'] = str(0.3249770010008122)
     os.environ['p_el_per_sample'] = str(0.3338220211800589)
-    os.environ['p_scale_per_sample'] = str(0.6832566131656115)
+    # os.environ['p_scale_per_sample'] = str(0.6832566131656115)
     os.environ['p_rot_per_sample'] = str(0.5495580611394884)
     # baseLr=0.00831
     # os.environ['learning_rate'] = str(0.03142343750219331)
@@ -183,7 +183,7 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="custom_aug_loss_f"#bias_norm
+experiment_name="classic_augmentations3"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
@@ -193,8 +193,8 @@ def setup_pseudo_lesion_adder_and_loss(trial):
     os.environ['n_lesions'] = str(7)#str(trial.suggest_int("n_lesions", 3,9))
     os.environ['k_lesions'] = str(30)#str(trial.suggest_int("k_lesions", 1,1000))
     
-    os.environ['output_0_w'] =str(trial.suggest_float("output_0_w", 0.0,1.0))
-    os.environ['output_1_w'] = str(trial.suggest_float("output_1_w", 0.0,1.0))
+    # os.environ['output_0_w'] =str(trial.suggest_float("output_0_w", 0.0,1.0))
+    # os.environ['output_1_w'] = str(trial.suggest_float("output_1_w", 0.0,1.0))
     os.environ['mean_2'] = str(0.45)#str(trial.suggest_float("mean_2", 0.001,0.999))
     os.environ['mean_3'] = str(3.1)#str(trial.suggest_float("mean_3", 0.001,0.999))
     os.environ['std_0'] = str(0.15)#str(trial.suggest_float("std_0", 0.001,0.999))
@@ -205,8 +205,8 @@ def setup_pseudo_lesion_adder_and_loss(trial):
     os.environ['mult_old_b'] = str(1.0)#str(trial.suggest_float("mult_old_b", 0.0,1.0))
     os.environ['is_anatomic'] = "1"#trial.suggest_categorical("is_anatomic", ["0", "1"])
     #for custom loss function
-    os.environ['w0'] = str(trial.suggest_float("w0", 0.0,1.0))
-    os.environ['w1'] = str(trial.suggest_float("w1", 0.0,1.0))
+    # os.environ['w0'] = str(trial.suggest_float("w0", 0.0,1.0))
+    # os.environ['w1'] = str(trial.suggest_float("w1", 0.0,1.0))
     # os.environ['w2'] = str(trial.suggest_float("w2", 0.001,0.999))
 
 
@@ -228,7 +228,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     setup_pseudo_lesion_adder_and_loss(trial)
 
     # cmd=f"custom_aug_loss tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
-    cmd=f" my_proj_name='custom_aug_loss' tag='custom_aug_loss' my_proj_desc='custom_aug_loss' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
+    cmd=f" my_proj_name='classic_augmentations2' tag='classic_augmentations2' my_proj_desc='classic_augmentations2' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl"
 
     # p = Popen(cmd, shell=True,stdout=subprocess.PIPE , stderr=subprocess.PIPE)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
     p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
@@ -244,9 +244,9 @@ def objective(trial: optuna.trial.Trial) -> float:
 # storage="mysql://root@34.90.134.17/testt"
 study = optuna.create_study(
         study_name=experiment_name
-        ,sampler=optuna.samplers.CmaEsSampler()    
-        # ,sampler=optuna.samplers.NSGAIISampler()    
-        ,pruner=optuna.pruners.HyperbandPruner()
+        # ,sampler=optuna.samplers.CmaEsSampler()    
+        ,sampler=optuna.samplers.NSGAIISampler()    
+        # ,pruner=optuna.pruners.HyperbandPruner()
         # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
         ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
         ,load_if_exists=True
@@ -258,5 +258,5 @@ study.optimize(objective, n_trials=400)
 
 
 # optuna-dashboard mysql://root@34.90.134.17/classic_augmentations2
-# optuna-dashboard mysql://root@34.90.134.17/custom_aug_loss_d
+# optuna-dashboard mysql://root@34.90.134.17/custom_aug_loss_f
 # # my_proj_name='hyperparam_classic_aug' tag='hyperparam_classic_aug' my_proj_desc='debug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl
