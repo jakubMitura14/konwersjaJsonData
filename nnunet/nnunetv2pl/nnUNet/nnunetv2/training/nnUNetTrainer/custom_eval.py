@@ -174,7 +174,7 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
             chunk_size = 1
             batch_nums=np.array_split(batch_nums, math.ceil(batch_nums.shape[0]/chunk_size))
         else:
-            chunk_size=max(10//batch_size,1)
+            chunk_size=1#max(10//batch_size,1)
             batch_nums=np.array_split(batch_nums, math.ceil(batch_nums.shape[0]/chunk_size))
         
         # target=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/target"][:,:,:,:], batch_nums))
