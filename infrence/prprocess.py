@@ -1102,10 +1102,10 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     hparam_dict["magnitude_range_diff"]=172.39161544780146#trial.suggest_float("magnitude_range_diff", 0.0,400.0)#100
 
 
-    hparam_dict["prob_elastic"]=trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
+    hparam_dict["prob_elastic"]=#trial.suggest_float("prob_elastic", 0.0,1.0)#1.0
     hparam_dict["num_examples"]=10#trial.suggest_int("num_examples", 8,16)
     hparam_dict["treshold"]=trial.suggest_float("treshold", 0.0,0.6)
-    hparam_dict["swin_weight"]=0.9#trial.suggest_float("swin_weight", 0.0,1.0)
+    hparam_dict["swin_weight"]=trial.suggest_float("swin_weight", 0.0,1.0)
 
 
 
@@ -1185,7 +1185,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence_k"
+    experiment_name="anatomy_infrence_l"
     study = optuna.create_study(
             study_name=experiment_name
             ,sampler=optuna.samplers.CmaEsSampler()    
