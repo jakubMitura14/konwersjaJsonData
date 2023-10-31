@@ -396,6 +396,8 @@ RUN pip uninstall -y SharedArray && \
 # cd /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet
 # python3 -m pip  install -e .
 
+
+RUN python3 -m pip install dynamic-network-architectures==0.2
 RUN mkdir ${HOME}/apex \
     && git clone https://github.com/NVIDIA/apex ${HOME}/apex \
     && cd ${HOME}/apex \
