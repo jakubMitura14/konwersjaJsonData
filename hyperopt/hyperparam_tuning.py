@@ -292,6 +292,7 @@ study = optuna.create_study(
 #         #mysql://root@localhost/example
 old_trial_id=get_trial_id()
 if(old_trial_id==" "):
+    print(f"starting from old trial id {old_trial_id}")
     study.optimize(objective, n_trials=900,gc_after_trial=True)
 else:    
     study.add_trial(storage.get_trial(int(old_trial_id)))
