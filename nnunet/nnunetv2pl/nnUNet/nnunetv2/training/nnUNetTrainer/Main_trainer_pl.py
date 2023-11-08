@@ -90,7 +90,9 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=4
+        self.log_every_n=1
+        patience=1
+        
         self.num_batch_to_eval=20
         self.batch_size=1
         self.is_deep_supervision=True
@@ -349,7 +351,7 @@ class Main_trainer_pl(nnUNetTrainer):
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
-            patience=32,
+            patience=patience,
             mode=mode,
             #divergence_threshold=(-0.1)
         )
@@ -678,11 +680,15 @@ class Main_trainer_pl(nnUNetTrainer):
 
     def run_training(self):
         self.on_train_start()
-        # tuner = Tuner(self.trainer)
-        # tuner.lr_find(self.pl_model, attr_name="learning_rate")       
-        deep_speed_ckpt='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=44-step=900.ckpt'
-        self.trainer.fit(self.pl_model)#  , ckpt_path=deep_speed_ckpt , ckpt_path='/home/sliceruser/nnUNet_results/Dataset294_Prostate/My_Anatomy_trainer__nnUNetPlans__3d_lowres/fold_0/epoch=14-step=375.ckpt')
         
+        if(os.getenv('load_checkpoint')=="1"):
+            print(f"loading from checkpoint")
+            self.trainer.fit(self.pl_model, ckpt_path=os.getenv('checkPoint_path'))
+        
+        
+        
+
+        self.trainer.fit(self.pl_model)
         
         
         self.on_train_end()

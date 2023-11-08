@@ -9,6 +9,9 @@ import sys
 import pandas as pd
 import numpy as np
 import json
+import shutil
+import glob
+
 
 def loadLib(name,path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -24,6 +27,7 @@ def loadLib(name,path):
 # curr_csv.to_csv(csv_dir) 
 
 json_pathh='/workspaces/konwersjaJsonData/hyperopt/curr_json.json'
+results_folder="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
 os. remove('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy') 
 
 with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
@@ -230,10 +234,22 @@ def objective(trial: optuna.trial.Trial,load_checkpoint=False) -> float:
 
     if(load_checkpoint):
         os.environ['load_checkpoint'] = "1"
+        path = results_folder+r'/*.ckpt'
+        files = glob.glob(path)
+        print(files)
+        
+        
+        os.environ['checkPoint_path'] = files[0]
+        
+    else:    
+        os.environ['load_checkpoint'] = "0"
+        shutil.rmtree(results_folder)
+        os.mkdir(results_folder)
+        
     #checking if there is some failed trial if so we will restart it
-    expId = RetryFailedTrialCallback.retried_trial_number(trial)
-    if(expId is None):
-        expId=trial.number
+    # expId = RetryFailedTrialCallback.retried_trial_number(trial)
+    # if(expId is None):
+    expId=trial.number
     print(f"cccccc current {expId}")
     save_trial_id(expId)
 
