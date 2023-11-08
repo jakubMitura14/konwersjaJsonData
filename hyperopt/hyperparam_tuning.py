@@ -91,9 +91,9 @@ def set_env_variables_for_general_transforms(trial):
     os.environ['alpha_low'] = str(alpha_low)
     os.environ['alpha_high'] = str(alpha_low+trial.suggest_float("alpha_high", 0.0, 2000.0))
 
-    sigma_low=trial.suggest_float("sigma_low", 0.0, 19.0)
-    os.environ['sigma_low'] = str(sigma_low)
-    os.environ['sigma_high'] = str(sigma_low+trial.suggest_float("sigma_high", 0.0, 20.0))
+    # sigma_low=trial.suggest_float("sigma_low", 0.0, 19.0)
+    # os.environ['sigma_low'] = str(sigma_low)
+    # os.environ['sigma_high'] = str(sigma_low+trial.suggest_float("sigma_high", 0.0, 20.0))
 
     os.environ['GaussianBlurTransform'] = str(trial.suggest_float("GaussianBlurTransform", 0.0,0.9))
 
@@ -101,9 +101,16 @@ def set_env_variables_for_general_transforms(trial):
     os.environ['GammaTransform_a'] = str(trial.suggest_float("GammaTransform_a", 0.0,0.9))
     os.environ['GammaTransform_b'] = str(trial.suggest_float("GammaTransform_b", 0.0,0.9))
     os.environ['p_scale_per_sample'] = str(trial.suggest_float("p_scale_per_sample", 0.0,0.9))
+
+    scale_low=trial.suggest_float("scale_low", 0.0,1.0)
+    os.environ['scale_low'] = str(scale_low)
+    os.environ['scale_high'] = str(scale_low+trial.suggest_float("scale_high", 0.0,3.0))
+
+
+
     # os.environ['p_rot_per_sample'] = str(trial.suggest_float("p_rot_per_sample", 0.0,0.9))
     baseLr=0.00831
-    os.environ['learning_rate'] = str(baseLr/15)#str(trial.suggest_float("learning_rate", baseLr/50,baseLr*2))
+    os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/50,baseLr*2))
 
 
 
@@ -111,15 +118,16 @@ def set_env_variables_for_general_transforms(trial):
     # os.environ['alpha_low'] = str(421.60033013863716)
     # os.environ['alpha_high'] = str(421.60033013863716+1451.4488917182302)
 
-    # os.environ['sigma_low'] = str(11.541639008878207)
-    # os.environ['sigma_high'] = str(11.541639008878207+ 9.669272682121036)
+    os.environ['sigma_low'] = str(11.541639008878207)
+    os.environ['sigma_high'] = str(11.541639008878207+ 9.669272682121036)
 
     os.environ['p_rot_per_axis']=trial.suggest_categorical("p_rot_per_axis", ["1", "2","3"])
+    os.environ['independent_scale_for_each_axis']=trial.suggest_categorical("independent_scale_for_each_axis", ["1","0" ])
     
-    gmma_bottom=trial.suggest_float("gamma_bottom_c", 0.0,3.0)
-    os.environ['gamma_bottom_c']=str(gmma_bottom)
-    os.environ['gamma_up_c']=str(trial.suggest_float("gamma_up_c",  0.0,3.0)+gmma_bottom)
-    os.environ['gamma_prob_c']=str(trial.suggest_float("gamma_prob_c", 0.0,1.0))
+    # gmma_bottom=trial.suggest_float("gamma_bottom_c", 0.0,3.0)
+    # os.environ['gamma_bottom_c']=str(gmma_bottom)
+    # os.environ['gamma_up_c']=str(trial.suggest_float("gamma_up_c",  0.0,3.0)+gmma_bottom)
+    # os.environ['gamma_prob_c']=str(trial.suggest_float("gamma_prob_c", 0.0,1.0))
 
     os.environ['RicianNoiseTransform'] = str(0.40230497711508434)
     # os.environ['GaussianBlurTransform'] = str(0.30684212800169935)
