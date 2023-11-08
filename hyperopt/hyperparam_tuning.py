@@ -241,6 +241,12 @@ def objective(trial: optuna.trial.Trial) -> float:
     print(f"rrr res {res} aa {a}")   
 
     return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
+
+storage = optuna.storages.RDBStorage(
+    url=f"mysql://root@34.90.134.17/{experiment_name}"
+    # engine_kwargs={"pool_size": 20, "connect_args": {"timeout": 10}},
+)
+
 # storage="mysql://root@34.90.134.17/testt"
 study = optuna.create_study(
         study_name=experiment_name
@@ -248,7 +254,7 @@ study = optuna.create_study(
         ,sampler=optuna.samplers.NSGAIISampler()    
         # ,pruner=optuna.pruners.HyperbandPruner()
         # ,storage=f"mysql://root:jm@34.90.134.17:3306/{experiment_name}"
-        ,storage=f"mysql://root@34.90.134.17/{experiment_name}"
+        ,storage=storage#f"mysql://root@34.90.134.17/{experiment_name}"
         ,load_if_exists=True
         ,direction="maximize"
         )
