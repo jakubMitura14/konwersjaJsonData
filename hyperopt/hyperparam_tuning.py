@@ -8,6 +8,7 @@ import importlib
 import sys
 import pandas as pd
 import numpy as np
+import json
 
 def loadLib(name,path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -21,6 +22,8 @@ def loadLib(name,path):
 
 # print(f"rrrrrrrrr {curr_csv}")
 # curr_csv.to_csv(csv_dir) 
+
+json_pathh='/workspaces/konwersjaJsonData/hyperopt/curr_json.json'
 os. remove('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy') 
 
 with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
@@ -183,7 +186,7 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="classic_augmentations5"#bias_norm
+experiment_name="classic_augmentations6"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
@@ -217,10 +220,14 @@ def setup_pseudo_lesion_adder_and_loss(trial):
 
 def objective(trial: optuna.trial.Trial) -> float:
 
+
+
     #checking if there is some failed trial if so we will restart it
     expId = RetryFailedTrialCallback.retried_trial_number(trial)
     if(expId is None):
         expId=trial.number
+
+    save_trial_id(expId)
 
     set_norm_and_bias_field(trial)
     # seg_lesions_custom.main_func()
@@ -239,10 +246,38 @@ def objective(trial: optuna.trial.Trial) -> float:
     a=np.load(numpy_dir)
     res=  np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
     print(f"rrr res {res} aa {a}")   
-
-    # return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
-    return np.max(a)
+    save_trial_id(" ")# reset trial id
+    return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
+    # return np.max(a)
 # storage="mysql://root@34.90.134.17/testt"
+
+storage = optuna.storages.RDBStorage(
+    url=f"mysql://root@34.90.134.17/{experiment_name}",
+    # engine_kwargs={"pool_size": 20, "connect_args": {"timeout": 10}},
+)
+
+def get_trial_id():
+    try:
+        with open(json_pathh, 'r') as openfile:
+        
+            # Reading from json file
+            json_object = json.load(openfile)
+            return json_object["id"]
+    except:
+        return " "
+
+def save_trial_id(trial_id):
+    dictionary = {
+        "id": str(trial_id)
+    }
+    # Serializing json
+    json_object = json.dumps(dictionary, indent=4)
+    
+    # Writing to sample.json
+    with open("json_pathh", "w") as outfile:
+        outfile.write(json_object)    
+    return trial_id
+
 study = optuna.create_study(
         study_name=experiment_name
         # ,sampler=optuna.samplers.CmaEsSampler()    
@@ -255,7 +290,12 @@ study = optuna.create_study(
         )
 
 #         #mysql://root@localhost/example
-study.optimize(objective, n_trials=400)
+old_trial_id=get_trial_id()
+if(old_trial_id==" "):
+    study.optimize(objective, n_trials=900,gc_after_trial=True)
+else:    
+    study.add_trial(storage.get_trial(int(old_trial_id)))
+
 
 
 # optuna-dashboard mysql://root@34.90.134.17/classic_augmentations2
