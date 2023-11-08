@@ -226,15 +226,15 @@ def setup_pseudo_lesion_adder_and_loss(trial):
 # set_norm_and_bias_field(trial)
 # seg_lesions_custom.main_func()
 
-def objective(trial: optuna.trial.Trial) -> float:
+def objective(trial: optuna.trial.Trial,load_checkpoint=False) -> float:
 
-
-
+    if(load_checkpoint):
+        os.environ['load_checkpoint'] = "1"
     #checking if there is some failed trial if so we will restart it
     expId = RetryFailedTrialCallback.retried_trial_number(trial)
     if(expId is None):
         expId=trial.number
-
+    print(f"cccccc current {expId}")
     save_trial_id(expId)
 
     set_norm_and_bias_field(trial)
@@ -303,8 +303,8 @@ if(old_trial_id==" "):
     study.optimize(objective, n_trials=900,gc_after_trial=True)
 else:    
     print(f"starting from old trial id {old_trial_id}")
-    study.add_trial(storage.get_trial(int(old_trial_id)))
-    # study.optimize(objective, n_trials=900,gc_after_trial=True)
+    objective(storage.get_trial(int(old_trial_id)),True)
+    study.optimize(objective, n_trials=900,gc_after_trial=True)
 
 
 
