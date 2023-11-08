@@ -90,7 +90,7 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=15
+        self.log_every_n=4
         self.num_batch_to_eval=20
         self.batch_size=1
         self.is_deep_supervision=True
@@ -349,7 +349,7 @@ class Main_trainer_pl(nnUNetTrainer):
         # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
         early_stopping = pl.callbacks.early_stopping.EarlyStopping(
             monitor=toMonitor,
-            patience=10,
+            patience=32,
             mode=mode,
             #divergence_threshold=(-0.1)
         )
