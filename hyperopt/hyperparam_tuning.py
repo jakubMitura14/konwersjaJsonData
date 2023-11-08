@@ -282,7 +282,7 @@ def save_trial_id(trial_id):
     json_object = json.dumps(dictionary, indent=4)
     
     # Writing to sample.json
-    with open("json_pathh", "w") as outfile:
+    with open(json_pathh, "w") as outfile:
         outfile.write(json_object)    
     return trial_id
 
