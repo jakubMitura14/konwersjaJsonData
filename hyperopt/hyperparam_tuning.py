@@ -28,6 +28,7 @@ def loadLib(name,path):
 
 json_pathh='/workspaces/konwersjaJsonData/hyperopt/curr_json.json'
 results_folder="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
+os.makedirs(results_folder,exist_ok=True)
 os. remove('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy') 
 
 with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
@@ -114,7 +115,7 @@ def set_env_variables_for_general_transforms(trial):
 
     # os.environ['p_rot_per_sample'] = str(trial.suggest_float("p_rot_per_sample", 0.0,0.9))
     baseLr=0.00831
-    os.environ['learning_rate'] = str(trial.suggest_float("learning_rate", baseLr/50,baseLr*2))
+    os.environ['learning_rate'] = str(baseLr)#str(trial.suggest_float("learning_rate", baseLr/50,baseLr*2))
 
 
 
@@ -198,7 +199,7 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="classic_augmentations7"#bias_norm
+experiment_name="classic_augmentations8"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
@@ -230,26 +231,14 @@ def setup_pseudo_lesion_adder_and_loss(trial):
 # set_norm_and_bias_field(trial)
 # seg_lesions_custom.main_func()
 
-def objective(trial: optuna.trial.Trial,load_checkpoint=False) -> float:
+def objective(trial: optuna.trial.Trial) -> float:
 
-    if(load_checkpoint):
-        os.environ['load_checkpoint'] = "1"
-        path = results_folder+r'/*.ckpt'
-        files = glob.glob(path)
-        print(files)
-        
-        
-        os.environ['checkPoint_path'] = files[0]
-        
-    else:    
-        os.environ['load_checkpoint'] = "0"
-        shutil.rmtree(results_folder)
-        os.mkdir(results_folder)
+
         
     #checking if there is some failed trial if so we will restart it
     # expId = RetryFailedTrialCallback.retried_trial_number(trial)
     # if(expId is None):
-    expId=trial.number
+    expId=trial._trial_id
     print(f"cccccc current {expId}")
     save_trial_id(expId)
 
@@ -265,12 +254,19 @@ def objective(trial: optuna.trial.Trial,load_checkpoint=False) -> float:
     p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
 
     p.wait()
+    os.environ['load_checkpoint'] = "0"
+    shutil.rmtree(results_folder)
+    os.mkdir(results_folder)    
+    print("ssssave trial id as empty")
+    save_trial_id(" ")# reset trial id
+
 
     numpy_dir="/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy"
     a=np.load(numpy_dir)
     res=  np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
-    print(f"rrr res {res} aa {a}")   
-    save_trial_id(" ")# reset trial id
+    print(f"rrrr res {res} aa {a}")   
+    
+    
     return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
     # return np.max(a)
 # storage="mysql://root@34.90.134.17/testt"
@@ -316,14 +312,48 @@ study = optuna.create_study(
 #         #mysql://root@localhost/example
 old_trial_id=get_trial_id()
 if(old_trial_id==" "):
+    os.environ['load_checkpoint'] = "0"
+    shutil.rmtree(results_folder)
+    os.mkdir(results_folder)    
+    
     study.optimize(objective, n_trials=900,gc_after_trial=True)
 else:    
-    print(f"starting from old trial id {old_trial_id}")
-    objective(storage.get_trial(int(old_trial_id)),True)
+    print(f"starting from old trial id {old_trial_id}")    
+    os.environ['load_checkpoint'] = "1"
+    path = results_folder+r'/*.ckpt'
+    files = glob.glob(path)
+    print(files)
+    
+    
+    os.environ['checkPoint_path'] = files[-1]
+        
+
+    
+    
+    
+    # frozen=storage._build_frozen_trial_from_trial_model(storage.get_trial(int(old_trial_id)))
+    # frozen=storage.get_trial(int(old_trial_id))
+    # print(f"aaa {type(frozen)}")
+    # study.add_trial(frozen)
+    # distribs=storage.get_trial(int(old_trial_id)).distributions
+    # # study.add_trial(storage.get_trial(int(old_trial_id)))
+    failed_trial_number = int(old_trial_id)
+    failed_trial = storage.get_trial(int(old_trial_id))#study.get_trials()[failed_trial_number]
+    study.enqueue_trial(failed_trial.params)
     study.optimize(objective, n_trials=900,gc_after_trial=True)
 
+    
+    
+    
+    
+    
+    # study.tell(asked)
+#     # study.optimize(objective, n_trials=900,gc_after_trial=True)
+# storage.get_trial_params
+# storage._build_frozen_trial_from_trial_model(storage.get_trial(int(old_trial_id)))
+# study.add_trial()
+#last was 53
 
-
-# optuna-dashboard mysql://root@34.90.134.17/classic_augmentations2
+# optuna-dashboard mysql://root@34.90.134.17/classic_augmentations7
 # optuna-dashboard mysql://root@34.90.134.17/custom_aug_loss_f
 # # my_proj_name='hyperparam_classic_aug' tag='hyperparam_classic_aug' my_proj_desc='debug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl

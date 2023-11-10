@@ -91,7 +91,7 @@ class Main_trainer_pl(nnUNetTrainer):
         we will additionally invoke here the initialization of pytorch lightning module
         """
         self.log_every_n=1
-        patience=1
+        patience=3
         
         self.num_batch_to_eval=20
         self.batch_size=1
@@ -684,11 +684,9 @@ class Main_trainer_pl(nnUNetTrainer):
         if(os.getenv('load_checkpoint')=="1"):
             print(f"loading from checkpoint")
             self.trainer.fit(self.pl_model, ckpt_path=os.getenv('checkPoint_path'))
-        
-        
-        
-
-        self.trainer.fit(self.pl_model)
+        else:  
+            self.trainer.fit(self.pl_model)     
+              
         
         
         self.on_train_end()
