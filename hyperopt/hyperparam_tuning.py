@@ -28,11 +28,9 @@ def loadLib(name,path):
 
 json_pathh='/workspaces/konwersjaJsonData/hyperopt/curr_json.json'
 results_folder="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
-os.makedirs(results_folder,exist_ok=True)
-os. remove('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy') 
+# os.makedirs(results_folder,exist_ok=True)
 
-with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
-    np.save(f, np.array([0]))
+
 
 # seg_lesions_custom=loadLib("seg_lesions_custom","/workspaces/konwersjaJsonData/nnunet/seg_lesions_custom.py")
 
@@ -316,10 +314,17 @@ study = optuna.create_study(
 
 #         #mysql://root@localhost/example
 old_trial_id=get_trial_id()
+print(f"ooooooooooooooooooooooo {old_trial_id}")
 if(old_trial_id==" "):
     os.environ['load_checkpoint'] = "0"
+    os.makedirs(results_folder,exist_ok=True)
     shutil.rmtree(results_folder)
     os.mkdir(results_folder)    
+    os. remove('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy') 
+    with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
+        np.save(f, np.array([0]))
+
+    
     
     study.optimize(objective, n_trials=900,gc_after_trial=True)
 else:    
@@ -357,7 +362,7 @@ else:
 # storage.get_trial_params
 # storage._build_frozen_trial_from_trial_model(storage.get_trial(int(old_trial_id)))
 # study.add_trial()
-#last was 53
+#last was 1211
 
 # optuna-dashboard mysql://root@34.90.134.17/classic_augmentations7
 # optuna-dashboard mysql://root@34.90.134.17/custom_aug_loss_f
