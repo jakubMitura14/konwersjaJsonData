@@ -20,13 +20,26 @@ def loadLib(name,path):
     spec.loader.exec_module(res)
     return res
 
+def save_trial_id(trial_id):
+    dictionary = {
+        "id": str(trial_id)
+    }
+    # Serializing json
+    json_object = json.dumps(dictionary, indent=4)
+    
+    # Writing to sample.json
+    with open(json_pathh, "w") as outfile:
+        outfile.write(json_object)    
+    return trial_id
+
+
 # csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
 # curr_csv = pd.DataFrame([{"ress":0.0}])
 
 # print(f"rrrrrrrrr {curr_csv}")
 # curr_csv.to_csv(csv_dir) 
 
-json_pathh='/workspaces/konwersjaJsonData/hyperopt/curr_json.json'
+json_pathh='/home/sliceruser/curr_json.json'
 results_folder="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
 # os.makedirs(results_folder,exist_ok=True)
 
@@ -289,17 +302,6 @@ def get_trial_id():
     except:
         return " "
 
-def save_trial_id(trial_id):
-    dictionary = {
-        "id": str(trial_id)
-    }
-    # Serializing json
-    json_object = json.dumps(dictionary, indent=4)
-    
-    # Writing to sample.json
-    with open(json_pathh, "w") as outfile:
-        outfile.write(json_object)    
-    return trial_id
 
 study = optuna.create_study(
         study_name=experiment_name
