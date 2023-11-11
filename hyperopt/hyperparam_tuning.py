@@ -257,6 +257,11 @@ def objective(trial: optuna.trial.Trial) -> float:
     os.environ['load_checkpoint'] = "0"
     shutil.rmtree(results_folder)
     os.mkdir(results_folder)    
+    os. remove('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy') 
+
+    with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
+        np.save(f, np.array([0]))
+    
     print("ssssave trial id as empty")
     save_trial_id(" ")# reset trial id
 
