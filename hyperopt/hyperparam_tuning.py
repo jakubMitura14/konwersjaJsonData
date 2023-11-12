@@ -41,6 +41,7 @@ def save_trial_id(trial_id):
 
 json_pathh='/home/sliceruser/curr_json.json'
 results_folder="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
+numpy_arr_path='/home/sliceruser/curr_npy.npy'
 # os.makedirs(results_folder,exist_ok=True)
 
 
@@ -210,7 +211,7 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="classic_augmentations9"#bias_norm
+experiment_name="classic_augmentations10"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
@@ -231,11 +232,6 @@ def setup_pseudo_lesion_adder_and_loss(trial):
     os.environ['mult_old_a'] = str(1.0)#str(trial.suggest_float("mult_old_a", 0.0,1.0))
     os.environ['mult_old_b'] = str(1.0)#str(trial.suggest_float("mult_old_b", 0.0,1.0))
     os.environ['is_anatomic'] = "1"#trial.suggest_categorical("is_anatomic", ["0", "1"])
-    #for custom loss function
-    # os.environ['w0'] = str(trial.suggest_float("w0", 0.0,1.0))
-    # os.environ['w1'] = str(trial.suggest_float("w1", 0.0,1.0))
-    # os.environ['w2'] = str(trial.suggest_float("w2", 0.001,0.999))
-
 
 
 # trial=[]
@@ -265,12 +261,14 @@ def objective(trial: optuna.trial.Trial) -> float:
     p = Popen(cmd, shell=True)#,stdout=subprocess.PIPE , stderr=subprocess.PIPE
 
     p.wait()
+
     os.environ['load_checkpoint'] = "0"
     shutil.rmtree(results_folder)
     os.mkdir(results_folder)    
-    os. remove('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy') 
+    
+    os. remove(numpy_arr_path) 
 
-    with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
+    with open(numpy_arr_path, 'wb') as f:
         np.save(f, np.array([0]))
     
     print("ssssave trial id as empty")
@@ -322,8 +320,12 @@ if(old_trial_id==" "):
     os.makedirs(results_folder,exist_ok=True)
     shutil.rmtree(results_folder)
     os.mkdir(results_folder)    
-    os. remove('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy') 
-    with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'wb') as f:
+    try:
+        os.remove(numpy_arr_path) 
+    except:
+        print("cannot remove numpyyy")
+    
+    with open(numpy_arr_path, 'wb') as f:
         np.save(f, np.array([0]))
 
     
@@ -339,16 +341,6 @@ else:
     
     os.environ['checkPoint_path'] = files[-1]
         
-
-    
-    
-    
-    # frozen=storage._build_frozen_trial_from_trial_model(storage.get_trial(int(old_trial_id)))
-    # frozen=storage.get_trial(int(old_trial_id))
-    # print(f"aaa {type(frozen)}")
-    # study.add_trial(frozen)
-    # distribs=storage.get_trial(int(old_trial_id)).distributions
-    # # study.add_trial(storage.get_trial(int(old_trial_id)))
     failed_trial_number = int(old_trial_id)
     failed_trial = storage.get_trial(int(old_trial_id))#study.get_trials()[failed_trial_number]
     study.enqueue_trial(failed_trial.params)

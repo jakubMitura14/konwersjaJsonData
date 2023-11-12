@@ -358,7 +358,7 @@ class Pl_main_model(pl.LightningModule):
         if(self.is_lesion_segm):
             self.my_lesion_log(res,group_name)
             # print(f"getttt best metric")
-            numpy_dir="/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy"
+            numpy_dir='/home/sliceruser/curr_npy.npy'
             # prev_best=float(os.getenv('best_metric'))
             curr=res[3]
             a=np.load(numpy_dir)
