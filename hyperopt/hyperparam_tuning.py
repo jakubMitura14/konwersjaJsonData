@@ -275,7 +275,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     save_trial_id(" ")# reset trial id
 
 
-    numpy_dir="/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy"
+    numpy_dir=numpy_arr_path
     a=np.load(numpy_dir)
     res=  np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
     print(f"rrrr res {res} aa {a}")   

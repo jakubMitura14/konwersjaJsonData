@@ -15,7 +15,7 @@
 cd /workspaces/konwersjaJsonData/nnunet/nnunetv2pl/nnUNet \
 && python3 -m pip  install -e .
 
-python3 /workspaces/konwersjaJsonData/hyperopt/hyperparam_tuning.py
+# python3 /workspaces/konwersjaJsonData/hyperopt/hyperparam_tuning.py
 
 
 # set -ex
