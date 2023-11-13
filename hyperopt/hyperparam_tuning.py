@@ -39,9 +39,9 @@ def save_trial_id(trial_id):
 # print(f"rrrrrrrrr {curr_csv}")
 # curr_csv.to_csv(csv_dir) 
 
-json_pathh='/home/sliceruser/curr_json.json'
+json_pathh='/home/sliceruser/nnunetMainFolder/curr_json.json'
 results_folder="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
-numpy_arr_path='/home/sliceruser/curr_npy.npy'
+numpy_arr_path='/home/sliceruser/nnunetMainFolder/curr_npy.npy'
 # os.makedirs(results_folder,exist_ok=True)
 
 
