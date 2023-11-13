@@ -40,11 +40,11 @@ def save_trial_id(trial_id):
 # curr_csv.to_csv(csv_dir) 
 
 json_pathh='/home/sliceruser/nnunetMainFolder/curr_json.json'
-results_folder="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
+results_folder="/home/sliceruser/nnunetMainFolder/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
 numpy_arr_path='/home/sliceruser/nnunetMainFolder/curr_npy.npy'
 # os.makedirs(results_folder,exist_ok=True)
 
-
+backup_res="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
 
 # seg_lesions_custom=loadLib("seg_lesions_custom","/workspaces/konwersjaJsonData/nnunet/seg_lesions_custom.py")
 
