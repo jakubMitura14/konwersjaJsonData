@@ -1206,6 +1206,7 @@ if __name__ == '__main__':
 
 
 
-# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_j
+# optuna-dashboard mysql://root@34.90.134.17/anatomy_infrence_l
 # cd /workspaces/konwersjaJsonData
 # python3 -m infrence.prprocess
+#1210
