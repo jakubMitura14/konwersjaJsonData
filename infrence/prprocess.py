@@ -1136,8 +1136,8 @@ def objective(trial: optuna.trial.Trial,resCSVDir,test_ids_CSVDir,plans_file,dat
     sourceFrame = pd.read_csv(resCSVDir) 
     grouped_rows=list(groupByMaster(list(sourceFrame.iterrows())))
 
-    grouped_rows=list(filter(lambda groupp:groupp[0] not in test_ids,grouped_rows ))
-    grouped_rows=grouped_rows[0:50]#TODO increase
+    grouped_rows=list(filter(lambda groupp:groupp[0] in test_ids,grouped_rows ))
+    # grouped_rows=grouped_rows[0:50]#TODO increase
 
 
     # print(grouped_rows[0])
@@ -1185,7 +1185,7 @@ if __name__ == '__main__':
     df['dre_result']=pd.to_numeric(df['dre_result'])
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
-    experiment_name="anatomy_infrence_l"
+    experiment_name="anatomy_infrence_m"
     study = optuna.create_study(
             study_name=experiment_name
             ,sampler=optuna.samplers.CmaEsSampler()    
@@ -1203,6 +1203,8 @@ if __name__ == '__main__':
                         ,comet_logger=comet_logger,df=df)
 
     study.optimize(objective_p, n_trials=900)
+
+# for 50 non test cases Params = [treshold: 0.23388271700616586, swin_weight: 0.310094754251945]
 
 
 
