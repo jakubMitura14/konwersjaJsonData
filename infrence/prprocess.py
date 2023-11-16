@@ -387,6 +387,10 @@ def save_into_temp(tupl,temp_dir):
 
 
 def get_im_from_array(arr,channel,orig_im):
+    """
+    given array and a reference image it will copy spatial matadata of reference image
+    and keep the new array as the pixel data
+    """
     arr=arr[channel,:,:,:]
     image = sitk.GetImageFromArray(arr)  
     image.SetSpacing(orig_im.GetSpacing())
@@ -934,7 +938,7 @@ def get_el_1(arr):
     if(len(arr)>0):
         return arr[0]
     return " "
-def get_bool_arr_from_path(pathh,ref_image):
+def get_bool_arr_from_path(pathh,ref_image,use_ref_image=False):
     """    
     given path reads it resamples it to the space of reference  and return associated array
     then it casts it to boolean data type
@@ -943,7 +947,8 @@ def get_bool_arr_from_path(pathh,ref_image):
     # ref_image=sitk.ReadImage(reference)
     imageA=sitk.ReadImage(pathh)
 
-    imageA=sitk.Resample(imageA, ref_image, sitk.Transform(3, sitk.sitkIdentity), sitk.sitkNearestNeighbor, 0)
+    if(use_ref_image):
+        imageA=sitk.Resample(imageA, ref_image, sitk.Transform(3, sitk.sitkIdentity), sitk.sitkNearestNeighbor, 0)
     return sitk.GetArrayFromImage(imageA).astype(bool)
     # return imageA#sitk.GetArrayFromImage(imageA).astype(bool)
 

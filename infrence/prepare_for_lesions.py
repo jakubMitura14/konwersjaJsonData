@@ -163,12 +163,12 @@ def get_anatomy_metrics(anatomic_cols_paths,mean_tta_bool,path_of_example,target
     """
     ref_image=sitk.ReadImage(path_of_example)
     # pz=pz+cz
-    pz=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[0],ref_image),get_bool_arr_from_path(anatomic_cols_paths[1],ref_image))
-    full_pros=get_bool_arr_from_path(anatomic_cols_paths[4],ref_image)
+    pz=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[0],ref_image,True),get_bool_arr_from_path(anatomic_cols_paths[1],ref_image,True))
+    full_pros=get_bool_arr_from_path(anatomic_cols_paths[4],ref_image,True)
     # tz is rest of prostate not pz
     tz=np.logical_and(np.logical_not(pz),full_pros)
     #sv jointly
-    sv=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[2],ref_image),get_bool_arr_from_path(anatomic_cols_paths[3],ref_image))
+    sv=np.logical_or(get_bool_arr_from_path(anatomic_cols_paths[2],ref_image,True),get_bool_arr_from_path(anatomic_cols_paths[3],ref_image,True))
     pz=sitk.GetArrayFromImage(sitk.ReadImage(target_paths[0])).astype(bool)
    
     # pz,full_pros,pz,sv    
@@ -220,7 +220,10 @@ def process_labels_singleModality_single_lesion(modality_lesion_name,list_lesion
     list_lesion_paths=list(filter(lambda el: len(el)>4,list_lesion_paths))
     if(len(list_lesion_paths)==0):
         return (modality_lesion_name," ")
-    list_lesion_paths=list(map(lambda p: get_bool_arr_from_path( p,sitk.ReadImage(mri_path)),list_lesion_paths))
+    
+    list_lesion_paths=list(map(lambda p: get_bool_arr_from_path( p,sitk.ReadImage(mri_path), True),list_lesion_paths))
+
+
     list_lesion_paths=list(map(lambda el: el.astype(np.uint8),list_lesion_paths))
     sum_of_lesions=np.sum(np.stack(list_lesion_paths),axis=0)
     sum_of_lesions=erode_if_needed(sum_of_lesions)
@@ -252,12 +255,12 @@ def process_labels_singleModality(modality_name,labels,mri_path,group_dict):
     return (modality_name,res)
 
 
-def process_lesion_labels(input_names,filtered_per_modality,mri_paths,group_dict):
+def process_lesion_labels(input_names,filtered_per_modality,path_of_example,group_dict):
     """
     process lesions labels for all modalities single study
     """
-    filtered_per_modality_with_names=list(zip(input_names,filtered_per_modality,mri_paths))
-    return list(map(lambda tri :process_labels_singleModality(tri[0],tri[1],tri[2],group_dict),filtered_per_modality_with_names))
+    filtered_per_modality_with_names=list(zip(input_names,filtered_per_modality))
+    return list(map(lambda tri :process_labels_singleModality(tri[0],tri[1],path_of_example,group_dict),filtered_per_modality_with_names))
 
 def test_time_augment(data,plans_file,dataset_json_file,clinical,properties,checkpoint_paths,hparam_dict):
     """
@@ -328,8 +331,6 @@ def save_case_to_hdf5(plans_file,dataset_json_file,configuration, groupp,hparam_
         return " "
     
 
-    # we get lesion arrays for each modality and each lesion we sum for each lesion from diffrent annotators if there is just a single annotator on lesion the center will be artificially set to two
-    lesion_arrs=process_lesion_labels(input_names,filtered_per_modality,input_paths,listRows)
 
     mean_tta, std_tta =test_time_augment(data,plans_file,dataset_json_file,clinical,properties,checkpoint_paths,hparam_dict)
     #thresholding and getting single largest component
@@ -340,19 +341,20 @@ def save_case_to_hdf5(plans_file,dataset_json_file,configuration, groupp,hparam_
     #get anatomy metrics
     path_of_example=input_images_paths[0]  #"/workspaces/konwersjaJsonData/data/curr/1_t2w.nii.gz"
     anatomy_metrics=get_anatomy_metrics(anatomic_cols_paths,mean_tta_bool,path_of_example,target_paths)
-    
+    # we get lesion arrays for each modality and each lesion we sum for each lesion from diffrent annotators if there is just a single annotator on lesion the center will be artificially set to two
+    lesion_arrs=process_lesion_labels(input_names,filtered_per_modality,path_of_example,listRows)    
     
     hdf5_group=[]
     debug_folder_name="/workspaces/konwersjaJsonData/data/debug"
     anat_dat=[("pz",0),("tz",1),("sv",2),("full_pros",3)]
-    list(map(lambda el: save_anatomy_to_hdf5(hdf5_group,el[0],el[1],mean_tta, std_tta,mean_tta_bool,debug_folder_name,input_paths[0]),anat_dat))
-    save_lesions_to_hdf5(hdf5_group,lesion_arrs,debug_folder_name,input_paths[0])
+    list(map(lambda el: save_anatomy_to_hdf5(hdf5_group,el[0],el[1],mean_tta, std_tta,mean_tta_bool,debug_folder_name,path_of_example),anat_dat))
+    save_lesions_to_hdf5(hdf5_group,lesion_arrs,debug_folder_name,path_of_example)
 
 
 
     #clear temporary directory
     # shutil.rmtree(temp_dir, ignore_errors=True)
-
+    print(f"aaaaaaaaaaaaaaa anatomy_metrics {anatomy_metrics}")
     return anatomy_metrics
 
 
