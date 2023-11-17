@@ -333,6 +333,7 @@ class Pl_main_model(pl.LightningModule):
         return False
     
     def my_lesion_log(self,res,group_name):
+        print(f" is_correct_{group_name} {res[3]}  my_sensitivity_{group_name} {res[4]} my_specificity_{group_name} {res[5]}")
         self.log(f"percent_in_{group_name}", res[0],sync_dist=True) #,sync_dist=True
         self.log(f"percent_out_{group_name}", res[1],sync_dist=True) #,sync_dist=True
         self.log(f"percent_covered_{group_name}", res[2],sync_dist=True) #,sync_dist=True

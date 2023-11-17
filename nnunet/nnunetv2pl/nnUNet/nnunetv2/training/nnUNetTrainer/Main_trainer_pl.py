@@ -90,8 +90,8 @@ class Main_trainer_pl(nnUNetTrainer):
         """
         we will additionally invoke here the initialization of pytorch lightning module
         """
-        self.log_every_n=4
-        patience=30
+        self.log_every_n=1
+        patience=100
         
         self.num_batch_to_eval=20
         self.batch_size=1
@@ -371,7 +371,9 @@ class Main_trainer_pl(nnUNetTrainer):
             check_val_every_n_epoch=self.log_every_n,
             accumulate_grad_batches= 12,
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
-            log_every_n_steps=self.log_every_n
+            log_every_n_steps=self.log_every_n,
+            limit_train_batches=5,
+            limit_val_batches=5
             # ,strategy="ddp_spawn"#DDPStrategy(find_unused_parameters=True)
                         # ,reload_dataloaders_every_n_epochs=1
             # strategy="deepspeed_stage_1"#_offload
