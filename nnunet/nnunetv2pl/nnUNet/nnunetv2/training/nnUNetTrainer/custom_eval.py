@@ -97,7 +97,7 @@ def get_my_sensitivity(arrs):
     if(total_twos==0):
         return -1.0
     if(total==0):
-        return 0.0
+        return -1.0
     
     components_ones = get_connected_components_num(curr_bigger_mask)
     components_twos = get_connected_components_num(curr_twos)
@@ -113,8 +113,9 @@ def get_my_sensitivity(arrs):
 
 
     res=np.array(list(map(lambda uniq_num: is_sth_in_areas(uniq_num,connected,inferred,curr_twos),uniqq)))
-    res=res.astype(int)
-    return np.mean(res.flatten())
+    res=res.astype(float)
+    res=np.nan_to_num(np.nanmean(res.flatten()))
+    return res
 
 def save_single_arr(image_array,batch_idd, bn, c,for_explore,name,typee ,metr):
     # image_array,batch_idd, bn, c,for_explore,name,typee=args
@@ -135,7 +136,7 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
     sensitivity=get_my_sensitivity(arrs)
     dice=get_dice_lesions(arrs)
     # print(f"ddddd dice {dice}")
-    # print(f"specificity {specificity} sensitivity {sensitivity}")
+    print(f"ssssssssss specificity {specificity} sensitivity {sensitivity}")
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
     #if(False):
     if(to_save_files):
@@ -174,7 +175,7 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
             chunk_size = 1
             batch_nums=np.array_split(batch_nums, math.ceil(batch_nums.shape[0]/chunk_size))
         else:
-            chunk_size=1#max(10//batch_size,1)
+            chunk_size=max(10//batch_size,1)
             batch_nums=np.array_split(batch_nums, math.ceil(batch_nums.shape[0]/chunk_size))
         
         # target=list(map(lambda batch_id :f[f"{group_name}/{batch_id}/target"][:,:,:,:], batch_nums))
@@ -217,8 +218,12 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
             return grouped_by_metr_name
         res=np.concatenate(res,axis=-1)
         # res= list(map(lambda batch_ids: calc_custom_metrics_inner(f[f"{group_name}/{batch_id}/target"][:,:,:,:],f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:]),batch_nums))
+        res= np.nan_to_num(res,nan=0.0,posinf=0.0, neginf=0.0)
+        print(f"dddddd {res[3]}")
+
         res= np.nanmean(res,axis=-1)
-        res= np.nan_to_num(res,posinf=0.0, neginf=0.0)
+        print(f"eeee {res[3]}")
+
         return res
     except:
         return np.zeros(8)-0.1
@@ -372,8 +377,14 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
 
     my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
     if(len(my_sensitivity)>0):
-        my_sensitivity= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_sensitivity))))
-        my_specificity= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_specificity))))
+        my_sensitivity= np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_sensitivity)))
+        my_specificity= np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_specificity)))
+        my_sensitivity= list(filter(lambda el: el>0,my_sensitivity))
+        my_specificity= list(filter(lambda el: el>0,my_specificity))
+        print(f"iiiuuuuu   my_sensitivity {my_sensitivity} my_specificity {my_specificity}")
+
+        my_sensitivity= np.nanmean(my_sensitivity)
+        my_specificity= np.nanmean(my_specificity)
         num_components= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),num_components))))
         dice_centers= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),dice_centers))))
         dice_all= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),dice_all))))
@@ -381,8 +392,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
         is_correct= (my_sensitivity*2+my_specificity)/3
     
   
-    is_correct=np.array(is_correct).flatten()
-
+    is_correct=np.array(np.nanmean(np.array(is_correct).flatten()))
     my_sensitivity=np.array(np.nanmean(np.array(my_sensitivity).flatten()))
     my_specificity=np.array(np.nanmean(np.array(my_specificity).flatten()))
     
@@ -390,6 +400,7 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     in_inferred=np.array(np.nanmean(np.array(in_inferred).flatten()))
     dice_centers=np.array(np.nanmean(np.array(dice_centers).flatten()))
     dice_all=np.array(np.nanmean(np.array(dice_all).flatten()))
+    print(f"iii b is_correct {is_correct} c {np.nanmean(is_correct).flatten()}  c  my_sensitivity {my_sensitivity} my_specificity {my_specificity}")
 
 
     return np.array([np.nanmean(percent_in).flatten()

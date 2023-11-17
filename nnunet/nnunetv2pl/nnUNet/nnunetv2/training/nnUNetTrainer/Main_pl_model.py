@@ -343,8 +343,8 @@ class Pl_main_model(pl.LightningModule):
 
         self.log(f"num_components_{group_name}", res[6],sync_dist=True)#,sync_dist=True
         self.log(f"in_inferred_{group_name}", res[7],sync_dist=True)#,sync_dist=True
-        self.log(f"dice_centers_{group_name}", res[8],sync_dist=True)#,sync_dist=True
-        self.log(f"dice_all_{group_name}", res[9],sync_dist=True)#,sync_dist=True
+        # self.log(f"dice_centers_{group_name}", res[8],sync_dist=True)#,sync_dist=True
+        # self.log(f"dice_all_{group_name}", res[9],sync_dist=True)#,sync_dist=True
 
 
     def on_validation_epoch_end(self):
