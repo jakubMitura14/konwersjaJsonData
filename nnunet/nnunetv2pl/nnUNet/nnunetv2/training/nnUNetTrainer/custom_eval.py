@@ -97,7 +97,7 @@ def get_my_sensitivity(arrs):
     if(total_twos==0):
         return -1.0
     if(total==0):
-        return -1.0
+        return 0.0
     
     components_ones = get_connected_components_num(curr_bigger_mask)
     components_twos = get_connected_components_num(curr_twos)
@@ -135,8 +135,6 @@ def get_sensitivity_and_specificity(arrs_tupl,for_explore,batch_idd,to_save_file
     num_components=ress[1]
     sensitivity=get_my_sensitivity(arrs)
     dice=get_dice_lesions(arrs)
-    # print(f"ddddd dice {dice}")
-    print(f"ssssssssss specificity {specificity} sensitivity {sensitivity}")
     curr_in,curr_twos,inferred,curr_bigger_mask,data =arrs
     #if(False):
     if(to_save_files):
@@ -219,10 +217,8 @@ def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=Fals
         res=np.concatenate(res,axis=-1)
         # res= list(map(lambda batch_ids: calc_custom_metrics_inner(f[f"{group_name}/{batch_id}/target"][:,:,:,:],f[f"{group_name}/{batch_id}/predicted_segmentation_onehot"][:,:,:,:]),batch_nums))
         res= np.nan_to_num(res,nan=0.0,posinf=0.0, neginf=0.0)
-        print(f"dddddd {res[3]}")
 
         res= np.nanmean(res,axis=-1)
-        print(f"eeee {res[3]}")
 
         return res
     except:
@@ -375,32 +371,31 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     dice_all=ress[:,5]
     
 
-    my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
-    if(len(my_sensitivity)>0):
-        my_sensitivity= np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_sensitivity)))
-        my_specificity= np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_specificity)))
-        my_sensitivity= list(filter(lambda el: el>0,my_sensitivity))
-        my_specificity= list(filter(lambda el: el>0,my_specificity))
-        print(f"iiiuuuuu   my_sensitivity {my_sensitivity} my_specificity {my_specificity}")
+    # my_sensitivity=list(filter(lambda el: np.array(el).flatten()[0]>-1,my_sensitivity  ))      
+    # if(len(my_sensitivity)>0):
+    my_sensitivity= np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_sensitivity)))
+    my_specificity= np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_specificity)))
+    my_sensitivity= np.array(list(filter(lambda el: el>0,my_sensitivity)))
+    my_specificity= np.array(list(filter(lambda el: el>0,my_specificity)))
 
-        my_sensitivity= np.nanmean(my_sensitivity)
-        my_specificity= np.nanmean(my_specificity)
-        num_components= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),num_components))))
-        dice_centers= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),dice_centers))))
-        dice_all= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),dice_all))))
-        in_inferred= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),in_inferred))))
-        is_correct= (my_sensitivity*2+my_specificity)/3
+    my_sensitivity= np.nan_to_num(np.nanmean(my_sensitivity))
+    my_specificity= np.nan_to_num(np.nanmean(my_specificity))
+    num_components= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),num_components))))
+    dice_centers= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),dice_centers))))
+    dice_all= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),dice_all))))
+    in_inferred= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),in_inferred))))
+    is_correct= (my_sensitivity*2+my_specificity)/3
     
   
     is_correct=np.array(np.nanmean(np.array(is_correct).flatten()))
-    my_sensitivity=np.array(np.nanmean(np.array(my_sensitivity).flatten()))
-    my_specificity=np.array(np.nanmean(np.array(my_specificity).flatten()))
+    my_sensitivity=np.nan_to_num(np.array(np.nanmean(np.array(my_sensitivity).flatten())))
+    my_specificity=np.nan_to_num(np.array(np.nanmean(np.array(my_specificity).flatten())))
     
     num_components=np.array(np.nanmean(np.array(num_components).flatten()))
     in_inferred=np.array(np.nanmean(np.array(in_inferred).flatten()))
     dice_centers=np.array(np.nanmean(np.array(dice_centers).flatten()))
     dice_all=np.array(np.nanmean(np.array(dice_all).flatten()))
-    print(f"iii b is_correct {is_correct} c {np.nanmean(is_correct).flatten()}  c  my_sensitivity {my_sensitivity} my_specificity {my_specificity}")
+    # print(f"iii b is_correct {is_correct} c {np.nanmean(is_correct).flatten()}  c  my_sensitivity {my_sensitivity} my_specificity {my_specificity}")
 
 
     return np.array([np.nanmean(percent_in).flatten()

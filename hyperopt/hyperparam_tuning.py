@@ -1,4 +1,4 @@
-import optuna
+import comet_ml,optuna
 import os
 from subprocess import Popen
 import subprocess
@@ -12,6 +12,7 @@ import json
 import shutil
 import glob
 
+print(f"newwww version")
 
 def loadLib(name,path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -36,8 +37,6 @@ def save_trial_id(trial_id):
 # csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
 # curr_csv = pd.DataFrame([{"ress":0.0}])
 
-# print(f"rrrrrrrrr {curr_csv}")
-# curr_csv.to_csv(csv_dir) 
 
 json_pathh='/home/sliceruser/nnunetMainFolder/curr_json.json'
 results_folder="/home/sliceruser/nnunetMainFolder/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
@@ -266,6 +265,12 @@ def objective(trial: optuna.trial.Trial) -> float:
     shutil.rmtree(results_folder)
     os.mkdir(results_folder)    
     
+    numpy_dir=numpy_arr_path
+    a=np.load(numpy_dir)
+    res=  np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
+    print(f"rrrr res {res} aa {a}")       
+    
+    
     os. remove(numpy_arr_path) 
 
     with open(numpy_arr_path, 'wb') as f:
@@ -275,14 +280,11 @@ def objective(trial: optuna.trial.Trial) -> float:
     save_trial_id(" ")# reset trial id
 
 
-    numpy_dir=numpy_arr_path
-    a=np.load(numpy_dir)
-    res=  np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
-    print(f"rrrr res {res} aa {a}")   
+
     
     
     # return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
-    return np.max(a)
+    return np.max(res)
 # storage="mysql://root@34.90.134.17/testt"
 
 storage = optuna.storages.RDBStorage(
@@ -343,13 +345,15 @@ else:
         
     failed_trial_number = int(old_trial_id)
     failed_trial = storage.get_trial(int(old_trial_id))#study.get_trials()[failed_trial_number]
+    print(f"ffffffffffffffff {failed_trial.params}")
     study.enqueue_trial(failed_trial.params)
     study.optimize(objective, n_trials=900,gc_after_trial=True)
 
     
     
     
-    
+    # ffffffffffffffff {'alpha_low': 201.81426440708293, 'alpha_high': 199.26228578100603, 'GaussianBlurTransform': 0.8553980116483617
+    # , 'SimulateLowResolutionTransform': 0.2979299279931298, 'GammaTransform_a': 0.17306902885208744, 'GammaTransform_b': 0.42318521803664116, 'p_scale_per_sample': 0.20376765634246816, 'scale_low': 0.4083505603424723, 'scale_high': 1.4473137695864557, 'p_rot_per_axis': '3', 'independent_scale_for_each_axis': '0'}
     
     # study.tell(asked)
 #     # study.optimize(objective, n_trials=900,gc_after_trial=True)
