@@ -210,7 +210,7 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="classic_augmentations11"#bias_norm
+experiment_name="classic_augmentations12"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
