@@ -12,8 +12,6 @@ import json
 import shutil
 import glob
 
-print(f"newwww version")
-
 def loadLib(name,path):
     spec = importlib.util.spec_from_file_location(name, path)
     res = importlib.util.module_from_spec(spec)
