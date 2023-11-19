@@ -40,6 +40,7 @@ json_pathh='/home/sliceruser/nnunetMainFolder/curr_json.json'
 results_folder="/home/sliceruser/nnunetMainFolder/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
 numpy_arr_path='/home/sliceruser/nnunetMainFolder/curr_npy.npy'
 # os.makedirs(results_folder,exist_ok=True)
+experiment_name="classic_augmentations13"#bias_norm
 
 backup_res="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
 
@@ -208,7 +209,6 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="classic_augmentations12"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
