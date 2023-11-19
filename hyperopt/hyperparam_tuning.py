@@ -37,7 +37,7 @@ def save_trial_id(trial_id):
 # csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
 # curr_csv = pd.DataFrame([{"ress":0.0}])
 
-
+#cp -a /home/sliceruser/nnunetMainFolder/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0 /workspaces/konwersjaJsonData/explore/ress 
 json_pathh='/home/sliceruser/nnunetMainFolder/curr_json.json'
 results_folder="/home/sliceruser/nnunetMainFolder/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
 numpy_arr_path='/home/sliceruser/nnunetMainFolder/curr_npy.npy'
