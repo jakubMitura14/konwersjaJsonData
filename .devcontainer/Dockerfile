@@ -178,17 +178,17 @@ RUN mkdir ${HOME}/scripts \
 # RUN mkdir ${HOME}/connected_comp
 
 ## for downloads from cancer imaging archive
-RUN apt-get install -y ruby-dev  \
-    && apt install -y libtool libffi-dev ruby ruby-dev make  \
-    && apt install -y libzmq3-dev libczmq-dev  \
-    && gem install ffi-rzmq rake  \
-    && gem install specific_install  \
-    && gem specific_install https://github.com/SciRuby/iruby  \
-    && iruby register  \
-    && gem install net-protocol -v 0.1.2  \
-    && gem install net-smtp -v 0.3.0  \
-    && gem install aspera-cli 
-RUN ascli conf ascp install
+# RUN apt-get install -y ruby-dev  \
+#     && apt install -y libtool libffi-dev ruby ruby-dev make  \
+#     && apt install -y libzmq3-dev libczmq-dev  \
+#     && gem install ffi-rzmq rake  \
+#     && gem install specific_install  \
+#     && gem specific_install https://github.com/SciRuby/iruby  \
+#     && iruby register  \
+#     && gem install net-protocol -v 0.1.2  \
+#     && gem install net-smtp -v 0.3.0  \
+#     && gem install aspera-cli 
+# RUN ascli conf ascp install
 
 
 # Install OpenJDK-8

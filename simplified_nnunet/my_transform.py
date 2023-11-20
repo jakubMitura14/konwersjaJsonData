@@ -33,7 +33,6 @@ import itertools
 from more_itertools import batched
 
 
-
 class My_priming_setter(LocalTransform):
     def __init__(self,
                  max_strength: ScalarType = 1.,

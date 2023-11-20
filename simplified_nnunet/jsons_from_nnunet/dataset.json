@@ -1,0 +1,1 @@
+{"channel_names": {"1": "noNorm", "2": "noNorm", "3": "noNorm", "4": "noNorm", "5": "noNorm"}, "labels": {"background": 0, "bigger": 1, "center": 2}, "file_ending": ".nii.gz", "numTraining": 454, "nnUNetPlans": ["2d", "3d_fullres", "3d_fullres_custom"]}

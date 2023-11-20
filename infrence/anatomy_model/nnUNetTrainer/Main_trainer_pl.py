@@ -1,4 +1,4 @@
-from nnunetv2.training.nnUNetTrainer.my_transform import My_PseudoLesion_adder,My_priming_setter
+from nnunetv2.training.nnUNetTrainer.my_transform import My_priming_setter
 from nnunetv2.training.nnUNetTrainer.custom_loss import *
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import inspect
