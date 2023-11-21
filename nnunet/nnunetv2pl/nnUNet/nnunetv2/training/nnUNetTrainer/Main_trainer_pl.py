@@ -167,7 +167,7 @@ class Main_trainer_pl(nnUNetTrainer):
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
         ligtning_logs_folder='/workspaces/konwersjaJsonData/explore'
-        h5_folder='/workspaces/konwersjaJsonData/explore/hdf5_loc'
+        h5_folder='/home/sliceruser/nnunetMainFolder/hdf5_loc'
         hf5_path=f"{h5_folder}/mytestfile.hdf5"
         for_explore='/workspaces/konwersjaJsonData/explore/for_explore'
         self.hf5_path=hf5_path
