@@ -75,3 +75,24 @@ def build_loss_function():
                                    use_ignore_label=self.label_manager.ignore_label is not None,
                                    dice_class=MemoryEfficientSoftDiceLoss)
 
+    def _build_loss_lesions(self):
+        
+
+        if(self.is_priming_segm):
+            loss= FocalLossV2_orig()
+        else:
+            loss=Picai_FL_and_CE_loss()
+
+
+        if(self.is_deep_supervision):
+            deep_supervision_scales = self._get_deep_supervision_scales()
+
+            # we give each output a weight which decreases exponentially (division by 2) as the resolution decreases
+            # this gives higher resolution outputs more weight in the loss
+            weights = np.array([1 / (2 ** i) for i in range(len(deep_supervision_scales))])
+            weights[-1] = 0
+
+            # we don't use the lowest 2 outputs. Normalize weights so that they sum to 1
+            weights = weights / weights.sum()
+            # now wrap the loss
+            loss = DeepSupervisionWrapper(loss, weights)

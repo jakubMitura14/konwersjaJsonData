@@ -72,12 +72,11 @@ from optuna.integration import PyTorchLightningPruningCallback
 from lightning.pytorch.callbacks import ModelCheckpoint
 from torch import autocast, nn
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
-from .custom_eval import *
+from ...custom_eval import *
 import ignite
 import deepspeed
-from .my_transform import My_gpu_pseudo_lesion_adder
 
-class Pl_main_model(pl.LightningModule):
+class Pl_anatomy_model(pl.LightningModule):
     def __init__(self,network
                  ,dataloader_train
                  ,dataloader_val
@@ -99,7 +98,6 @@ class Pl_main_model(pl.LightningModule):
                  ,is_deep_supervision
                  ,is_anatomy_segm
                  ,is_lesion_segm
-                 ,hparams_dict
                  ):
         
 
@@ -128,7 +126,6 @@ class Pl_main_model(pl.LightningModule):
 
         self.is_anatomy_segm=is_anatomy_segm
         self.is_lesion_segm=is_lesion_segm
-        self.hparams_dict=hparams_dict
 
 
     def setup(self, stage=None):
@@ -137,34 +134,39 @@ class Pl_main_model(pl.LightningModule):
         self.f = h5py.File(self.hf5_path, 'w',driver='mpio', comm=MPI.COMM_WORLD)
         self.save_hyperparameters()
 
-        self.hparams_dict["learning_rate"]= self.learning_rate
-        # self.logger.log_hyperparams(self.hparams, self.hparams_dict)
-        self.logger.log_hyperparams(self.hparams_dict)
-        self.pseudo_lesion_adder=My_gpu_pseudo_lesion_adder(n=int(os.getenv('n_lesions'))
-                                                            ,k=int(os.getenv('k_lesions'))
-                                                            ,mean_0=0.1
-                                                            ,mean_1=0.1
-                                                            ,mean_2=0.1
-                                                            ,mean_3=0.1
-                                                            ,std_0=0.1
-                                                            ,std_1=0.1
-                                                            ,std_2=0.1
-                                                            ,std_3=0.1
-                                                            ,is_anatomic=(int(os.getenv('is_anatomic'))==1)
-                                                            ,mult_old_a=float(os.getenv('mult_old_a'))
-                                                            ,mult_old_b=float(os.getenv('mult_old_b'))
-                                                            )
 
-        
+    def train_dataloader(self):
+        return self.dataloader_train                    
 
-        optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), self.learning_rate )
+    def val_dataloader(self):
+        return self.dataloader_val
 
+
+    def configure_optimizers(self):
+        if(self.is_classic_nnunet):
+            optimizer = torch.optim.SGD(self.network.parameters(), 0.017, weight_decay=self.weight_decay,
+                                        momentum=0.99, nesterov=True)
+            # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), self.learning_rate)
+            
+        elif(self.is_swin or self.is_swin_monai):    
+            # print(f"ssss self.learning_rate {self.learning_rate}")
+            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+            optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.025)#learning rate set by learning rate finder
+            # Lear
+            # optimizer = deepspeed.ops.adam.FusedAdam(self.network.parameters(), 0.07585775750291836)#learning rate set by learning rate finder
+
+
+            # optimizer = torch.optim.AdamW(self.network.parameters(), 0.00001)#learning rate set by learning rate finder
+            
+            # optimizer =deepspeed.ops.adam.DeepSpeedCPUAdam(self.network.parameters(), 0.07585775750291836)
+        elif(self.is_med_next):    
+            optimizer = torch.optim.AdamW(self.network.parameters(), 0.0019054607179632484)
         
         # hyperparameters from https://www.kaggle.com/code/isbhargav/guide-to-pytorch-learning-rate-scheduling/notebook
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,T_0=10, T_mult=1, eta_min=0.001, last_epoch=-1 )
         if(self.is_swin or self.is_swin_monai):
             # lr_scheduler = ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value=0.07585775750291836*40, warmup_duration=30)
-            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=self.learning_rate *50, total_iters=20)
+            scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.2, total_iters=20)
             lr_scheduler =torch.optim.lr_scheduler.SequentialLR(optimizer,schedulers=[scheduler1,lr_scheduler], milestones=[20])
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "epoch"}]
 
@@ -177,52 +179,41 @@ class Pl_main_model(pl.LightningModule):
         self.network.train()
 
     def pad_data_if_needed(self,arr):
-        if(self.is_swin_monai or (self.is_med_next and self.is_lesion_segm)):
-            if(self.is_anatomy_segm):
-                return F.pad(arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
-            if(self.is_lesion_segm):
-                return F.pad(arr, (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0)
+        if(self.is_swin_monai):
+            return F.pad(arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
         return arr
     def pad_target_if_needed(self,arr):
-        
-        if(self.is_swin_monai or (self.is_med_next and self.is_lesion_segm)):            
-            if(self.is_anatomy_segm):
-                if(self.is_deep_supervision):
-                    return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0),arr))
-                else :
-                    return F.pad(arr[0], (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
-            if(self.is_lesion_segm):
-                if(self.is_deep_supervision):
-                    return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0),arr))
-                else :
-                    return F.pad(arr[0], (0,0, 0,0, 12,12, 0,0 ,0,0), "constant", 0)
-                       
-        
+        # print(f"iiin pad_target_if_needed {arr.shape}")
+        if(self.is_swin_monai or self.is_swin):
+            if(self.is_deep_supervision):
+                return list(map( lambda in_arr :F.pad(in_arr, (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0),arr))
+            else :
+                return F.pad(arr[0], (0,0, 0,0, 8,8, 0,0 ,0,0), "constant", 0)
         return arr
             
 
-    def training_step(self, batch, batch_idx):       
+
+
+    def training_step(self, batch, batch_idx):
+        
         data = self.pad_data_if_needed(batch['data'])
         target = self.pad_target_if_needed(batch['target'])
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
-        data=self.pseudo_lesion_adder(data,target[0])
         network=self.network
         if(self.is_swin or self.is_swin_monai):
             output = network(data,clinical)
         else:
             output = network(data)        
+        if(not self.is_classic_nnunet and self.is_deep_supervision):
+            target=self.transform_gold(target)
 
         epoch=self.current_epoch
-        
-        if(not self.is_classic_nnunet and self.is_deep_supervision):
-            target=self.transform_gold(target)        
-        
         l=self.loss(output, target)
         # print(f"loss {l.detach().cpu().item()}")
         self.log("train loss",l.detach().cpu().item())
         if(epoch%self.log_every_n==0):
             if(batch_idx<self.num_batch_to_eval):
-                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train",self.is_anatomy_segm)   
+                save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"train",True)   
         return l
 
 
@@ -253,17 +244,21 @@ class Pl_main_model(pl.LightningModule):
 
         data = self.pad_data_if_needed(batch['data'])
         target = self.pad_target_if_needed(batch['target'])
+
         clinical = torch.tensor(batch['clinical']).to("cuda").float()
 
 
+        if(not self.is_classic_nnunet and self.is_deep_supervision):
+            target=self.transform_gold(target)
+        
+        
         epoch=self.current_epoch
         data = data.to(device, non_blocking=True)
         if isinstance(target, list):
             target = [i.to(device, non_blocking=True) for i in target]
         else:
             target = target.to(device, non_blocking=True)
-        if(not self.is_classic_nnunet and self.is_deep_supervision):
-            target=self.transform_gold(target)
+
         # Autocast is a little bitch.
         # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
         # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
@@ -274,80 +269,50 @@ class Pl_main_model(pl.LightningModule):
         else:
             output = network(data)
 
+        # print(f"ooooooo max {output[0].max()} min {output[0].min()}")
+        # del data
 
-        # print(f"oooo output {type(output)}  target {type(target)} ")
+        # for i,el in enumerate(output):
+        #     print(f"ooo {i} {el.shape}")
+        
+        # for i,el in enumerate(target):
+        #     print(f"ttt {i} {el.shape}")
+                
         l = loss(output, target)
-        save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",self.is_anatomy_segm)
+        save_for_metrics(epoch,target,output,data,self.log_every_n,batch_idx,self.f,"val",True)
         self.log("val loss",l.detach().cpu().item())
-
+        # we only need the output with the highest output resolution
+        # output = output[0]
+        # target = target[0]
+        # if(epoch%self.log_every_n==0):
+            # if(batch_idx<self.num_batch_to_eval):
             
         return l
-
     def my_anato_log(self,tupl,name): 
         print(f"ttt {tupl} {name}")       
         if(np.isnan(tupl[1])):
-            self.log(f"{tupl[0]}_{name}", 100.0,sync_dist=True)
-        self.log(f"{tupl[0]}_{name}", tupl[1],sync_dist=True)
+            self.log(f"{tupl[0]}_{name}", 100.0)
+        self.log(f"{tupl[0]}_{name}", tupl[1])
         if(tupl[0]=="avgHausdorff_all" ):
             return True
         
         return False
-    
-    def my_lesion_log(self,res,group_name):
-        self.log(f"percent_in_{group_name}", res[0],sync_dist=True) #,sync_dist=True
-        self.log(f"percent_out_{group_name}", res[1],sync_dist=True) #,sync_dist=True
-        self.log(f"percent_covered_{group_name}", res[2],sync_dist=True) #,sync_dist=True
-        self.log(f"is_correct_{group_name}", res[3],sync_dist=True)#,sync_dist=True
-        self.log(f"my_sensitivity_{group_name}", res[4],sync_dist=True)#,sync_dist=True
-        self.log(f"my_specificity_{group_name}", res[5],sync_dist=True)#,sync_dist=True
-
-        self.log(f"num_components_{group_name}", res[6],sync_dist=True)#,sync_dist=True
-        self.log(f"in_inferred_{group_name}", res[7],sync_dist=True)#,sync_dist=True
-        self.log(f"dice_centers_{group_name}", res[8],sync_dist=True)#,sync_dist=True
-        self.log(f"dice_all_{group_name}", res[9],sync_dist=True)#,sync_dist=True
-
-
+        
     def on_validation_epoch_end(self):
         group_name='val'
-        res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=self.is_anatomy_segm,batch_size=self.batch_size )
-        print(f"rrr {res}")
-        if(self.is_anatomy_segm):
-            main_to_monitor="avgHausdorff_all_val"
-            is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
-            if(np.sum(np.array(is_there))==0):
-                self.log(main_to_monitor, 100.0,sync_dist=True)
-        if(self.is_lesion_segm):
-            self.my_lesion_log(res,group_name)
-            # print(f"getttt best metric")
-            numpy_dir='/home/sliceruser/curr_npy.npy'
-            # prev_best=float(os.getenv('best_metric'))
-            curr=res[3]
-            a=np.load(numpy_dir)
-            a=np.append(a,curr)
-            print(f"aaaaaaa a {a}  curr {curr}")
-            np.save(numpy_dir, a)
-            
-
-            # with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'w+') as f:
-            #     a = np.load(f)
-            #     a.append(a,curr)
-            #     np.save(f, a)
-            # if(curr>prev_best):
-            #     # os.environ['best_metric'] = f"{curr}"
-            # curr_csv = pd.read_csv(csv_dir)
-            # curr_csv = curr_csv.append({"ress":curr}, ignore_index=True)    
-            # # os.environ['best_metric'] ='11.0'    
-            # curr_csv.to_csv(csv_dir) 
-
-
-
+        res= calc_custom_metrics(group_name,self.f,self.for_explore,True,anatomy_metr=True,batch_size=self.batch_size )
+        
+        main_to_monitor="avgHausdorff_all_val"
+        is_there=list(map(lambda tupl : self.my_anato_log(tupl,'val') ,res ))
+        
+        if(np.sum(np.array(is_there))==0):
+             self.log(main_to_monitor, 100.0)
+             
     def on_train_epoch_end(self):
-        group_name='train'
-        res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=self.is_anatomy_segm,batch_size=self.batch_size )
         if(self.current_epoch%self.log_every_n==0):
-            if(self.is_anatomy_segm):
-                list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
-            if(self.is_lesion_segm):
-                self.my_lesion_log(res,group_name)
+            group_name='train'
+            res= calc_custom_metrics(group_name,self.f,self.for_explore,False,anatomy_metr=True,batch_size=self.batch_size )
+            list(map(lambda tupl : self.my_anato_log(tupl,'train') ,res ))
+
 
 

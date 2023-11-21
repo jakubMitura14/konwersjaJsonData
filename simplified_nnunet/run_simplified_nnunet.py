@@ -183,22 +183,115 @@ setup_pseudo_lesion_adder_and_loss()
 set_env_variables_for_general_transforms()
 
 
+self.log_every_n=4
+patience=30
+
+self.num_batch_to_eval=20
+self.batch_size=1
+self.is_deep_supervision=True
+self.is_classic_nnunet=True
+self.is_swin=False
+self.is_swin_monai=False
+self.is_med_next=False
+
+self.is_lesion_segm=True
+self.is_anatomy_segm= not self.is_lesion_segm
+self.is_priming_segm= False
+
+# if(self.is_classic_nnunet or self.is_med_next):
+#     self.is_deep_supervision=True
 
 
-dataset_ids=np.array([4,17,27])
-f=h5py.File('/workspaces/konwersjaJsonData/data/hdf5_data.h5', 'r')
-dataset_json_file='/workspaces/konwersjaJsonData/simplified_nnunet/jsons_from_nnunet/dataset.json'
-plans_file="/workspaces/konwersjaJsonData/simplified_nnunet/jsons_from_nnunet/nnUNetPlans.json"
 
-plans = load_json(plans_file)
-input_channels=5
-dataset_json = load_json(dataset_json_file)
-dataset=nnUNetDataset_custom(hdf5_file=f
-                        ,dataset_ids=dataset_ids
-                     ,plans_file=plans
-                     ,dataset_json=dataset_json
-                     ,input_channels=input_channels)
+nnUNetTrainer.on_train_start(self)
 
 
-dataset[4]
-#python3 -m simplified_nnunet.run_simplified_nnunet
+
+self.num_input_channels = determine_num_input_channels(self.plans_manager, self.configuration_manager,
+                                                        self.dataset_json)
+
+
+
+self.pl_model= Pl_main_model(network=self.network
+                        ,dataloader_train=self.dataloader_train
+                        ,dataloader_val=self.dataloader_val
+                        ,loss=self.loss
+                        ,learning_rate=self.learning_rate
+                        ,weight_decay=self.weight_decay
+                        ,label_manager=self.label_manager
+                        ,log_every_n=self.log_every_n
+                        ,num_batch_to_eval=self.num_batch_to_eval
+                        ,train_eval_folder=train_eval_folder 
+                        ,val_eval_folder=val_eval_folder
+                        ,hf5_path=self.hf5_path
+                        ,for_explore=for_explore
+                        ,batch_size=self.batch_size
+                        ,is_classic_nnunet=self.is_classic_nnunet
+                        ,is_swin=self.is_swin
+                        ,is_med_next=self.is_med_next
+                        ,is_swin_monai=self.is_swin_monai
+                        ,is_deep_supervision=self.is_deep_supervision
+                        ,is_anatomy_segm=self.is_anatomy_segm
+                        ,is_lesion_segm=self.is_lesion_segm
+                        ,hparams_dict=self.hparams_dict
+                        )
+
+
+comet_logger = CometLogger(
+    api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
+    #workspace="OPI", # Optional
+    project_name=os.getenv('my_proj_name'), # Optional
+    #experiment_name="baseline" # Optional
+)
+
+toMonitor="is_correct_val" 
+mode="max"
+if(self.is_anatomy_segm):
+    toMonitor="avgHausdorff_pz_val" 
+    mode="min"
+
+checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode=mode, save_top_k=1, monitor=toMonitor)
+
+# stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
+stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=self.learning_rate/2)
+# optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
+early_stopping = pl.callbacks.early_stopping.EarlyStopping(
+    monitor=toMonitor,
+    patience=patience,
+    mode=mode,
+    #divergence_threshold=(-0.1)
+)
+
+# amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
+self.trainer = pl.Trainer(
+    #accelerator="cpu", #TODO(remove)
+    max_epochs=1300,
+    #gpus=1,
+    # precision='16-mixed', 
+    callbacks=[checkpoint_callback,stochasticAveraging,early_stopping], # stochasticAveraging ,stochasticAveraging ,  FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+    logger=comet_logger,
+    accelerator='auto',
+    devices='auto',       
+    default_root_dir= self.default_root_dir,
+    # auto_scale_batch_size="binsearch",
+    check_val_every_n_epoch=self.log_every_n,
+    accumulate_grad_batches= 12,
+    gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
+    log_every_n_steps=self.log_every_n
+    # ,strategy="ddp_spawn"#DDPStrategy(find_unused_parameters=True)
+                # ,reload_dataloaders_every_n_epochs=1
+    # strategy="deepspeed_stage_1"#_offload
+)
+
+
+self.on_train_start()
+
+if(os.getenv('load_checkpoint')=="1"):
+    print(f"loading from checkpoint")
+    self.trainer.fit(self.pl_model, ckpt_path=os.getenv('checkPoint_path'))
+else:  
+    self.trainer.fit(self.pl_model)     
+        
+
+
+self.on_train_end()
