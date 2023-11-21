@@ -172,6 +172,9 @@ def filter_and_mean(lists, index):
     return np.nanmean(np.array(r).flatten())
 
 def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=False, batch_size=1):    
+    if(group_name not in f.keys()):
+        f.create_group(group_name)
+    
     batch_nums= np.array(list(f[group_name].keys()))
     # print(f"111 batch_nums {batch_nums} group_name {group_name}")
 
@@ -387,7 +390,6 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     else:
         my_specificity= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),my_specificity)))) 
     
-    print(f"mmmmm {my_sensitivity} my_specificity {my_specificity}")
     
     num_components= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),num_components))))
     dice_centers= np.nanmean(np.array(list(map(lambda el : np.array(np.nanmean(el)).flatten(),dice_centers))))
@@ -401,7 +403,6 @@ def calc_custom_metrics_inner(target,predicted_segmentation_onehot,data,f,for_ex
     my_sensitivity=np.array(np.nanmean(np.array(my_sensitivity).flatten()))
     my_specificity=np.array(np.nanmean(np.array(my_specificity).flatten()))
     
-    print(f"mmmmm 2 {my_sensitivity} my_specificity {my_specificity}")
     
     
     num_components=np.array(np.nanmean(np.array(num_components).flatten()))
