@@ -174,6 +174,7 @@ def filter_and_mean(lists, index):
 def calc_custom_metrics(group_name,f,for_explore,to_save_files,anatomy_metr=False, batch_size=1):    
     if(group_name not in f.keys()):
         f.create_group(group_name)
+        return np.zeros(8)
     
     batch_nums= np.array(list(f[group_name].keys()))
     # print(f"111 batch_nums {batch_nums} group_name {group_name}")
