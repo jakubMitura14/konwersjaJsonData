@@ -39,7 +39,7 @@ from nnunetv2.training.data_augmentation.custom_transforms.transforms_for_dummy_
 
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper
-from .Main_pl_model import *
+from ..Main_pl_model import *
 import shutil
 import h5py
 import lightning.pytorch as pl
@@ -61,38 +61,63 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 from nnunetv2.training.loss.compound_losses import DC_and_CE_loss, DC_and_BCE_loss
+from nnunetv2.utilities.get_network_from_plans import get_network_from_plans
 
-def build_loss_function():
+from .med_next.create_mednext_v1 import *
+from .swin_unetr.swin_organized.SwinUNETR import *
 
-        if(self.is_lesion_segm):
-            self.loss =self._build_loss_lesions()
-        elif(self.is_deep_supervision):
-            self.loss = self._build_loss()
-        elif(self.is_anatomy_segm):
-            self.loss=DC_and_BCE_loss({},
-                                   {'batch_dice': self.configuration_manager.batch_dice,
-                                    'do_bg': True, 'smooth': 1e-5, 'ddp': self.is_ddp},
-                                   use_ignore_label=self.label_manager.ignore_label is not None,
-                                   dice_class=MemoryEfficientSoftDiceLoss)
+def select_model(img_size
+                 ,is_med_next
+                 ,is_swin
+                 ,is_swin_monai
+                 ,is_classic_nnunet
+                 ,dataset_json
+                 ,configuration_manager
+                 ,plans_manager
+                 ,label_manager
+                 ,num_input_channels
+                 ,batch_size
+                 ,deep_supervision):
+    """
+    selecting the model - generally we are choosing from 3 models:
+    swin unetr, med next and classic nnunet
+    """
 
-    def _build_loss_lesions(self):
-        
+    if(is_classic_nnunet):
+        network = get_network_from_plans(plans_manager, dataset_json, configuration_manager,
+                                    num_input_channels, deep_supervision=True)
+        if(deep_supervision):
+            network.decoder.deep_supervision = True 
 
-        if(self.is_priming_segm):
-            loss= FocalLossV2_orig()
-        else:
-            loss=Picai_FL_and_CE_loss()
+    if(is_med_next):
+        network=create_mednextv1_large(num_input_channels=num_input_channels
+                                            ,num_classes=label_manager.num_segmentation_heads
+                                            ,kernel_size= 7
+                                            ,ds= True)
+    if(is_swin_monai):
+        img_size=(64,img_size[1],img_size[2])
+        # attn_masks_h5f=h5py.File(attn_masks_h5f_path,'w') 
+        network=SwinUNETR(in_channels=num_input_channels
+        # ,num_heads=  (1, 3, 6, 12)
+            ,num_heads=  (6, 12, 24, 48)
+        ,out_channels=label_manager.num_segmentation_heads
+        ,use_v2=True#
+        ,img_size=img_size
+        ,patch_size=(2,2,2)
+        ,batch_size=batch_size
+        ,attn_masks_h5f=[]
+        ,is_swin=False
+        ,is_local_iso=False
+        ,is_local_non_iso=False
+        ,distances=(7,7,7)
+        ,spacing=(3.299999952316284,0.78125, 0.78125)
+        ,feature_size=48
+        ,depths=(2,2,2,2)
+        ,is_lucid=True
+        ,window_size=(7,7,7)
+        ,use_checkpoint=True
+        )
 
 
-        if(self.is_deep_supervision):
-            deep_supervision_scales = self._get_deep_supervision_scales()
+    network = torch.compile(network)
 
-            # we give each output a weight which decreases exponentially (division by 2) as the resolution decreases
-            # this gives higher resolution outputs more weight in the loss
-            weights = np.array([1 / (2 ** i) for i in range(len(deep_supervision_scales))])
-            weights[-1] = 0
-
-            # we don't use the lowest 2 outputs. Normalize weights so that they sum to 1
-            weights = weights / weights.sum()
-            # now wrap the loss
-            loss = DeepSupervisionWrapper(loss, weights)

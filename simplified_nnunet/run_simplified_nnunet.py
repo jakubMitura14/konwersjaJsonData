@@ -183,57 +183,59 @@ setup_pseudo_lesion_adder_and_loss()
 set_env_variables_for_general_transforms()
 
 
-self.log_every_n=4
+log_every_n=4
 patience=30
 
-self.num_batch_to_eval=20
-self.batch_size=1
-self.is_deep_supervision=True
-self.is_classic_nnunet=True
-self.is_swin=False
-self.is_swin_monai=False
-self.is_med_next=False
+num_batch_to_eval=20
+batch_size=1
+is_deep_supervision=True
+is_classic_nnunet=True
+is_swin=False
+is_swin_monai=False
+is_med_next=False
 
-self.is_lesion_segm=True
-self.is_anatomy_segm= not self.is_lesion_segm
-self.is_priming_segm= False
+is_lesion_segm=True
+is_anatomy_segm= not is_lesion_segm
+is_priming_segm= False
 
-# if(self.is_classic_nnunet or self.is_med_next):
-#     self.is_deep_supervision=True
+# if(is_classic_nnunet or is_med_next):
+#     is_deep_supervision=True
 
-
+img_size=(48, 192, 160)
+if(is_lesion_segm):
+    img_size=(40, 96, 96)
 
 nnUNetTrainer.on_train_start(self)
 
 
 
-self.num_input_channels = determine_num_input_channels(self.plans_manager, self.configuration_manager,
-                                                        self.dataset_json)
+num_input_channels = determine_num_input_channels(plans_manager, configuration_manager,
+                                                        dataset_json)
 
 
 
-self.pl_model= Pl_main_model(network=self.network
-                        ,dataloader_train=self.dataloader_train
-                        ,dataloader_val=self.dataloader_val
-                        ,loss=self.loss
-                        ,learning_rate=self.learning_rate
-                        ,weight_decay=self.weight_decay
-                        ,label_manager=self.label_manager
-                        ,log_every_n=self.log_every_n
-                        ,num_batch_to_eval=self.num_batch_to_eval
+pl_model= Pl_main_model(network=network
+                        ,dataloader_train=dataloader_train
+                        ,dataloader_val=dataloader_val
+                        ,loss=loss
+                        ,learning_rate=learning_rate
+                        ,weight_decay=weight_decay
+                        ,label_manager=label_manager
+                        ,log_every_n=log_every_n
+                        ,num_batch_to_eval=num_batch_to_eval
                         ,train_eval_folder=train_eval_folder 
                         ,val_eval_folder=val_eval_folder
-                        ,hf5_path=self.hf5_path
+                        ,hf5_path=hf5_path
                         ,for_explore=for_explore
-                        ,batch_size=self.batch_size
-                        ,is_classic_nnunet=self.is_classic_nnunet
-                        ,is_swin=self.is_swin
-                        ,is_med_next=self.is_med_next
-                        ,is_swin_monai=self.is_swin_monai
-                        ,is_deep_supervision=self.is_deep_supervision
-                        ,is_anatomy_segm=self.is_anatomy_segm
-                        ,is_lesion_segm=self.is_lesion_segm
-                        ,hparams_dict=self.hparams_dict
+                        ,batch_size=batch_size
+                        ,is_classic_nnunet=is_classic_nnunet
+                        ,is_swin=is_swin
+                        ,is_med_next=is_med_next
+                        ,is_swin_monai=is_swin_monai
+                        ,is_deep_supervision=is_deep_supervision
+                        ,is_anatomy_segm=is_anatomy_segm
+                        ,is_lesion_segm=is_lesion_segm
+                        ,hparams_dict=hparams_dict
                         )
 
 
@@ -246,14 +248,14 @@ comet_logger = CometLogger(
 
 toMonitor="is_correct_val" 
 mode="max"
-if(self.is_anatomy_segm):
+if(is_anatomy_segm):
     toMonitor="avgHausdorff_pz_val" 
     mode="min"
 
-checkpoint_callback = ModelCheckpoint(dirpath= self.output_folder,mode=mode, save_top_k=1, monitor=toMonitor)
+checkpoint_callback = ModelCheckpoint(dirpath= output_folder,mode=mode, save_top_k=1, monitor=toMonitor)
 
 # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
-stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=self.learning_rate/2)
+stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=learning_rate/2)
 # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
 early_stopping = pl.callbacks.early_stopping.EarlyStopping(
     monitor=toMonitor,
@@ -263,7 +265,7 @@ early_stopping = pl.callbacks.early_stopping.EarlyStopping(
 )
 
 # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
-self.trainer = pl.Trainer(
+trainer = pl.Trainer(
     #accelerator="cpu", #TODO(remove)
     max_epochs=1300,
     #gpus=1,
@@ -272,26 +274,26 @@ self.trainer = pl.Trainer(
     logger=comet_logger,
     accelerator='auto',
     devices='auto',       
-    default_root_dir= self.default_root_dir,
+    default_root_dir= default_root_dir,
     # auto_scale_batch_size="binsearch",
-    check_val_every_n_epoch=self.log_every_n,
+    check_val_every_n_epoch=log_every_n,
     accumulate_grad_batches= 12,
     gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
-    log_every_n_steps=self.log_every_n
+    log_every_n_steps=log_every_n
     # ,strategy="ddp_spawn"#DDPStrategy(find_unused_parameters=True)
                 # ,reload_dataloaders_every_n_epochs=1
     # strategy="deepspeed_stage_1"#_offload
 )
 
 
-self.on_train_start()
+on_train_start()
 
 if(os.getenv('load_checkpoint')=="1"):
     print(f"loading from checkpoint")
-    self.trainer.fit(self.pl_model, ckpt_path=os.getenv('checkPoint_path'))
+    trainer.fit(pl_model, ckpt_path=os.getenv('checkPoint_path'))
 else:  
-    self.trainer.fit(self.pl_model)     
+    trainer.fit(pl_model)     
         
 
 
-self.on_train_end()
+on_train_end()

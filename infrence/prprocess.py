@@ -1195,6 +1195,8 @@ if __name__ == '__main__':
     df['dre_result']=np.nan_to_num(df['dre_result'].to_numpy(),-1)
 
     objective(resCSVDir,test_ids_CSVDir,plans_file,dataset_json_file,configuration,comet_logger,df)
+
+    
     # experiment_name="anatomy_infrence_l"
     # study = optuna.create_study(
     #         study_name=experiment_name
