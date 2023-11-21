@@ -275,7 +275,7 @@
             "data_identifier": "nnUNetPlans_3d_lowres",
             "inherits_from": "3d_fullres",
             "preprocessor_name": "DefaultPreprocessor",
-            "batch_size": 2,
+            "batch_size": 1,
             "spacing": [
                 3.30000019,
                 0.78125,

@@ -438,9 +438,10 @@ def save_case_to_hdf5(f,plans_file,dataset_json_file,configuration, groupp,hpara
     #get all lesion arrs into one array
     all_lesion_arrs=list(map(lambda el :list(map( lambda el_in:el_in[1],el[1])),lesion_arrs))
     all_lesion_arrs=list(itertools.chain(*all_lesion_arrs))
-    all_lesion_arrs=list(itertools.chain(*all_lesion_arrs))
+    # all_lesion_arrs=list(itertools.chain(*all_lesion_arrs))
     all_lesion_arrs= list(filter(lambda el:el!= " ",all_lesion_arrs))
     all_lesion_arrs=np.sum(np.stack(all_lesion_arrs),axis=0)
+    print(f"aaaaaaaaaaaaaaaa {all_lesion_arrs.shape}")
     hdf5_group.create_dataset("all_lesions",data=all_lesion_arrs)
 
 

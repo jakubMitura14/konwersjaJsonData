@@ -200,5 +200,5 @@ dataset=nnUNetDataset_custom(hdf5_file=f
                      ,input_channels=input_channels)
 
 
-dataset[1]
+dataset[4]
 #python3 -m simplified_nnunet.run_simplified_nnunet

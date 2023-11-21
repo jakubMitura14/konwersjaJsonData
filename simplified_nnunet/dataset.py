@@ -48,8 +48,8 @@ class nnUNetDataset_custom(object):
         self.initial_patch_size=initial_patch_size
         self.patch_size=self.initial_patch_size
         self.mirror_axes=mirror_axes
-        final_patch_size=self.configuration_manager.patch_size
-        self.need_to_pad = (np.array(self.initial_patch_size) - np.array(final_patch_size)).astype(int)
+        self.final_patch_size=self.configuration_manager.patch_size
+        self.need_to_pad = (np.array(self.initial_patch_size) - np.array(self.final_patch_size)).astype(int)
         self.data_shape, self.seg_shape = self.determine_shapes(input_channels)
         self.has_ignore=False
         self.annotated_classes_key = tuple(self.label_manager.all_labels)
@@ -153,18 +153,18 @@ class nnUNetDataset_custom(object):
         # in dataloader 2d we need to select the slice prior to this and also modify the class_locations to only have
         # locations for the given slice
         need_to_pad = self.need_to_pad.copy()
-        dim = len(self.data_shape)
+        dim = len(self.patch_size)
 
         for d in range(dim):
             # if case_all_data.shape + need_to_pad is still < patch size we need to pad more! We pad on both sides
             # always
-            if need_to_pad[d] + self.data_shape[d] < self.patch_size[d]:
-                need_to_pad[d] = self.patch_size[d] - self.data_shape[d]
+            if need_to_pad[d] + self.patch_size[d] < self.patch_size[d]:
+                need_to_pad[d] = self.patch_size[d] - self.patch_size[d]
 
         # we can now choose the bbox from -need_to_pad // 2 to shape - patch_size + need_to_pad // 2. Here we
         # define what the upper and lower bound can be to then sample form them with np.random.randint
         lbs = [- need_to_pad[i] // 2 for i in range(dim)]
-        ubs = [self.data_shape[i] + need_to_pad[i] // 2 + need_to_pad[i] % 2 - self.patch_size[i] for i in range(dim)]
+        ubs = [self.patch_size[i] + need_to_pad[i] // 2 + need_to_pad[i] % 2 - self.patch_size[i] for i in range(dim)]
 
         # if not force_fg then we can just sample the bbox randomly from lb and ub. Else we need to make sure we get
         # at least one of the foreground classes in the patch
@@ -228,48 +228,51 @@ class nnUNetDataset_custom(object):
 
     def __getitem__(self, key):
         gr = self.hdf5_file[str(key)]        
-        data = gr['mri_data'][:,:,:,:]
-        pz=gr["tresh_pz"][:,:,:]
-        tz=gr["tresh_tz"][:,:,:]
+        data = gr['mri_data'][:]
+        pz=gr["tresh_pz"][:]
+        tz=gr["tresh_tz"][:]
         anat= np.stack((pz,tz),axis=0)
         data= np.concatenate((data,anat),axis=0)
-        target = gr['all_lesions'][:,:,:] 
-        data = einops.rearrange(data,"c h w d -> 1 c h w d")       
-        seg = einops.rearrange(target,"h w d -> 1 1 h w d")       
+        target = gr['all_lesions'][:]
+        # print(f"tttttttttt {target.shape}  keys {gr.keys()}   adc_lesion1 {gr['adc_lesion1'][:].shape}") 
+        data = einops.rearrange(data,"c h w d -> c h w d")       
+        seg = einops.rearrange(target,"h w d -> 1 h w d")       
         clinical = np.array([gr.attrs['dre'], gr.attrs['age'], gr.attrs['psa'], gr.attrs['id']])
-        dictt=self.transforms (**{"data":data,"seg" :target})
 
         data_all = np.zeros(self.data_shape, dtype=np.float32)
         seg_all = np.zeros(self.seg_shape, dtype=np.int16)
         case_properties = []
-        selected_keys = self.get_indices()
+        # selected_keys = self.get_indices()
 
-        shape = data_all.shape[1:]
+        shape = data.shape[1:]
         dim = 3
       
+        print(f"iiiiiii data_all {data_all.shape} data {data.shape} seg {seg.shape} seg_all {seg_all.shape}")
+        seg_shape=seg_all.shape
+        j=0
+        force_fg = False#self.get_do_oversample(j)
+        bbox_lbs, bbox_ubs = self.get_bbox(force_fg=force_fg,class_locations=None)
+        # whoever wrote this knew what he was doing (hint: it was me). We first crop the data to the region of the
+        # bbox that actually lies within the data. This will result in a smaller array which is then faster to pad.
+        # valid_bbox is just the coord that lied within the data cube. It will be padded to match the patch size
+        # later
+        valid_bbox_lbs = [max(0, bbox_lbs[i]) for i in range(dim)]
+        valid_bbox_ubs = [min(shape[i], bbox_ubs[i]) for i in range(dim)]
+        # At this point you might ask yourself why we would treat seg differently from seg_from_previous_stage.
+        # Why not just concatenate them here and forget about the if statements? Well that's because segneeds to
+        # be padded with -1 constant whereas seg_from_previous_stage needs to be padded with 0s (we could also
+        # remove label -1 in the data augmentation but this way it is less error prone)
+        this_slice = tuple([slice(0, data.shape[0])] + [slice(i, j) for i, j in zip(valid_bbox_lbs, valid_bbox_ubs)])
+        data = data[this_slice]
+        this_slice = tuple([slice(0, seg.shape[0])] + [slice(i, j) for i, j in zip(valid_bbox_lbs, valid_bbox_ubs)])
+        seg = seg[this_slice]
+        padding = [(-min(0, bbox_lbs[i]), max(bbox_ubs[i] - shape[i], 0)) for i in range(dim)]
+        data_all[j] = np.pad(data, ((0, 0), *padding), 'constant', constant_values=0)
+        seg_all[j] = np.pad(seg, ((0, 0), *padding), 'constant', constant_values=-1)
+
+        dictt=self.transforms(**{"data":data_all,"seg" :seg_all})
         data=dictt["data"]
         seg=dictt["target"]
-        for j, i in enumerate(selected_keys):
-
-            force_fg = self.get_do_oversample(j)
-            bbox_lbs, bbox_ubs = self.get_bbox(shape, force_fg, None)
-            # whoever wrote this knew what he was doing (hint: it was me). We first crop the data to the region of the
-            # bbox that actually lies within the data. This will result in a smaller array which is then faster to pad.
-            # valid_bbox is just the coord that lied within the data cube. It will be padded to match the patch size
-            # later
-            valid_bbox_lbs = [max(0, bbox_lbs[i]) for i in range(dim)]
-            valid_bbox_ubs = [min(shape[i], bbox_ubs[i]) for i in range(dim)]
-            # At this point you might ask yourself why we would treat seg differently from seg_from_previous_stage.
-            # Why not just concatenate them here and forget about the if statements? Well that's because segneeds to
-            # be padded with -1 constant whereas seg_from_previous_stage needs to be padded with 0s (we could also
-            # remove label -1 in the data augmentation but this way it is less error prone)
-            this_slice = tuple([slice(0, data.shape[0])] + [slice(i, j) for i, j in zip(valid_bbox_lbs, valid_bbox_ubs)])
-            data = data[this_slice]
-            this_slice = tuple([slice(0, seg.shape[0])] + [slice(i, j) for i, j in zip(valid_bbox_lbs, valid_bbox_ubs)])
-            seg = seg[this_slice]
-            padding = [(-min(0, bbox_lbs[i]), max(bbox_ubs[i] - shape[i], 0)) for i in range(dim)]
-            data_all[j] = np.pad(data, ((0, 0), *padding), 'constant', constant_values=0)
-            seg_all[j] = np.pad(seg, ((0, 0), *padding), 'constant', constant_values=-1)
 
 
         return  data_all,seg_all,clinical
