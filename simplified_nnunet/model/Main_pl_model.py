@@ -328,17 +328,6 @@ class Pl_main_model(pl.LightningModule):
             np.save(numpy_dir, a)
             
 
-            # with open('/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy', 'w+') as f:
-            #     a = np.load(f)
-            #     a.append(a,curr)
-            #     np.save(f, a)
-            # if(curr>prev_best):
-            #     # os.environ['best_metric'] = f"{curr}"
-            # curr_csv = pd.read_csv(csv_dir)
-            # curr_csv = curr_csv.append({"ress":curr}, ignore_index=True)    
-            # # os.environ['best_metric'] ='11.0'    
-            # curr_csv.to_csv(csv_dir) 
-
 
 
     def on_train_epoch_end(self):

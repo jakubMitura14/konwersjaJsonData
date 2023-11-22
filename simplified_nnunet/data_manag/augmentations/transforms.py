@@ -103,7 +103,9 @@ def get_training_transforms(patch_size: Union[np.ndarray, Tuple[int]],
                                 regions: List[Union[List[int], Tuple[int, ...], int]] = None,
                                 ignore_label: int = None
                                 ,is_lesion_segm=True,is_anatomy_segm=False,is_priming_segm=False) -> AbstractTransform:
-
+        """
+        choosing the correct augmentations for training
+        """
         if(is_lesion_segm):
             return get_training_transforms_lesions(patch_size,rotation_for_DA,deep_supervision_scales,mirror_axes,do_dummy_2d_data_aug,order_resampling_data
                                                         ,order_resampling_seg,border_val_seg,use_mask_for_norm,is_cascaded,foreground_labels,regions,ignore_label,is_priming_segm=is_priming_segm)
@@ -125,6 +127,9 @@ def get_training_transforms_lesions(patch_size: Union[np.ndarray, Tuple[int]],
                             foreground_labels: Union[Tuple[int, ...], List[int]] = None,
                             regions: List[Union[List[int], Tuple[int, ...], int]] = None,
                             ignore_label: int = None,is_lesion_segm=True,is_anatomy_segm=False,is_priming_segm=False) -> AbstractTransform:
+    """
+    augmentations used for training cancer detection
+    """
     tr_transforms = []
     if do_dummy_2d_data_aug:
         ignore_axes = (0,)
@@ -263,6 +268,9 @@ def get_training_transforms_anatomy(patch_size: Union[np.ndarray, Tuple[int]],
                             foreground_labels: Union[Tuple[int, ...], List[int]] = None,
                             regions: List[Union[List[int], Tuple[int, ...], int]] = None,
                             ignore_label: int = None,is_lesion_segm=True,is_anatomy_segm=False,is_priming_segm=False) -> AbstractTransform:
+    """
+    augmentations used for training anatomy segmentation
+    """
     tr_transforms = []
     if do_dummy_2d_data_aug:
         ignore_axes = (0,)
