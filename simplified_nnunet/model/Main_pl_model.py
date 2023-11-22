@@ -75,7 +75,7 @@ from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from .custom_eval import *
 import ignite
 import deepspeed
-from .my_transform import My_gpu_pseudo_lesion_adder
+from .augmentations.my_transform import My_gpu_pseudo_lesion_adder
 
 class Pl_main_model(pl.LightningModule):
     def __init__(self,network

@@ -22,7 +22,7 @@ from nnunetv2.training.data_augmentation.compute_initial_patch_size import get_p
 from typing import Union, Tuple, List
 import einops
 import pandas as pd
-from .transforms import get_training_transforms,get_validation_transforms
+from ..model.augmentations.transforms import get_training_transforms,get_validation_transforms
 
 
 class nnUNetDataset_custom(object):
