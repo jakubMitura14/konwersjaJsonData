@@ -23,12 +23,19 @@ from typing import Union, Tuple, List
 import einops
 import pandas as pd
 import h5py
+import torch
+from mpi4py import MPI
+from lightning.pytorch.loggers import CometLogger
+
+
 from .data_manag.dataset import nnUNetDataset_custom
 from .data_manag.path_manag import manage_paths
 from .data_manag.pl_data_module import Main_DataModule
-
 from .model.architecture.select_model import select_model
-import torch
+from .model.Main_pl_model import Pl_main_model
+from .model.optimazation import get_learning_rate
+from .model.custom_loss import build_loss_function
+
 
 
 
@@ -200,99 +207,150 @@ is_lesion_segm=True
 is_anatomy_segm= not is_lesion_segm
 is_priming_segm= False
 
-
+#manually specify image sizes and number of input channels
 img_size=(48, 192, 160)
 if(is_lesion_segm):
     img_size=(40, 96, 96)
-
-# to avoid out of memory    
-torch.cuda.empty_cache()
-
-
+input_channels_lesions=5
+configuration="3d_lowres"
+deep_supervision=True
 
 
 
+def run_training(hparams_dict):
+    """
+    main function for training a model
+    """
+    # to avoid out of memory    
+    torch.cuda.empty_cache()
 
-pl_model= Pl_main_model(network=network
-                        ,dataloader_train=dataloader_train
-                        ,dataloader_val=dataloader_val
-                        ,loss=loss
-                        ,learning_rate=learning_rate
-                        ,weight_decay=weight_decay
-                        ,label_manager=label_manager
-                        ,log_every_n=log_every_n
-                        ,num_batch_to_eval=num_batch_to_eval
-                        ,train_eval_folder=train_eval_folder 
-                        ,val_eval_folder=val_eval_folder
-                        ,hf5_path=hf5_path
-                        ,for_explore=for_explore
-                        ,batch_size=batch_size
-                        ,is_classic_nnunet=is_classic_nnunet
-                        ,is_swin=is_swin
-                        ,is_med_next=is_med_next
-                        ,is_swin_monai=is_swin_monai
-                        ,is_deep_supervision=is_deep_supervision
-                        ,is_anatomy_segm=is_anatomy_segm
-                        ,is_lesion_segm=is_lesion_segm
-                        ,hparams_dict=hparams_dict
-                        )
+    #set up paths
+    train_eval_folder,val_eval_folder,ligtning_logs_folder,h5_folder,hf5_path,for_explore,source_hdf5_path,dataset_json_file_lesions,plans_file_lesions=manage_paths()
 
+    dataset_ids=np.array([4,17,27])
 
-comet_logger = CometLogger(
-    api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
-    #workspace="OPI", # Optional
-    project_name=os.getenv('my_proj_name'), # Optional
-    #experiment_name="baseline" # Optional
-)
+    source_h5=h5py.File(source_hdf5_path, 'r',driver='mpio', comm=MPI.COMM_WORLD)
 
-toMonitor="is_correct_val" 
-mode="max"
-if(is_anatomy_segm):
-    toMonitor="avgHausdorff_pz_val" 
-    mode="min"
+    #setup for lesions files that we get from basic nnunet
+    plans_lesions = load_json(plans_file_lesions)
+    dataset_json_lesions = load_json(dataset_json_file_lesions)
+    plans_manager_lesions = PlansManager(plans_lesions)
+    configuration_manager_lesions = plans_manager_lesions.get_configuration(configuration)
+    label_manager_lesions=plans_manager_lesions.get_label_manager(dataset_json_lesions)
 
-checkpoint_callback = ModelCheckpoint(dirpath= output_folder,mode=mode, save_top_k=1, monitor=toMonitor)
+    #setup object for loading and augmenting data
+    dataset=nnUNetDataset_custom(hdf5_file=source_h5
+                            ,dataset_ids=dataset_ids
+                        ,plans_file=plans_manager_lesions
+                        ,dataset_json=dataset_json_lesions
+                        ,input_channels=input_channels_lesions
+                        ,configuration_manager=configuration_manager_lesions)
 
-# stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
-stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=learning_rate/2)
-# optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
-early_stopping = pl.callbacks.early_stopping.EarlyStopping(
-    monitor=toMonitor,
-    patience=patience,
-    mode=mode,
-    #divergence_threshold=(-0.1)
-)
+    #setup neural network for training
+    network=select_model(img_size
+                    ,is_med_next
+                    ,is_swin
+                    ,is_swin_monai
+                    ,is_classic_nnunet
+                    ,dataset_json_lesions
+                    ,configuration_manager_lesions
+                    ,plans_manager_lesions
+                    ,label_manager_lesions
+                    ,input_channels_lesions
+                    ,batch_size
+                    ,deep_supervision)
 
-# amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
-trainer = pl.Trainer(
-    #accelerator="cpu", #TODO(remove)
-    max_epochs=1300,
-    #gpus=1,
-    # precision='16-mixed', 
-    callbacks=[checkpoint_callback,stochasticAveraging,early_stopping], # stochasticAveraging ,stochasticAveraging ,  FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
-    logger=comet_logger,
-    accelerator='auto',
-    devices='auto',       
-    default_root_dir= default_root_dir,
-    # auto_scale_batch_size="binsearch",
-    check_val_every_n_epoch=log_every_n,
-    accumulate_grad_batches= 12,
-    gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
-    log_every_n_steps=log_every_n
-    # ,strategy="ddp_spawn"#DDPStrategy(find_unused_parameters=True)
-                # ,reload_dataloaders_every_n_epochs=1
-    # strategy="deepspeed_stage_1"#_offload
-)
+    #setup pytorch lightning data module
 
 
-on_train_start()
-
-if(os.getenv('load_checkpoint')=="1"):
-    print(f"loading from checkpoint")
-    trainer.fit(pl_model, ckpt_path=os.getenv('checkPoint_path'))
-else:  
-    trainer.fit(pl_model)     
-        
 
 
-on_train_end()
+    #setup main pytorch lightning module
+    learning_rate=get_learning_rate(is_swin_monai, is_anatomy_segm, is_classic_nnunet, is_med_next,is_lesion_segm)
+    loss=build_loss_function(is_lesion_segm
+                            ,is_deep_supervision
+                            ,is_anatomy_segm
+                            ,configuration_manager_lesions
+                            ,label_manager_lesions
+                            ,is_priming_segm
+                            )
+    pl_model= Pl_main_model(network=network
+                            ,loss=loss
+                            ,learning_rate=learning_rate
+                            ,label_manager=label_manager_lesions
+                            ,log_every_n=log_every_n
+                            ,num_batch_to_eval=num_batch_to_eval
+                            ,train_eval_folder=train_eval_folder 
+                            ,val_eval_folder=val_eval_folder
+                            ,hf5_path=hf5_path
+                            ,for_explore=for_explore
+                            ,batch_size=batch_size
+                            ,is_classic_nnunet=is_classic_nnunet
+                            ,is_swin=is_swin
+                            ,is_med_next=is_med_next
+                            ,is_swin_monai=is_swin_monai
+                            ,is_deep_supervision=is_deep_supervision
+                            ,is_anatomy_segm=is_anatomy_segm
+                            ,is_lesion_segm=is_lesion_segm
+                            ,hparams_dict=hparams_dict
+                            )
+
+    #logging 
+    comet_logger = CometLogger(
+        api_key="yB0irIjdk9t7gbpTlSUPnXBd4",
+        #workspace="OPI", # Optional
+        project_name=os.getenv('my_proj_name'), # Optional
+        #experiment_name="baseline" # Optional
+    )
+
+    toMonitor="is_correct_val" 
+    mode="max"
+    if(is_anatomy_segm):
+        toMonitor="avgHausdorff_pz_val" 
+        mode="min"
+
+    checkpoint_callback = ModelCheckpoint(dirpath= output_folder,mode=mode, save_top_k=1, monitor=toMonitor)
+
+    # stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=trial.suggest_float("swa_lrs", 1e-6, 1e-4))
+    stochasticAveraging=pl.callbacks.stochastic_weight_avg.StochasticWeightAveraging(swa_lrs=learning_rate/2)
+    # optuna_prune=PyTorchLightningPruningCallback(trial, monitor=toMonitor)     
+    early_stopping = pl.callbacks.early_stopping.EarlyStopping(
+        monitor=toMonitor,
+        patience=patience,
+        mode=mode,
+        #divergence_threshold=(-0.1)
+    )
+
+    # amp_plug=pl.pytorch.plugins.precision.MixedPrecisionPlugin()
+    trainer = pl.Trainer(
+        #accelerator="cpu", #TODO(remove)
+        max_epochs=1300,
+        #gpus=1,
+        # precision='16-mixed', 
+        callbacks=[checkpoint_callback,stochasticAveraging,early_stopping], # stochasticAveraging ,stochasticAveraging ,  FineTuneLearningRateFinder(milestones=(5, 10,40)),stochasticAveraging ,FineTuneLearningRateFinder(milestones=(5, 10,40)) early_stopping early_stopping   stochasticAveraging,optuna_prune,checkpoint_callback
+        logger=comet_logger,
+        accelerator='auto',
+        devices='auto',       
+        default_root_dir= default_root_dir,
+        # auto_scale_batch_size="binsearch",
+        check_val_every_n_epoch=log_every_n,
+        accumulate_grad_batches= 12,
+        gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
+        log_every_n_steps=log_every_n
+        # ,strategy="ddp_spawn"#DDPStrategy(find_unused_parameters=True)
+                    # ,reload_dataloaders_every_n_epochs=1
+        # strategy="deepspeed_stage_1"#_offload
+    )
+
+
+    on_train_start()
+
+    if(os.getenv('load_checkpoint')=="1"):
+        print(f"loading from checkpoint")
+        trainer.fit(pl_model, ckpt_path=os.getenv('checkPoint_path'))
+    else:  
+        trainer.fit(pl_model)     
+            
+
+
+    on_train_end()

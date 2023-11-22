@@ -80,5 +80,10 @@ def manage_paths():
     os.makedirs(h5_folder,exist_ok=True)
     os.makedirs(for_explore,exist_ok=True)
 
-    return train_eval_folder,val_eval_folder,ligtning_logs_folder,h5_folder,hf5_path,for_explore
+
+    source_hdf5_path='/workspaces/konwersjaJsonData/data/hdf5_data.h5'
+    dataset_json_file_lesions='/workspaces/konwersjaJsonData/simplified_nnunet/jsons_from_nnunet/dataset.json'
+    plans_file_lesions="/workspaces/konwersjaJsonData/simplified_nnunet/jsons_from_nnunet/nnUNetPlans.json"
+
+    return train_eval_folder,val_eval_folder,ligtning_logs_folder,h5_folder,hf5_path,for_explore,source_hdf5_path,dataset_json_file_lesions,plans_file_lesions
 

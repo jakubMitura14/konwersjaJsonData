@@ -79,11 +79,8 @@ from .augmentations.my_transform import My_gpu_pseudo_lesion_adder
 
 class Pl_main_model(pl.LightningModule):
     def __init__(self,network
-                 ,dataloader_train
-                 ,dataloader_val
                  ,loss
                  ,learning_rate
-                 ,weight_decay
                  ,label_manager
                  ,log_every_n
                  ,num_batch_to_eval
@@ -106,11 +103,8 @@ class Pl_main_model(pl.LightningModule):
         
         super().__init__()
         self.network=network
-        self.dataloader_train=dataloader_train
-        self.dataloader_val=dataloader_val
         self.loss=loss
         self.learning_rate = learning_rate
-        self.weight_decay=weight_decay
         self.label_manager=label_manager
         self.log_every_n=log_every_n
         self.num_batch_to_eval=num_batch_to_eval

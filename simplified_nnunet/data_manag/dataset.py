@@ -29,7 +29,7 @@ class nnUNetDataset_custom(object):
     """
     dataset_ids - ids used for either training or validation depending on usage
     """
-    def __init__(self,dataset_ids:np.ndarray,hdf5_file,plans_file,dataset_json,input_channels,is_lesion_segm=True,is_anatomy_segm=False
+    def __init__(self,dataset_ids:np.ndarray,hdf5_file,plans_manager,dataset_json,input_channels,configuration_manager,is_lesion_segm=True,is_anatomy_segm=False
                  ,is_training=True):
         super().__init__()
         configuration="3d_lowres"
@@ -37,8 +37,8 @@ class nnUNetDataset_custom(object):
         self.hdf5_file = hdf5_file
         #hyperparameter set as is in nnunet
         self.oversample_foreground_percent = 0.33
-        self.plans_manager = PlansManager(plans_file)
-        self.configuration_manager = self.plans_manager.get_configuration(configuration)
+        self.plans_manager = plans_manager
+        self.configuration_manager = configuration_manager
         self.label_manager = self.plans_manager.get_label_manager(dataset_json)
         self.batch_size = self.configuration_manager.batch_size
         rotation_for_DA, do_dummy_2d_data_aug, initial_patch_size, mirror_axes = \
