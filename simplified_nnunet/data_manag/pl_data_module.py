@@ -38,7 +38,7 @@ class Main_DataModule(L.LightningDataModule):
     plans_file- path to plans.json file that was created using original nnunet
     """
 
-    def __init__(self, source_hdf5_file
+    def __init__(self, source_f
                  ,dataset_json_file
                  ,plans_file
                  ,input_channels
@@ -46,7 +46,7 @@ class Main_DataModule(L.LightningDataModule):
                  ,val_dataset_ids
                  ,batch_size=1):
         super().__init__()
-        self.source_hdf5_file=source_hdf5_file
+        self.source_f = source_f
         self.dataset_json_file=dataset_json_file
         self.plans_file=plans_file
         self.input_channels=input_channels     
@@ -60,7 +60,6 @@ class Main_DataModule(L.LightningDataModule):
     #     MNIST(self.data_dir, train=False, download=True)
 
     def setup(self):    
-        self.source_f = h5py.File(self.source_hdf5_file, 'r',driver='mpio', comm=MPI.COMM_WORLD)
         dataset_json = load_json(self.dataset_json_file)
         plans = load_json(self.plans_file)
         #training dataset

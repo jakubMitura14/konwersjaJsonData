@@ -259,9 +259,8 @@ def run_training(hparams_dict):
                     ,input_channels_lesions
                     ,batch_size
                     ,deep_supervision)
-
     #setup pytorch lightning data module
-
+    pl_data_module=Main_DataModule(source_hdf5_file=source_hdf5_path
 
 
 
