@@ -167,7 +167,7 @@ class Main_trainer_pl(nnUNetTrainer):
         train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
         val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
         ligtning_logs_folder='/workspaces/konwersjaJsonData/explore'
-        h5_folder='/workspaces/konwersjaJsonData/explore/hdf5_loc'
+        h5_folder='/home/sliceruser/nnunetMainFolder/hdf5_loc'
         hf5_path=f"{h5_folder}/mytestfile.hdf5"
         for_explore='/workspaces/konwersjaJsonData/explore/for_explore'
         self.hf5_path=hf5_path
@@ -372,6 +372,8 @@ class Main_trainer_pl(nnUNetTrainer):
             accumulate_grad_batches= 12,
             gradient_clip_val = 5.0 ,#experiment.get_parameter("gradient_clip_val"),# 0.5,2.0
             log_every_n_steps=self.log_every_n
+            # limit_train_batches=5,
+            # limit_val_batches=5
             # ,strategy="ddp_spawn"#DDPStrategy(find_unused_parameters=True)
                         # ,reload_dataloaders_every_n_epochs=1
             # strategy="deepspeed_stage_1"#_offload

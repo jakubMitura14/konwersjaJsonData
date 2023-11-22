@@ -408,7 +408,7 @@ ENV TMP="/tmp"
 
 ENV nnUNet_raw="/home/sliceruser/nnunetMainFolder/nnUNet_raw"
 ENV nnUNet_preprocessed="/home/sliceruser/nnunetMainFolder/nnUNet_preprocessed"
-ENV nnUNet_results="/home/sliceruser/nnUNet_results"
+ENV nnUNet_results="/home/sliceruser/nnunetMainFolder/nnUNet_results"
 ENV COMET_API_KEY="yB0irIjdk9t7gbpTlSUPnXBd4"
 # CMD ["/bin/bash"]
 COPY docker-entrypoint.sh /

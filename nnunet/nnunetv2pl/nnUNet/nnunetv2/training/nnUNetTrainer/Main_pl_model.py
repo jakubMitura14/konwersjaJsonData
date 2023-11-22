@@ -294,6 +294,7 @@ class Pl_main_model(pl.LightningModule):
         return False
     
     def my_lesion_log(self,res,group_name):
+        print(f" is_correct_{group_name} {res[3]}  my_sensitivity_{group_name} {res[4]} my_specificity_{group_name} {res[5]}")
         self.log(f"percent_in_{group_name}", res[0],sync_dist=True) #,sync_dist=True
         self.log(f"percent_out_{group_name}", res[1],sync_dist=True) #,sync_dist=True
         self.log(f"percent_covered_{group_name}", res[2],sync_dist=True) #,sync_dist=True
@@ -303,8 +304,8 @@ class Pl_main_model(pl.LightningModule):
 
         self.log(f"num_components_{group_name}", res[6],sync_dist=True)#,sync_dist=True
         self.log(f"in_inferred_{group_name}", res[7],sync_dist=True)#,sync_dist=True
-        self.log(f"dice_centers_{group_name}", res[8],sync_dist=True)#,sync_dist=True
-        self.log(f"dice_all_{group_name}", res[9],sync_dist=True)#,sync_dist=True
+        # self.log(f"dice_centers_{group_name}", res[8],sync_dist=True)#,sync_dist=True
+        # self.log(f"dice_all_{group_name}", res[9],sync_dist=True)#,sync_dist=True
 
 
     def on_validation_epoch_end(self):
@@ -319,7 +320,7 @@ class Pl_main_model(pl.LightningModule):
         if(self.is_lesion_segm):
             self.my_lesion_log(res,group_name)
             # print(f"getttt best metric")
-            numpy_dir='/home/sliceruser/curr_npy.npy'
+            numpy_dir='/home/sliceruser/nnunetMainFolder/curr_npy.npy'
             # prev_best=float(os.getenv('best_metric'))
             curr=res[3]
             a=np.load(numpy_dir)

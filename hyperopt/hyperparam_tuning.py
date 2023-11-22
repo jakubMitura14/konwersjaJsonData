@@ -1,4 +1,4 @@
-import optuna
+import comet_ml,optuna
 import os
 from subprocess import Popen
 import subprocess
@@ -11,7 +11,6 @@ import numpy as np
 import json
 import shutil
 import glob
-
 
 def loadLib(name,path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -36,15 +35,14 @@ def save_trial_id(trial_id):
 # csv_dir="/workspaces/konwersjaJsonData/hyperopt/curr_csv.csv"
 # curr_csv = pd.DataFrame([{"ress":0.0}])
 
-# print(f"rrrrrrrrr {curr_csv}")
-# curr_csv.to_csv(csv_dir) 
-
-json_pathh='/home/sliceruser/curr_json.json'
-results_folder="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
-numpy_arr_path='/home/sliceruser/curr_npy.npy'
+#cp -a /home/sliceruser/nnunetMainFolder/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0 /workspaces/konwersjaJsonData/explore/ress 
+json_pathh='/home/sliceruser/nnunetMainFolder/curr_json.json'
+results_folder="/home/sliceruser/nnunetMainFolder/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
+numpy_arr_path='/home/sliceruser/nnunetMainFolder/curr_npy.npy'
 # os.makedirs(results_folder,exist_ok=True)
+experiment_name="classic_augmentations13"#bias_norm
 
-
+backup_res="/home/sliceruser/nnUNet_results/Dataset101_Prostate/Main_trainer_pl__nnUNetPlans__3d_lowres/fold_0"
 
 # seg_lesions_custom=loadLib("seg_lesions_custom","/workspaces/konwersjaJsonData/nnunet/seg_lesions_custom.py")
 
@@ -211,7 +209,6 @@ def set_norm_and_bias_field(trial):
 # experiment_name="general_augment"
 # experiment_name="classic_augmentations2"#bias_norm
 # experiment_name="test"#bias_norm
-experiment_name="classic_augmentations10"#bias_norm
 
 
 def setup_pseudo_lesion_adder_and_loss(trial):
@@ -266,6 +263,12 @@ def objective(trial: optuna.trial.Trial) -> float:
     shutil.rmtree(results_folder)
     os.mkdir(results_folder)    
     
+    numpy_dir=numpy_arr_path
+    a=np.load(numpy_dir)
+    res=  np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
+    print(f"rrrr res {res} aa {a}")       
+    
+    
     os. remove(numpy_arr_path) 
 
     with open(numpy_arr_path, 'wb') as f:
@@ -275,14 +278,11 @@ def objective(trial: optuna.trial.Trial) -> float:
     save_trial_id(" ")# reset trial id
 
 
-    numpy_dir="/workspaces/konwersjaJsonData/hyperopt/curr_npy.npy"
-    a=np.load(numpy_dir)
-    res=  np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
-    print(f"rrrr res {res} aa {a}")   
+
     
     
-    return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
-    # return np.max(a)
+    # return np.max((np.roll(a,1)+a+np.roll(a,-1))/3)
+    return np.max(res)
 # storage="mysql://root@34.90.134.17/testt"
 
 storage = optuna.storages.RDBStorage(
@@ -343,13 +343,15 @@ else:
         
     failed_trial_number = int(old_trial_id)
     failed_trial = storage.get_trial(int(old_trial_id))#study.get_trials()[failed_trial_number]
+    print(f"ffffffffffffffff {failed_trial.params}")
     study.enqueue_trial(failed_trial.params)
     study.optimize(objective, n_trials=900,gc_after_trial=True)
 
     
     
     
-    
+    # ffffffffffffffff {'alpha_low': 201.81426440708293, 'alpha_high': 199.26228578100603, 'GaussianBlurTransform': 0.8553980116483617
+    # , 'SimulateLowResolutionTransform': 0.2979299279931298, 'GammaTransform_a': 0.17306902885208744, 'GammaTransform_b': 0.42318521803664116, 'p_scale_per_sample': 0.20376765634246816, 'scale_low': 0.4083505603424723, 'scale_high': 1.4473137695864557, 'p_rot_per_axis': '3', 'independent_scale_for_each_axis': '0'}
     
     # study.tell(asked)
 #     # study.optimize(objective, n_trials=900,gc_after_trial=True)
@@ -358,6 +360,6 @@ else:
 # study.add_trial()
 #last was 1211
 
-# optuna-dashboard mysql://root@34.90.134.17/classic_augmentations7
+# optuna-dashboard mysql://root@34.90.134.17/classic_augmentations11
 # optuna-dashboard mysql://root@34.90.134.17/custom_aug_loss_f
 # # my_proj_name='hyperparam_classic_aug' tag='hyperparam_classic_aug' my_proj_desc='debug' nnUNetv2_train 101 3d_lowres 0 -tr Main_trainer_pl
