@@ -47,35 +47,38 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from lightning.pytorch.callbacks import LearningRateFinder
 
 def manage_paths():
-       train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
-        val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
-        ligtning_logs_folder='/workspaces/konwersjaJsonData/explore'
-        h5_folder='/workspaces/konwersjaJsonData/explore/hdf5_loc'
-        hf5_path=f"{h5_folder}/mytestfile.hdf5"
-        for_explore='/workspaces/konwersjaJsonData/explore/for_explore'
-        self.hf5_path=hf5_path
-        attn_masks_h5f_path="/workspaces/konwersjaJsonData/sparse_dat/sparse_masks.hdf5"
+    """
+    control paths for training and evaluation
+    creates folders, clears folders, sets paths
+    """
+    train_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/train'
+    val_eval_folder ='/workspaces/konwersjaJsonData/explore/validation_to_look_into/val'
+    ligtning_logs_folder='/workspaces/konwersjaJsonData/explore'
+    h5_folder='/workspaces/konwersjaJsonData/explore/hdf5_loc'
+    hf5_path=f"{h5_folder}/mytestfile.hdf5"
+    for_explore='/workspaces/konwersjaJsonData/explore/for_explore'
 
-        os.makedirs(h5_folder,exist_ok=True)
+    os.makedirs(h5_folder,exist_ok=True)
 
 
-        os.makedirs(train_eval_folder,exist_ok=True)
-        os.makedirs(val_eval_folder,exist_ok=True)
-        os.makedirs(ligtning_logs_folder,exist_ok=True)
-        os.makedirs(for_explore,exist_ok=True)
-        
-        
-        shutil.rmtree(h5_folder)        
-        shutil.rmtree(train_eval_folder)
-        shutil.rmtree(val_eval_folder)
-        shutil.rmtree(ligtning_logs_folder)
-        # shutil.rmtree(for_explore)
-        
-        
-        os.makedirs(train_eval_folder,exist_ok=True)        
-        os.makedirs(ligtning_logs_folder,exist_ok=True)
-        os.makedirs(val_eval_folder,exist_ok=True)
-        os.makedirs(h5_folder,exist_ok=True)
-        os.makedirs(for_explore,exist_ok=True)
+    os.makedirs(train_eval_folder,exist_ok=True)
+    os.makedirs(val_eval_folder,exist_ok=True)
+    os.makedirs(ligtning_logs_folder,exist_ok=True)
+    os.makedirs(for_explore,exist_ok=True)
 
-        self.default_root_dir=ligtning_logs_folder
+
+    shutil.rmtree(h5_folder)        
+    shutil.rmtree(train_eval_folder)
+    shutil.rmtree(val_eval_folder)
+    shutil.rmtree(ligtning_logs_folder)
+    # shutil.rmtree(for_explore)
+
+
+    os.makedirs(train_eval_folder,exist_ok=True)        
+    os.makedirs(ligtning_logs_folder,exist_ok=True)
+    os.makedirs(val_eval_folder,exist_ok=True)
+    os.makedirs(h5_folder,exist_ok=True)
+    os.makedirs(for_explore,exist_ok=True)
+
+    return train_eval_folder,val_eval_folder,ligtning_logs_folder,h5_folder,hf5_path,for_explore
+

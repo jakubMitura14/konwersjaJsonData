@@ -59,20 +59,19 @@ class FineTuneLearningRateFinder(LearningRateFinder):
             self.lr_find(trainer, pl_module)
 
 
-def configure_optimizer():
+def get_learning_rate(is_swin_monai, is_anatomy_segm, is_classic_nnunet, is_med_next,is_lesion_segm):
     """
-    will set up the optimizer depending on the model chosen
+    will set up initial learning rate depending on the model chosen
+    learning rates were set mainly by pytorch lightning learning rate finder
     """
-    self.learning_rate=self.initial_lr 
-    if(self.is_swin_monai and self.is_anatomy_segm):
-        self.learning_rate=0.02089296130854041
-    if(self.is_classic_nnunet and self.is_anatomy_segm):    
-        self.learning_rate=0.04365158322401657
-    if(self.is_med_next and self.is_anatomy_segm):    #3.77s/it
-        self.learning_rate=0.0013182567385564075
+    if(is_swin_monai and is_anatomy_segm):
+        return 0.02089296130854041
+    if(is_classic_nnunet and is_anatomy_segm):    
+        return 0.04365158322401657
+    if(is_med_next and is_anatomy_segm):    #3.77s/it
+        return 0.0013182567385564075
                     
 
-    if(self.is_med_next and self.is_lesion_segm):   
-        self.learning_rate=0.00831 
+    if(is_med_next and is_lesion_segm):   
+        return 0.00831 
 
-    self.learning_rate=float(os.getenv('learning_rate'))    
