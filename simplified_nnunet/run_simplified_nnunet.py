@@ -28,7 +28,7 @@ from .data_manag.path_manag import manage_paths
 from .data_manag.pl_data_module import Main_DataModule
 
 from .model.architecture.select_model import select_model
-
+import torch
 
 
 
@@ -186,9 +186,9 @@ setup_pseudo_lesion_adder_and_loss()
 set_env_variables_for_general_transforms()
 
 
+#for manual setup
 log_every_n=4
 patience=30
-
 num_batch_to_eval=20
 batch_size=1
 is_deep_supervision=True
@@ -196,24 +196,20 @@ is_classic_nnunet=True
 is_swin=False
 is_swin_monai=False
 is_med_next=False
-
 is_lesion_segm=True
 is_anatomy_segm= not is_lesion_segm
 is_priming_segm= False
 
-# if(is_classic_nnunet or is_med_next):
-#     is_deep_supervision=True
 
 img_size=(48, 192, 160)
 if(is_lesion_segm):
     img_size=(40, 96, 96)
 
-nnUNetTrainer.on_train_start(self)
+# to avoid out of memory    
+torch.cuda.empty_cache()
 
 
 
-num_input_channels = determine_num_input_channels(plans_manager, configuration_manager,
-                                                        dataset_json)
 
 
 

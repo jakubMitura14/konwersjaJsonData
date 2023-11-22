@@ -118,6 +118,6 @@ def select_model(img_size
         ,use_checkpoint=True
         )
 
-
-    network = torch.compile(network)
+    #precompilation for speed up
+    return torch.compile(network)
 
